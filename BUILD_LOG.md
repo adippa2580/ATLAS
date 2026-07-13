@@ -22,8 +22,9 @@ boots against Postgres with the full taste + booking loop verified end-to-end.
 | Marketing hub (7 primitives) | Audience Studio, Discovery/Recommendations, Lifecycle/CRM (Klaviyo), Attribution, Winback, Reporting/BI, Entities catalog | ✅ Done |
 | MCP gateway | Two-sided tool manifest (consumer + tenant tools) | ✅ Done |
 | Integrations | Stripe, Spotify, Instagram, Klaviyo, Square adapters (stub mode) | ✅ Done |
-| Deploy + CI | docker-compose, Dockerfile, GCP Cloud Run + Terraform, GitHub Actions CI | ✅ Done |
-| Build verification | nest build, eslint, jest, live boot + end-to-end loop | ✅ Done |
+| CI | GitHub Actions build + lint + test against Postgres — passing on PR #2 | ✅ Done |
+| GCP deploy pipeline | Terraform (SQL, Redis, Pub/Sub, BigQuery, GCS, Artifact Registry, Secret Manager, VPC connector, GitHub WIF), Prisma migrations, deploy.sh, keyless CD workflow — project `atlas-502319` | ✅ Done |
+| Build verification | nest build, eslint, jest, live boot + end-to-end loop, migration apply + prod boot | ✅ Done |
 
 ## Architecture notes
 - **Three planes:** transactional (Postgres OLTP), evidence (append-only affinity log → EvidenceBus → recompute worker; Pub/Sub in prod), intelligence (recommendations + BI).
