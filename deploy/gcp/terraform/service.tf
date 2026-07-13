@@ -56,7 +56,9 @@ resource "google_project_iam_member" "run_secrets" {
 # --- Secrets: DATABASE_URL (via Cloud SQL connector socket) and REDIS_URL ---
 resource "google_secret_manager_secret" "database_url" {
   secret_id = "atlas-database-url"
-  replication { auto {} }
+  replication {
+    auto {}
+  }
 }
 
 resource "google_secret_manager_secret_version" "database_url" {
@@ -67,7 +69,9 @@ resource "google_secret_manager_secret_version" "database_url" {
 
 resource "google_secret_manager_secret" "redis_url" {
   secret_id = "atlas-redis-url"
-  replication { auto {} }
+  replication {
+    auto {}
+  }
 }
 
 resource "google_secret_manager_secret_version" "redis_url" {

@@ -59,8 +59,8 @@ resource "google_pubsub_topic" "evidence" {
 }
 
 resource "google_pubsub_subscription" "evidence_recompute" {
-  name  = "atlas-evidence-recompute"
-  topic = google_pubsub_topic.evidence.name
+  name                 = "atlas-evidence-recompute"
+  topic                = google_pubsub_topic.evidence.name
   ack_deadline_seconds = 30
   retry_policy {
     minimum_backoff = "5s"
