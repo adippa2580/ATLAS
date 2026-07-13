@@ -1,0 +1,2 @@
+# Prisma migration lock — do not edit.
+provider = "postgresql"

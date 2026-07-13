@@ -1,0 +1,60 @@
+name: Deploy (Cloud Run)
+
+# Deploys the Atlas monolith to Cloud Run on push to main, authenticating to GCP
+# via Workload Identity Federation (no long-lived keys). Configure repo-level:
+#   Variables: GCP_PROJECT_ID, GCP_REGION, GCP_WIF_PROVIDER, GCP_DEPLOY_SA
+# (all output by `terraform apply` — see deploy/gcp/README.md).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # required for WIF OIDC
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      REGION: ${{ vars.GCP_REGION }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build & push image
+        run: |
+          IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/atlas/atlas:${GITHUB_SHA::7}"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+          gcloud auth configure-docker "${REGION}-docker.pkg.dev" -q
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
+
+      - name: Migrate database
+        run: |
+          SQL_CONN="$(gcloud sql instances describe atlas-pg --format='value(connectionName)')"
+          gcloud run jobs deploy atlas-migrate \
+            --image "$IMAGE" --region "$REGION" \
+            --service-account "atlas-run@${PROJECT_ID}.iam.gserviceaccount.com" \
+            --set-cloudsql-instances "$SQL_CONN" \
+            --set-secrets "DATABASE_URL=atlas-database-url:latest" \
+            --command npx --args "prisma,migrate,deploy" --quiet
+          gcloud run jobs execute atlas-migrate --region "$REGION" --wait
+
+      - name: Deploy service
+        run: |
+          SQL_CONN="$(gcloud sql instances describe atlas-pg --format='value(connectionName)')"
+          sed -e "s/__REGION__/${REGION}/g" \
+              -e "s/__PROJECT_ID__/${PROJECT_ID}/g" \
+              -e "s/__IMAGE_TAG__/${GITHUB_SHA::7}/g" \
+              -e "s#__SQL_CONNECTION_NAME__#${SQL_CONN}#g" \
+              deploy/gcp/cloudrun.yaml > /tmp/cloudrun.rendered.yaml
+          gcloud run services replace /tmp/cloudrun.rendered.yaml --region "$REGION"

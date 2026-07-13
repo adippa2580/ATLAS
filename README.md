@@ -53,9 +53,9 @@ curl -sX POST localhost:3000/v1/evidence \
   -d '{"guestId":"<id>","subjectType":"artist","subjectRef":"Keinemusik","signal":"follow","provenance":"connector","dedupeKey":"demo-1"}'
 ```
 
-### Deploy target (GCP)
+### Deploy (GCP — project `atlas-502319`)
 
-Cloud Run for the monolith; Cloud SQL (Postgres) transactional plane; Pub/Sub + GCS the evidence plane; BigQuery the intelligence plane; Memorystore for serving. See `deploy/gcp/` (`EVIDENCE_BUS=pubsub` switches the bus off the in-memory dev implementation).
+Cloud Run for the monolith; Cloud SQL (Postgres) transactional plane; Pub/Sub + GCS the evidence plane; BigQuery the intelligence plane; Memorystore for serving. Infrastructure is Terraform (`deploy/gcp/terraform/` — SQL, Redis, Pub/Sub, BigQuery, GCS, Artifact Registry, Secret Manager, VPC connector, and GitHub Workload Identity Federation). Deploy via `./deploy/gcp/deploy.sh` or the `Deploy (Cloud Run)` GitHub Actions workflow (keyless via WIF). Migrations run as a one-off Cloud Run Job (`prisma migrate deploy`, `prisma/migrations/`). `EVIDENCE_BUS=pubsub` switches the bus off the in-memory dev implementation. Full runbook: [`deploy/gcp/README.md`](deploy/gcp/README.md).
 
 ## Status
 
