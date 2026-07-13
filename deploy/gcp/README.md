@@ -35,7 +35,19 @@ Terraform outputs you'll need for CI:
 
 ## Deploy
 
-**Manual:**
+**One-shot from Google Cloud Shell (recommended — no key, no local Docker):**
+```bash
+# in Cloud Shell (shell.cloud.google.com)
+git clone https://github.com/adippa2580/ATLAS.git && cd ATLAS
+git checkout claude/system-design-wt0pcw
+./deploy/gcp/cloudshell-deploy.sh   # terraform apply -> Cloud Build -> migrate -> deploy
+```
+This chains everything: it generates + stores a DB password, provisions infra,
+builds the image with Cloud Build, runs migrations as a Cloud Run Job, deploys
+the service, and prints the URL plus the four GitHub variables for CI/CD. Safe
+to re-run.
+
+**Manual (local, needs Docker):**
 ```bash
 cd <repo root>
 ./deploy/gcp/deploy.sh            # builds+pushes image, runs migrations, deploys
