@@ -9,6 +9,7 @@ Atlas is the multi-tenant **intelligence-and-booking platform** for hospitality 
 - [`docs/architecture/atlas-system-design.md`](docs/architecture/atlas-system-design.md) — system design (draft v1): requirements, high-level architecture, data model, API contract, taste graph, identity resolution, scale/reliability, trade-offs, and the consent/data-contract model.
 - [`docs/architecture/data-contract-alist-atlas.md`](docs/architecture/data-contract-alist-atlas.md) — W1 A-List ↔ Atlas data contract: what lives where, the four ingest classes, what flows / never flows, consent basis, ownership, and identity-join mechanics.
 - [`docs/architecture/primitive-api-spec.md`](docs/architecture/primitive-api-spec.md) — the primitive-by-primitive public tenant API contract (23 primitives across Guest/Ops/Marketing), with scopes, evidence emitted, MCP exposure, and MVP staging.
+- [`docs/architecture/alist-journey-w2.md`](docs/architecture/alist-journey-w2.md) — W2 screen-level A-List journey mapped onto the primitives (onboarding → PLAN → ADJUST → BOOK & PAY → LIVE → WRAP), including the crew taste-composition (blend) interface and the venue-link (class 1b) variant.
 
 ## Status
 
