@@ -46,6 +46,19 @@ fi
 "$TF" version 2>/dev/null | grep -qiE '^Terraform v' || die "real terraform unavailable after install"
 echo "Terraform: $("$TF" version | head -1)"
 
+# First-time bootstrap: Terraform's google_project_service can't enable APIs
+# until Cloud Resource Manager + Service Usage are already on (chicken-and-egg),
+# so enable everything up front with gcloud. Idempotent; takes ~1-2 min.
+bold "Enabling required Google APIs (first-time bootstrap)"
+gcloud services enable \
+  cloudresourcemanager.googleapis.com serviceusage.googleapis.com \
+  run.googleapis.com sqladmin.googleapis.com redis.googleapis.com \
+  pubsub.googleapis.com bigquery.googleapis.com artifactregistry.googleapis.com \
+  secretmanager.googleapis.com vpcaccess.googleapis.com iamcredentials.googleapis.com \
+  cloudbuild.googleapis.com iam.googleapis.com \
+  --project "${PROJECT_ID}" \
+  || die "could not enable APIs — confirm billing is enabled on ${PROJECT_ID} and your account has Owner"
+
 # --- DB password: reuse if already in Secret Manager, else generate + keep ---
 if [ -z "${TF_VAR_db_password:-}" ]; then
   if gcloud secrets versions access latest --secret=atlas-db-password >/dev/null 2>&1; then
