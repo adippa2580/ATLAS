@@ -1,0 +1,431 @@
+// Atlas data model — see docs/architecture/atlas-system-design.md §3.1
+// Every tenant-scoped row carries tenantId; Postgres RLS enforces isolation in prod.
+// The affinity_evidence table is append-only and is the ONLY write path into the taste graph.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Tenancy
+// ---------------------------------------------------------------------------
+enum TenantKind {
+  anchor
+  venue
+  alist
+}
+
+model Tenant {
+  id        String     @id @default(uuid())
+  name      String
+  kind      TenantKind
+  createdAt DateTime   @default(now())
+
+  guests   Guest[]
+  venues   Venue[]
+  bookings Booking[]
+}
+
+// ---------------------------------------------------------------------------
+// Guest hub — Identity & Profile
+// ---------------------------------------------------------------------------
+model Guest {
+  id           String   @id @default(uuid())
+  tenantId     String
+  primaryPhone String? // E.164
+  email        String?
+  displayName  String?
+  provisional  Boolean  @default(true)
+  walletPassId String?  @unique
+  createdAt    DateTime @default(now())
+
+  tenant       Tenant           @relation(fields: [tenantId], references: [id])
+  links        IdentityLink[]
+  consents     ConsentGrant[]
+  evidence     AffinityEvidence[]
+  affinities   GuestAffinity[]
+  crewMembers  CrewMember[]
+  bookings     Booking[]
+  entitlements Entitlement[]
+
+  @@index([tenantId])
+  @@index([tenantId, primaryPhone])
+  @@index([tenantId, email])
+}
+
+enum IdentityLinkKind {
+  phone
+  email
+  card_fingerprint
+  spotify_id
+  instagram_id
+  wallet
+}
+
+model IdentityLink {
+  id        String           @id @default(uuid())
+  tenantId  String
+  guestId   String
+  kind      IdentityLinkKind
+  valueHash String
+  verified  Boolean          @default(false)
+  source    String?
+  createdAt DateTime         @default(now())
+
+  guest Guest @relation(fields: [guestId], references: [id])
+
+  @@unique([tenantId, kind, valueHash])
+  @@index([tenantId, guestId])
+}
+
+// Append-only audit of merges (reversible)
+model IdentityMergeLog {
+  id           String   @id @default(uuid())
+  tenantId     String
+  survivingId  String
+  absorbedId   String
+  reason       String?
+  createdAt    DateTime @default(now())
+
+  @@index([tenantId, survivingId])
+}
+
+// ---------------------------------------------------------------------------
+// Guest hub — Consent ledger (hard dependency of every evidence write)
+// ---------------------------------------------------------------------------
+enum ConsentBasis {
+  connector_oauth
+  checkout_terms
+  explicit
+  tenant_dpa
+}
+
+model ConsentGrant {
+  id        String       @id @default(uuid())
+  tenantId  String
+  guestId   String
+  scope     String
+  basis     ConsentBasis
+  connector String?
+  grantedAt DateTime     @default(now())
+  revokedAt DateTime?
+
+  guest    Guest              @relation(fields: [guestId], references: [id])
+  evidence AffinityEvidence[]
+
+  @@index([tenantId, guestId])
+}
+
+// ---------------------------------------------------------------------------
+// Guest hub — Taste graph: evidence (append-only) + derived affinity
+// ---------------------------------------------------------------------------
+enum SubjectType {
+  artist
+  genre
+  venue
+  event
+  crew
+  table
+}
+
+enum Signal {
+  follow
+  listen
+  book
+  attend
+  spend
+  mute
+  loyalty
+}
+
+enum Provenance {
+  connector
+  booking
+  venue_link
+  pos
+  agent
+}
+
+model AffinityEvidence {
+  id          String      @id @default(uuid())
+  tenantId    String
+  guestId     String
+  subjectType SubjectType
+  subjectRef  String
+  signal      Signal
+  weight      Float       @default(1)
+  provenance  Provenance
+  consentId   String?
+  observedAt  DateTime    @default(now())
+  dedupeKey   String
+
+  guest   Guest         @relation(fields: [guestId], references: [id])
+  consent ConsentGrant? @relation(fields: [consentId], references: [id])
+
+  @@unique([tenantId, dedupeKey])
+  @@index([tenantId, guestId])
+  @@index([tenantId, subjectType, subjectRef])
+}
+
+// Derived, decay-aware, mute-respecting taste. Recomputed from evidence.
+model GuestAffinity {
+  id          String      @id @default(uuid())
+  tenantId    String
+  guestId     String
+  subjectType SubjectType
+  subjectRef  String
+  score       Float
+  muted       Boolean     @default(false)
+  decayedAt   DateTime    @default(now())
+
+  guest Guest @relation(fields: [guestId], references: [id])
+
+  @@unique([tenantId, guestId, subjectType, subjectRef])
+  @@index([tenantId, guestId])
+}
+
+// ---------------------------------------------------------------------------
+// Guest hub — Crew graph
+// ---------------------------------------------------------------------------
+model Crew {
+  id           String   @id @default(uuid())
+  tenantId     String
+  name         String?
+  ownerGuestId String
+  createdAt    DateTime @default(now())
+
+  members    CrewMember[]
+  affinities CrewAffinity[]
+  bookings   Booking[]
+
+  @@index([tenantId])
+}
+
+model CrewMember {
+  crewId  String
+  guestId String
+  role    String @default("member")
+
+  crew  Crew  @relation(fields: [crewId], references: [id])
+  guest Guest @relation(fields: [guestId], references: [id])
+
+  @@id([crewId, guestId])
+}
+
+model CrewAffinity {
+  id           String      @id @default(uuid())
+  crewId       String
+  subjectType  SubjectType
+  subjectRef   String
+  blendedScore Float
+  confidence   Float       @default(0.5)
+
+  crew Crew @relation(fields: [crewId], references: [id])
+
+  @@unique([crewId, subjectType, subjectRef])
+}
+
+// ---------------------------------------------------------------------------
+// Guest hub — Entitlements / Loyalty / Trust
+// ---------------------------------------------------------------------------
+enum EntitlementKind {
+  perk
+  ticket
+  loyalty_credit
+}
+
+model Entitlement {
+  id        String          @id @default(uuid())
+  tenantId  String
+  guestId   String
+  kind      EntitlementKind
+  state     String          @default("active")
+  expiresAt DateTime?
+  createdAt DateTime        @default(now())
+
+  guest Guest @relation(fields: [guestId], references: [id])
+
+  @@index([tenantId, guestId])
+}
+
+model TrustEvent {
+  id        String   @id @default(uuid())
+  tenantId  String
+  guestId   String
+  kind      String // no_show | positive | ...
+  weight    Float    @default(1)
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, guestId])
+}
+
+// ---------------------------------------------------------------------------
+// Ops hub — Venues / Inventory / Bookings / Payments / Tab
+// ---------------------------------------------------------------------------
+model Venue {
+  id          String   @id @default(uuid())
+  tenantId    String
+  name        String
+  city        String?
+  floorMapRef String?
+  createdAt   DateTime @default(now())
+
+  tenant    Tenant      @relation(fields: [tenantId], references: [id])
+  inventory Inventory[]
+  bookings  Booking[]
+
+  @@index([tenantId])
+}
+
+enum InventoryKind {
+  table
+  ticket
+}
+
+model Inventory {
+  id       String        @id @default(uuid())
+  tenantId String
+  venueId  String
+  kind     InventoryKind
+  label    String?
+  capacity Int           @default(1)
+  minSpend Float?
+  deposit  Float?
+
+  venue    Venue     @relation(fields: [venueId], references: [id])
+  bookings Booking[]
+
+  @@index([tenantId, venueId])
+}
+
+enum BookingStatus {
+  held
+  confirmed
+  seated
+  closed
+  cancelled
+}
+
+model Booking {
+  id            String        @id @default(uuid())
+  tenantId      String
+  venueId       String
+  guestId       String
+  crewId        String?
+  inventoryId   String?
+  status        BookingStatus @default(held)
+  date          DateTime
+  partySize     Int           @default(1)
+  attributionId String?
+  createdAt     DateTime      @default(now())
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id])
+  venue     Venue      @relation(fields: [venueId], references: [id])
+  guest     Guest      @relation(fields: [guestId], references: [id])
+  crew      Crew?      @relation(fields: [crewId], references: [id])
+  inventory Inventory? @relation(fields: [inventoryId], references: [id])
+  payments  Payment[]
+  tab       Tab?
+
+  @@index([tenantId, venueId])
+  @@index([tenantId, guestId])
+}
+
+model Payment {
+  id             String   @id @default(uuid())
+  tenantId       String
+  bookingId      String
+  stripePiId     String?
+  amount         Float
+  splitGroupId   String?
+  payerGuestId   String?
+  status         String   @default("pending")
+  idempotencyKey String?
+  createdAt      DateTime @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+
+  @@index([tenantId, bookingId])
+}
+
+model Tab {
+  id         String   @id @default(uuid())
+  tenantId   String
+  bookingId  String   @unique
+  total      Float    @default(0)
+  lineItems  Json?
+  closedAt   DateTime?
+  createdAt  DateTime @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+}
+
+// ---------------------------------------------------------------------------
+// Marketing hub — Entities / Attribution / Audiences / Campaigns
+// ---------------------------------------------------------------------------
+enum EntityKind {
+  artist
+  event
+  venue
+}
+
+model Entity {
+  id           String     @id @default(uuid())
+  kind         EntityKind
+  name         String
+  externalRefs Json?
+  metadata     Json?
+  createdAt    DateTime   @default(now())
+
+  @@index([kind])
+}
+
+model AttributionLink {
+  id         String   @id @default(uuid())
+  tenantId   String
+  venueId    String?
+  campaignId String?
+  code       String   @unique
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+model Audience {
+  id         String   @id @default(uuid())
+  tenantId   String
+  name       String
+  predicates Json
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+model Campaign {
+  id         String   @id @default(uuid())
+  tenantId   String
+  audienceId String?
+  channel    String   @default("klaviyo")
+  status     String   @default("queued")
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+// ---------------------------------------------------------------------------
+// Cross-cutting — Metering
+// ---------------------------------------------------------------------------
+model UsageEvent {
+  id             String   @id @default(uuid())
+  tenantId       String
+  kind           String // booking | api_call | mcp_call
+  billableAmount Float    @default(0)
+  occurredAt     DateTime @default(now())
+
+  @@index([tenantId, kind])
+}

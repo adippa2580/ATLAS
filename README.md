@@ -16,6 +16,47 @@ Atlas is the multi-tenant **intelligence-and-booking platform** for hospitality 
 - [`docs/architecture/primitive-additions-triage-w6.md`](docs/architecture/primitive-additions-triage-w6.md) — W6 triage of candidate hub additions into capability / new-primitive / integration / later, keeping the "23 primitives, one contract" count stable.
 - [`docs/architecture/first-paid-wedge-w7.md`](docs/architecture/first-paid-wedge-w7.md) — W7 first-paid-wedge one-pager: booking take-rate first, then venue SaaS as "guest intelligence"; what we sell, to whom, and what we never lead with.
 
+## The platform (code)
+
+A NestJS + Prisma **modular monolith** implementing the primitive contract. Each primitive is a Nest module under `src/modules/{guest,ops,marketing}`; the taste graph is fed exclusively through the append-only evidence path (`POST /v1/evidence` → `EvidenceBus` → recompute worker). External vendors (Stripe, Spotify, Instagram, Klaviyo, Square) are behind adapters in `src/integrations/` that run in **stub mode** when their credentials are unset, so the whole platform boots and the booking/taste loops are exercisable with no cloud or vendor keys.
+
+```
+src/
+  common/         # prisma, tenancy (RLS-ready), scopes auth guard, idempotency, evidence bus
+  integrations/   # Stripe / Spotify / Instagram / Klaviyo / Square adapters (stubbed)
+  modules/
+    guest/        # Identity, Consent, Connectors, Taste/Evidence, Crew(+blend), Entitlements, Loyalty, Trust
+    ops/          # Bookings, Inventory, Deposits, Payments, Tab, Routing, Door, Closeout
+    marketing/    # Audiences, Discovery, Lifecycle, Attribution, Winback, Reporting, Entities
+    mcp/          # two-sided MCP tool manifest
+prisma/schema.prisma   # the full data model (system-design §3.1)
+deploy/gcp/            # Cloud Run + Terraform (Cloud SQL, Memorystore, Pub/Sub, BigQuery, GCS)
+```
+
+### Run locally
+
+```bash
+cp .env.example .env
+docker compose up -d postgres redis      # Postgres + Redis
+npm install
+npx prisma generate
+npx prisma db push                        # create the schema
+npm run prisma:seed                       # optional: A-List + anchor venue + a guest
+npm run start:dev                         # http://localhost:3000  (Swagger at /docs)
+```
+
+Dev auth is header-based (`DEV_TRUST_HEADERS=true`): pass `X-Tenant-Id` and space-separated `X-Scopes` (use `*` for all). Example — append taste evidence:
+
+```bash
+curl -sX POST localhost:3000/v1/evidence \
+  -H 'X-Tenant-Id: <tenantId>' -H 'X-Scopes: *' -H 'Content-Type: application/json' \
+  -d '{"guestId":"<id>","subjectType":"artist","subjectRef":"Keinemusik","signal":"follow","provenance":"connector","dedupeKey":"demo-1"}'
+```
+
+### Deploy target (GCP)
+
+Cloud Run for the monolith; Cloud SQL (Postgres) transactional plane; Pub/Sub + GCS the evidence plane; BigQuery the intelligence plane; Memorystore for serving. See `deploy/gcp/` (`EVIDENCE_BUS=pubsub` switches the bus off the in-memory dev implementation).
+
 ## Status
 
-Phase 00 — journey spec and primitive-contract definition. See the roadmap section of the system design doc.
+Phase 01 (Alpha) — the modular monolith and MVP primitives are being built on the contract. See the roadmap section of the system design doc.

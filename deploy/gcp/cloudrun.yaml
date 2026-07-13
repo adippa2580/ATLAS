@@ -1,0 +1,47 @@
+# Cloud Run service for the Atlas monolith.
+# Deploy: gcloud run services replace deploy/gcp/cloudrun.yaml --region <REGION>
+# Secrets (DATABASE_URL, REDIS_URL, connector keys) are wired from Secret Manager.
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: atlas
+  labels:
+    app: atlas
+spec:
+  template:
+    metadata:
+      annotations:
+        # Serverless VPC connector for private Cloud SQL / Memorystore access.
+        run.googleapis.com/vpc-access-connector: atlas-connector
+        run.googleapis.com/vpc-access-egress: private-ranges-only
+        autoscaling.knative.dev/minScale: '1'
+        autoscaling.knative.dev/maxScale: '20'
+    spec:
+      containerConcurrency: 80
+      containers:
+        - image: REGION-docker.pkg.dev/PROJECT_ID/atlas/atlas:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: EVIDENCE_BUS
+              value: pubsub
+            - name: DEV_TRUST_HEADERS
+              value: 'false'
+            - name: GCP_PROJECT_ID
+              value: PROJECT_ID
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: atlas-database-url
+                  key: latest
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: atlas-redis-url
+                  key: latest
+          resources:
+            limits:
+              cpu: '1'
+              memory: 512Mi
