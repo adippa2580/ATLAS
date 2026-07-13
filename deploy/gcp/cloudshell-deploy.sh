@@ -31,19 +31,20 @@ bold "Project ${PROJECT_ID} / region ${REGION}"
 export CLOUDSDK_CORE_PROJECT="${PROJECT_ID}"
 gcloud config set project "${PROJECT_ID}" >/dev/null 2>&1 || true
 
-# Cloud Shell no longer ships Terraform — install a pinned binary into ~/bin if
-# it's missing, so this script is self-contained.
-if ! command -v terraform >/dev/null 2>&1; then
-  bold "Installing Terraform (not present in this environment)"
+# Cloud Shell ships a `terraform` STUB that only prints install instructions and
+# does nothing (so `command -v terraform` lies). Always install the real binary
+# into ~/bin and invoke it by absolute path via $TF so the stub can't shadow it.
+TF="$HOME/bin/terraform"
+if ! "$TF" version 2>/dev/null | grep -qiE '^Terraform v'; then
+  bold "Installing Terraform (Cloud Shell only provides a stub)"
   TF_VER=1.9.8
   mkdir -p "$HOME/bin"
   curl -fsSL "https://releases.hashicorp.com/terraform/${TF_VER}/terraform_${TF_VER}_linux_amd64.zip" -o /tmp/atlas-tf.zip \
     && unzip -oq /tmp/atlas-tf.zip -d "$HOME/bin" \
     || die "failed to download/install Terraform"
-  export PATH="$HOME/bin:$PATH"
 fi
-command -v terraform >/dev/null 2>&1 || die "terraform not found after install attempt"
-echo "Terraform: $(terraform version | head -1)"
+"$TF" version 2>/dev/null | grep -qiE '^Terraform v' || die "real terraform unavailable after install"
+echo "Terraform: $("$TF" version | head -1)"
 
 # --- DB password: reuse if already in Secret Manager, else generate + keep ---
 if [ -z "${TF_VAR_db_password:-}" ]; then
@@ -59,16 +60,16 @@ fi
 bold "Provisioning infrastructure (Terraform) — Cloud SQL is slow, ~10-15 min"
 pushd deploy/gcp/terraform >/dev/null
 [ -f terraform.tfvars ] || cp terraform.tfvars.example terraform.tfvars
-terraform init -input=false >/dev/null || die "terraform init failed"
+"$TF" init -input=false >/dev/null || die "terraform init failed"
 # First apply can race API enablement; retry once, then fail hard.
-terraform apply -input=false -auto-approve \
+"$TF" apply -input=false -auto-approve \
   -var="project_id=${PROJECT_ID}" -var="region=${REGION}" \
-  || { echo "retrying apply after API enablement..."; sleep 20; \
-       terraform apply -input=false -auto-approve \
+  || { echo "retrying apply after API enablement..."; sleep 30; \
+       "$TF" apply -input=false -auto-approve \
          -var="project_id=${PROJECT_ID}" -var="region=${REGION}" \
          || die "terraform apply failed — see the Error above (usually a missing role or unenabled API)"; }
-WIF_PROVIDER="$(terraform output -raw wif_provider 2>/dev/null || echo '')"
-DEPLOY_SA="$(terraform output -raw github_deploy_sa 2>/dev/null || echo '')"
+WIF_PROVIDER="$("$TF" output -raw wif_provider 2>/dev/null || echo '')"
+DEPLOY_SA="$("$TF" output -raw github_deploy_sa 2>/dev/null || echo '')"
 popd >/dev/null
 
 # Stash the DB password so re-runs reuse it.
