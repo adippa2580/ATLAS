@@ -11,6 +11,9 @@ Atlas is the multi-tenant **intelligence-and-booking platform** for hospitality 
 - [`docs/architecture/primitive-api-spec.md`](docs/architecture/primitive-api-spec.md) — the primitive-by-primitive public tenant API contract (23 primitives across Guest/Ops/Marketing), with scopes, evidence emitted, MCP exposure, and MVP staging.
 - [`docs/architecture/alist-journey-w2.md`](docs/architecture/alist-journey-w2.md) — W2 screen-level A-List journey mapped onto the primitives (onboarding → PLAN → ADJUST → BOOK & PAY → LIVE → WRAP), including the crew taste-composition (blend) interface and the venue-link (class 1b) variant.
 - [`docs/architecture/integration-loops-w4.md`](docs/architecture/integration-loops-w4.md) — W4 three end-to-end integration loop stories (Instagram-ad→repeat-visit, venue-link→app-conversion→merge, artist-announce→winback) over the first five integrations (Stripe, Spotify, Instagram, Klaviyo, Square).
+- [`docs/architecture/competitor-positioning-w5.md`](docs/architecture/competitor-positioning-w5.md) — W5 positioning-led "where we win" grid vs Fourvenues / Tablelist / SevenRooms / Tock-Resy (Apaleo for agent-readiness), plus the internal feature appendix.
+- [`docs/architecture/primitive-additions-triage-w6.md`](docs/architecture/primitive-additions-triage-w6.md) — W6 triage of candidate hub additions into capability / new-primitive / integration / later, keeping the "23 primitives, one contract" count stable.
+- [`docs/architecture/first-paid-wedge-w7.md`](docs/architecture/first-paid-wedge-w7.md) — W7 first-paid-wedge one-pager: booking take-rate first, then venue SaaS as "guest intelligence"; what we sell, to whom, and what we never lead with.
 
 ## Status
 
