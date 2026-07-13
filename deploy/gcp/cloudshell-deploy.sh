@@ -31,6 +31,20 @@ bold "Project ${PROJECT_ID} / region ${REGION}"
 export CLOUDSDK_CORE_PROJECT="${PROJECT_ID}"
 gcloud config set project "${PROJECT_ID}" >/dev/null 2>&1 || true
 
+# Cloud Shell no longer ships Terraform — install a pinned binary into ~/bin if
+# it's missing, so this script is self-contained.
+if ! command -v terraform >/dev/null 2>&1; then
+  bold "Installing Terraform (not present in this environment)"
+  TF_VER=1.9.8
+  mkdir -p "$HOME/bin"
+  curl -fsSL "https://releases.hashicorp.com/terraform/${TF_VER}/terraform_${TF_VER}_linux_amd64.zip" -o /tmp/atlas-tf.zip \
+    && unzip -oq /tmp/atlas-tf.zip -d "$HOME/bin" \
+    || die "failed to download/install Terraform"
+  export PATH="$HOME/bin:$PATH"
+fi
+command -v terraform >/dev/null 2>&1 || die "terraform not found after install attempt"
+echo "Terraform: $(terraform version | head -1)"
+
 # --- DB password: reuse if already in Secret Manager, else generate + keep ---
 if [ -z "${TF_VAR_db_password:-}" ]; then
   if gcloud secrets versions access latest --secret=atlas-db-password >/dev/null 2>&1; then
