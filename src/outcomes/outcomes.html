@@ -9,6 +9,9 @@
     --good:#12864B; --good-wash:#E3F3E9; --warn:#B7791F; --warn-wash:#FBF0DC; --crit:#C8422F; --crit-wash:#F9E7E2;
     --info:#2B6CB0;
     --hub-guest:#8A3A83; --hub-ops:#0E7490; --hub-mkt:#4C51BF;
+    /* validated 7-slot categorical palette (light steps) — no green/red (reserved status hues) */
+    --pc-taste:#d16091; --pc-identity:#832f83; --pc-crews:#6649af; --pc-venues:#05b9cf;
+    --pc-bookings:#78a1ff; --pc-revenue:#d29f0a; --pc-marketing:#a44602;
     --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
     --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     --serif:"Iowan Old Style",Georgia,"Times New Roman",serif;
@@ -22,6 +25,9 @@
     --good:#4ED08A; --good-wash:#122a1f; --warn:#E3B25B; --warn-wash:#2c2415; --crit:#F0836E; --crit-wash:#2e1a17;
     --info:#6AA5E0;
     --hub-guest:#D19BCB; --hub-ops:#4FB6C9; --hub-mkt:#9098EC;
+    /* validated 7-slot categorical palette (dark steps for surface #191320) */
+    --pc-taste:#c55285; --pc-identity:#933e92; --pc-crews:#6f52b9; --pc-venues:#129db0;
+    --pc-bookings:#618aeb; --pc-revenue:#b48706; --pc-marketing:#ac4b06;
     --shadow:0 1px 2px rgba(0,0,0,.45),0 10px 30px -18px rgba(0,0,0,.75);
   }
   @media (prefers-color-scheme:dark){:root:not([data-theme]){
@@ -32,6 +38,8 @@
     --good:#4ED08A; --good-wash:#122a1f; --warn:#E3B25B; --warn-wash:#2c2415; --crit:#F0836E; --crit-wash:#2e1a17;
     --info:#6AA5E0;
     --hub-guest:#D19BCB; --hub-ops:#4FB6C9; --hub-mkt:#9098EC;
+    --pc-taste:#c55285; --pc-identity:#933e92; --pc-crews:#6f52b9; --pc-venues:#129db0;
+    --pc-bookings:#618aeb; --pc-revenue:#b48706; --pc-marketing:#ac4b06;
     --shadow:0 1px 2px rgba(0,0,0,.45),0 10px 30px -18px rgba(0,0,0,.75);
   }}
   *{box-sizing:border-box}
@@ -182,6 +190,26 @@
   .trendbox{border:1px solid var(--line); border-radius:var(--r-sm); padding:12px; background:var(--raise)}
   .empty{padding:60px 20px; text-align:center; color:var(--muted)}
   .foot{margin-top:22px; color:var(--faint); font-size:11.5px; display:flex; gap:14px; flex-wrap:wrap}
+
+  /* stacked-bar segment gaps — 2px surface-colored separator between adjacent fills */
+  .plbar i + i, .distbar i + i{box-shadow:inset 2px 0 0 var(--panel)}
+
+  /* hover tooltip */
+  .tip{position:fixed; z-index:60; left:0; top:0; pointer-events:none; background:var(--ink); color:var(--panel);
+    font-family:var(--sans); font-size:11px; font-weight:560; line-height:1.35; padding:5px 8px; border-radius:7px;
+    box-shadow:0 6px 18px -6px rgba(0,0,0,.5); max-width:230px; white-space:nowrap;
+    opacity:0; transform:translateY(2px); transition:opacity .1s ease, transform .1s ease}
+  .tip.on{opacity:1; transform:translateY(0)}
+  [data-tip]{cursor:default}
+  .plbar i[data-tip], .distbar i[data-tip]{cursor:pointer}
+
+  /* trend sparkline crosshair */
+  .tspark{position:relative; cursor:crosshair}
+  .tspark svg{display:block}
+  .tspark .cross{position:absolute; top:0; bottom:0; width:1px; background:var(--muted); opacity:0; pointer-events:none}
+  .tspark .cdot{position:absolute; width:8px; height:8px; border-radius:50%; border:2px solid var(--panel); box-shadow:0 0 0 1px var(--line); transform:translate(-50%,-50%); opacity:0; pointer-events:none}
+  .tspark.act .cross{opacity:.65} .tspark.act .cdot{opacity:1}
+
   @media (prefers-reduced-motion:reduce){*{transition:none !important}}
 </style>
 
@@ -229,15 +257,37 @@
   "use strict";
   var $=function(s,r){return (r||document).querySelector(s)};
 
+  // ---- hover tooltip (shared, positioned div) ----
+  var tip=document.createElement("div"); tip.className="tip"; tip.setAttribute("role","tooltip"); document.body.appendChild(tip);
+  function positionTip(x,y){
+    var pad=10, r=tip.getBoundingClientRect(), tx=x+14, ty=y+16;
+    if(tx+r.width>window.innerWidth-pad) tx=x-14-r.width;
+    if(ty+r.height>window.innerHeight-pad) ty=y-16-r.height;
+    tip.style.left=Math.max(pad,tx)+"px"; tip.style.top=Math.max(pad,ty)+"px";
+  }
+  function showTip(text,x,y){ tip.textContent=text; tip.classList.add("on"); positionTip(x,y); }
+  function hideTip(){ tip.classList.remove("on"); }
+  // delegation for any [data-tip] mark (stacked-bar segments, pillar coverage bars)
+  document.addEventListener("mousemove",function(e){
+    var el=e.target.closest?e.target.closest("[data-tip]"):null;
+    if(el){ showTip(el.getAttribute("data-tip"), e.clientX, e.clientY); }
+  });
+  document.addEventListener("mouseout",function(e){
+    var el=e.target.closest?e.target.closest("[data-tip]"):null;
+    if(!el) return;
+    if(e.relatedTarget && el.contains(e.relatedTarget)) return;
+    hideTip();
+  });
+
   // ---- data pillars: the foundations Atlas evidence builds from ----
   var PILLARS=[
-    {id:"taste",     name:"Taste Graph",            hub:"Guest",     glyph:"◆", col:"#8A3A83", coverage:78, delta:+6, signal:"1.24M affinity signals", insight:"Evidence density rising — Spotify + POS enrichment live across venues."},
-    {id:"identity",  name:"Identity & Consent",     hub:"Guest",     glyph:"⬡", col:"#B06BA8", coverage:64, delta:+3, signal:"58.2k consented guests", insight:"Identity match rate 71%; entry-QR consent lifting the addressable base."},
-    {id:"crews",     name:"Crews & Social",         hub:"Guest",     glyph:"⬢", col:"#6C3A9E", coverage:52, delta:+4, signal:"9.7k active crews", insight:"Group demand concentrating in the top 8% of crews; blend affinity maturing."},
-    {id:"venues",    name:"Venues & Inventory",     hub:"Ops",       glyph:"▮", col:"#0E7490", coverage:81, delta:+2, signal:"6 venues · 312 tables", insight:"Weekend inventory near ceiling; midweek yield the open opportunity."},
-    {id:"bookings",  name:"Bookings",               hub:"Ops",       glyph:"▤", col:"#2B6CB0", coverage:73, delta:+5, signal:"14.6k bookings / 90d", insight:"Conversion improving as instant-confirm rolls out; lead-time shortening."},
-    {id:"revenue",   name:"Revenue & Spend",        hub:"Ops",       glyph:"$", col:"#1A7F8E", coverage:69, delta:+4, signal:"$3.1M tabs / 90d", insight:"Average tab climbing on VIP + bottle-service mix; midweek spend soft."},
-    {id:"marketing", name:"Marketing & Attribution",hub:"Marketing", glyph:"◈", col:"#4C51BF", coverage:61, delta:+2, signal:"142 campaigns tracked", insight:"Attributed ROAS steady; paid CAC inflation is the pressure to watch."}
+    {id:"taste",     name:"Taste Graph",            hub:"Guest",     glyph:"◆", col:"var(--pc-taste)", coverage:78, delta:+6, signal:"1.24M affinity signals", insight:"Evidence density rising — Spotify + POS enrichment live across venues."},
+    {id:"identity",  name:"Identity & Consent",     hub:"Guest",     glyph:"⬡", col:"var(--pc-identity)", coverage:64, delta:+3, signal:"58.2k consented guests", insight:"Identity match rate 71%; entry-QR consent lifting the addressable base."},
+    {id:"crews",     name:"Crews & Social",         hub:"Guest",     glyph:"⬢", col:"var(--pc-crews)", coverage:52, delta:+4, signal:"9.7k active crews", insight:"Group demand concentrating in the top 8% of crews; blend affinity maturing."},
+    {id:"venues",    name:"Venues & Inventory",     hub:"Ops",       glyph:"▮", col:"var(--pc-venues)", coverage:81, delta:+2, signal:"6 venues · 312 tables", insight:"Weekend inventory near ceiling; midweek yield the open opportunity."},
+    {id:"bookings",  name:"Bookings",               hub:"Ops",       glyph:"▤", col:"var(--pc-bookings)", coverage:73, delta:+5, signal:"14.6k bookings / 90d", insight:"Conversion improving as instant-confirm rolls out; lead-time shortening."},
+    {id:"revenue",   name:"Revenue & Spend",        hub:"Ops",       glyph:"$", col:"var(--pc-revenue)", coverage:69, delta:+4, signal:"$3.1M tabs / 90d", insight:"Average tab climbing on VIP + bottle-service mix; midweek spend soft."},
+    {id:"marketing", name:"Marketing & Attribution",hub:"Marketing", glyph:"◈", col:"var(--pc-marketing)", coverage:61, delta:+2, signal:"142 campaigns tracked", insight:"Attributed ROAS steady; paid CAC inflation is the pressure to watch."}
   ];
   var PMAP={}; PILLARS.forEach(function(p){PMAP[p.id]=p});
   var HUBCOL={Guest:"var(--hub-guest)",Ops:"var(--hub-ops)",Marketing:"var(--hub-mkt)"};
@@ -382,13 +432,47 @@
       '<circle cx="'+last[0].toFixed(1)+'" cy="'+last[1].toFixed(1)+'" r="2.6" fill="'+col+'"/></svg>';
   }
 
+  // trend sparkline for the detail drawer — valid scaling viewBox + hover crosshair
+  var TS_W=320, TS_H=56, TS_PAD=4;
+  function trendSpark(hist,col){
+    var min=Math.min.apply(null,hist), max=Math.max.apply(null,hist), rng=(max-min)||1;
+    var pts=hist.map(function(v,i){ var x=TS_PAD+i*((TS_W-2*TS_PAD)/(hist.length-1)); var y=TS_H-TS_PAD-((v-min)/rng)*(TS_H-2*TS_PAD); return [x,y]; });
+    var d=pts.map(function(p,i){return (i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)}).join(" ");
+    var area=d+" L"+pts[pts.length-1][0].toFixed(1)+" "+(TS_H-TS_PAD)+" L"+TS_PAD+" "+(TS_H-TS_PAD)+" Z";
+    var last=pts[pts.length-1];
+    return '<div class="tspark" data-hist="'+hist.join(",")+'">'+
+      '<svg viewBox="0 0 '+TS_W+' '+TS_H+'" width="100%" height="'+TS_H+'" preserveAspectRatio="none" aria-hidden="true">'+
+        '<path d="'+area+'" fill="'+col+'" opacity="0.10"/>'+
+        '<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/>'+
+        '<circle cx="'+last[0].toFixed(1)+'" cy="'+last[1].toFixed(1)+'" r="2.6" fill="'+col+'"/></svg>'+
+      '<div class="cross"></div><div class="cdot" style="background:'+col+'"></div></div>';
+  }
+  function wireTrend(){
+    var ts=$(".tspark",$("#detail")); if(!ts) return;
+    var hist=ts.getAttribute("data-hist").split(",").map(Number);
+    var n=hist.length, min=Math.min.apply(null,hist), max=Math.max.apply(null,hist), rng=(max-min)||1;
+    var cross=$(".cross",ts), dot=$(".cdot",ts);
+    ts.addEventListener("mousemove",function(e){
+      var r=ts.getBoundingClientRect();
+      var frac=(e.clientX-r.left)/r.width; frac=frac<0?0:frac>1?1:frac;
+      var idx=Math.round(frac*(n-1));
+      var xv=(TS_PAD+idx*((TS_W-2*TS_PAD)/(n-1)))/TS_W;
+      var yv=(TS_H-TS_PAD-((hist[idx]-min)/rng)*(TS_H-2*TS_PAD))/TS_H;
+      cross.style.left=(xv*100)+"%";
+      dot.style.left=(xv*100)+"%"; dot.style.top=(yv*100)+"%";
+      ts.classList.add("act");
+      showTip("Period "+(idx+1)+" · "+hist[idx], e.clientX, e.clientY);
+    });
+    ts.addEventListener("mouseleave",function(){ ts.classList.remove("act"); hideTip(); });
+  }
+
   // ---- pillar strip ----
   function renderPillars(){
     $("#pillars").innerHTML=PILLARS.map(function(p){
       return '<button class="pl'+(p.id===STATE.pillar?" on":"")+'" data-p="'+p.id+'" title="'+esc(p.insight)+'">'+
         '<div class="top"><span class="g" style="background:color-mix(in srgb,'+p.col+' 15%,transparent);color:'+p.col+'">'+p.glyph+'</span>'+
           '<div><div class="nm">'+p.name+'</div><div class="hub" style="color:'+HUBCOL[p.hub]+'">'+p.hub+' hub</div></div></div>'+
-        '<div class="cov"><span class="covbar"><i style="width:'+p.coverage+'%;background:'+p.col+'"></i></span>'+
+        '<div class="cov" data-tip="'+esc(p.name)+' coverage '+p.coverage+'% · '+(p.delta>0?"+":"")+p.delta+' vs last period"><span class="covbar"><i style="width:'+p.coverage+'%;background:'+p.col+'"></i></span>'+
           '<span class="covn">'+p.coverage+'%</span><span class="cd '+(p.delta>0?"up":"down")+'">'+(p.delta>0?"▲":"▼")+sign(p.delta)+'</span></div>'+
         '<div class="sig">'+esc(p.signal)+'</div></button>';
     }).join("");
@@ -452,7 +536,10 @@
       sc("Improving",'<span class="num" style="color:var(--good)">'+improving+'</span><span class="delta '+(improving-declining>=0?"up":"down")+'">'+(improving-declining>=0?"▲":"▼")+' '+sign(improving-declining)+'</span>',"vs "+declining+" declining")+
       sc("Total outcomes",'<span class="num">'+all.length+'</span>',"across "+PILLARS.length+" pillars")+
       '<div class="sc"><div class="k">Health distribution</div><div class="dist" style="margin-top:11px">'+
-        '<div class="distbar"><i style="width:'+(g/all.length*100)+'%;background:var(--good)"></i><i style="width:'+(a/all.length*100)+'%;background:var(--warn)"></i><i style="width:'+(c/all.length*100)+'%;background:var(--crit)"></i></div>'+
+        '<div class="distbar">'+
+          '<i style="width:'+(g/all.length*100)+'%;background:var(--good)" data-tip="Strong · '+g+' of '+all.length+' outcomes ('+Math.round(g/all.length*100)+'%)"></i>'+
+          '<i style="width:'+(a/all.length*100)+'%;background:var(--warn)" data-tip="Watch · '+a+' of '+all.length+' outcomes ('+Math.round(a/all.length*100)+'%)"></i>'+
+          '<i style="width:'+(c/all.length*100)+'%;background:var(--crit)" data-tip="Critical · '+c+' of '+all.length+' outcomes ('+Math.round(c/all.length*100)+'%)"></i></div>'+
         '<div class="distlgd"><span><i class="sw" style="background:var(--good)"></i>Strong <b>'+g+'</b></span><span><i class="sw" style="background:var(--warn)"></i>Watch <b>'+a+'</b></span><span><i class="sw" style="background:var(--crit)"></i>Critical <b>'+c+'</b></span></div>'+
       '</div></div>';
   }
@@ -506,7 +593,7 @@
 
       // pillar contribution
       '<div class="dsec"><h3>Pillar signal contribution <span class="hint">where this outcome&rsquo;s evidence comes from</span></h3>'+
-        '<div class="plbar">'+o.mix.map(function(m){var p=PMAP[m[0]];return '<i style="width:'+m[1]+'%;background:'+p.col+'" title="'+p.name+' '+m[1]+'%"></i>'}).join("")+'</div>'+
+        '<div class="plbar">'+o.mix.map(function(m){var p=PMAP[m[0]];return '<i style="width:'+m[1]+'%;background:'+p.col+'" data-tip="'+esc(p.name)+' · '+m[1]+'% of signal contribution"></i>'}).join("")+'</div>'+
         '<div class="pllgd">'+o.mix.map(function(m){var p=PMAP[m[0]];return '<div class="row"><span class="dot" style="background:'+p.col+'"></span><span class="pn"><b>'+p.name+'</b><span class="hub">'+p.hub+'</span></span><span class="pct">'+m[1]+'%</span></div>'}).join("")+'</div></div>'+
 
       // health overview
@@ -533,10 +620,12 @@
 
       // trend
       '<div class="dsec"><h3>Relative success over time <span class="hint">last 8 periods</span></h3>'+
-        '<div class="trendbox">'+spark(o.hist,'100%',56,scoreColor(o.score))+
+        '<div class="trendbox">'+trendSpark(o.hist,scoreColor(o.score))+
         '<div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:4px"><span>'+o.hist[0]+'</span><span>now '+o.score+'</span></div></div></div>'+
 
       '</div>';
+
+    wireTrend();
   }
 
   function render(){
