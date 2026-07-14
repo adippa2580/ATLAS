@@ -11,6 +11,7 @@ import { OpsModule } from './modules/ops/ops.module';
 import { MarketingModule } from './modules/marketing/marketing.module';
 import { McpModule } from './modules/mcp/mcp.module';
 import { IntegrationsModule } from './integrations/integrations.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { IntegrationsModule } from './integrations/integrations.module';
     OpsModule,
     MarketingModule,
     McpModule,
+    DashboardModule,
   ],
   controllers: [HealthController],
 })

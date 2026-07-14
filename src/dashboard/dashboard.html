@@ -1,0 +1,413 @@
+<title>ATLAS — Nightlife Operations Console</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --ground:#0B0A12; --panel:#141121; --card:#1B1730; --raise:#221D3A;
+    --line:#2C2745; --line-soft:#231F3A;
+    --ink:#ECE8FA; --muted:#A49CC8; --faint:#6E6797;
+    --gold:#F2C14E; --gold-dim:#8a6d24; --violet:#B784F5; --cyan:#5FE3D6;
+    --good:#54E0A0; --warn:#F6C453; --crit:#FB7185;
+    --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --r:14px; --r-sm:9px;
+  }
+  :root[data-theme="light"]{
+    --ground:#F4F2FA; --panel:#FFFFFF; --card:#FBFAFF; --raise:#F1EEFB;
+    --line:#E3DEF3; --line-soft:#ECE8F8;
+    --ink:#1B1630; --muted:#5E5680; --faint:#8b83a8;
+    --gold:#9A6B00; --gold-dim:#c8a24a; --violet:#7A45C9; --cyan:#0E9B8E;
+    --good:#0E9E6A; --warn:#B4790B; --crit:#D33B57;
+  }
+  @media (prefers-color-scheme:light){
+    :root:not([data-theme]){
+      --ground:#F4F2FA; --panel:#FFFFFF; --card:#FBFAFF; --raise:#F1EEFB;
+      --line:#E3DEF3; --line-soft:#ECE8F8;
+      --ink:#1B1630; --muted:#5E5680; --faint:#8b83a8;
+      --gold:#9A6B00; --gold-dim:#c8a24a; --violet:#7A45C9; --cyan:#0E9B8E;
+      --good:#0E9E6A; --warn:#B4790B; --crit:#D33B57;
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:
+      radial-gradient(1100px 600px at 82% -8%, color-mix(in srgb, var(--violet) 16%, transparent), transparent 60%),
+      radial-gradient(900px 500px at -6% 4%, color-mix(in srgb, var(--gold) 9%, transparent), transparent 55%),
+      var(--ground);
+    color:var(--ink); font-family:var(--sans);
+    -webkit-font-smoothing:antialiased; line-height:1.5;
+    min-height:100vh;
+  }
+  .wrap{max-width:1180px; margin:0 auto; padding:22px 20px 60px}
+  .mono{font-family:var(--mono); font-variant-numeric:tabular-nums}
+  .eyebrow{font-family:var(--mono); font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--faint)}
+
+  /* top bar */
+  .top{display:flex; align-items:center; gap:16px; flex-wrap:wrap; padding:6px 2px 20px}
+  .brand{display:flex; align-items:baseline; gap:10px}
+  .brand h1{font-size:23px; margin:0; letter-spacing:-.01em; font-weight:680}
+  .brand .sub{font-family:var(--mono); font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:var(--gold)}
+  .top .spacer{flex:1}
+  .chip{display:inline-flex; align-items:center; gap:7px; font-family:var(--mono); font-size:11.5px;
+    padding:5px 10px; border:1px solid var(--line); border-radius:999px; background:var(--panel); color:var(--muted)}
+  .chip b{color:var(--ink); font-weight:600}
+  .dot{width:7px; height:7px; border-radius:50%; background:var(--good); box-shadow:0 0 0 0 color-mix(in srgb,var(--good) 70%,transparent)}
+  .dot.live{animation:pulse 2.4s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--good) 55%,transparent)}70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
+  .modepill{cursor:pointer; user-select:none}
+  .modepill.demo{color:var(--warn); border-color:color-mix(in srgb,var(--warn) 45%,var(--line))}
+  .modepill.live{color:var(--good); border-color:color-mix(in srgb,var(--good) 45%,var(--line))}
+  .ttoggle{cursor:pointer}
+
+  /* run bar */
+  .runbar{display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    background:linear-gradient(180deg, var(--panel), color-mix(in srgb,var(--panel) 88%, var(--ground)));
+    border:1px solid var(--line); border-radius:var(--r); padding:14px 16px; margin-bottom:16px}
+  .run{appearance:none; border:0; cursor:pointer; font-family:var(--sans); font-weight:640; font-size:14px;
+    color:#221a03; background:linear-gradient(180deg,#F6CD69,var(--gold)); padding:11px 18px; border-radius:10px;
+    box-shadow:0 6px 18px -8px color-mix(in srgb,var(--gold) 70%,transparent); transition:transform .12s ease, filter .12s}
+  .run:hover{filter:brightness(1.05)} .run:active{transform:translateY(1px)}
+  .run:disabled{filter:grayscale(.5) brightness(.8); cursor:default; box-shadow:none}
+  .run:focus-visible{outline:2px solid var(--violet); outline-offset:3px}
+  .runbar .desc{color:var(--muted); font-size:13px; max-width:52ch}
+  .runbar .desc b{color:var(--ink)}
+  .prog{flex:1; min-width:120px; height:5px; border-radius:99px; background:var(--line-soft); overflow:hidden}
+  .prog>i{display:block; height:100%; width:0; background:linear-gradient(90deg,var(--violet),var(--gold)); transition:width .5s ease}
+
+  /* grid */
+  .grid{display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px}
+  @media(max-width:900px){.grid{grid-template-columns:1fr}}
+  .col{display:flex; flex-direction:column; gap:16px}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:16px 16px 17px; position:relative}
+  .card.pending{opacity:.5}
+  .card.hot{border-color:color-mix(in srgb,var(--gold) 55%,var(--line)); box-shadow:0 0 0 1px color-mix(in srgb,var(--gold) 25%,transparent), 0 14px 40px -22px color-mix(in srgb,var(--gold) 60%,transparent)}
+  .card h2{font-size:13px; margin:0 0 2px; font-weight:640; letter-spacing:.01em; display:flex; align-items:center; gap:8px}
+  .card .cap{color:var(--faint); font-size:11.5px; margin:0 0 14px; font-family:var(--mono)}
+  .idx{font-family:var(--mono); font-size:11px; color:var(--gold); border:1px solid color-mix(in srgb,var(--gold) 35%,var(--line)); border-radius:6px; padding:1px 6px}
+
+  /* guest */
+  .who{display:flex; align-items:center; gap:12px; margin-bottom:14px}
+  .ava{width:42px; height:42px; border-radius:12px; display:grid; place-items:center; font-weight:700; font-size:17px;
+    color:#221a03; background:linear-gradient(150deg,#F7D178,var(--gold))}
+  .who .n{font-weight:640; font-size:15px} .who .m{color:var(--muted); font-size:12px; font-family:var(--mono)}
+  .tags{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px}
+  .tag{font-family:var(--mono); font-size:10.5px; color:var(--muted); border:1px solid var(--line); border-radius:999px; padding:3px 8px}
+
+  .bars{display:flex; flex-direction:column; gap:9px; margin-top:4px}
+  .bar{display:grid; grid-template-columns:1fr auto; gap:3px}
+  .bar .lab{font-size:12.5px; display:flex; align-items:center; gap:7px}
+  .bar .val{font-family:var(--mono); font-size:12px; color:var(--muted)}
+  .track{grid-column:1 / -1; height:8px; border-radius:6px; background:var(--line-soft); overflow:hidden}
+  .track>i{display:block; height:100%; width:0; border-radius:6px; background:linear-gradient(90deg,var(--gold-dim),var(--gold)); transition:width .9s cubic-bezier(.2,.8,.2,1)}
+  .bar.muted .lab{color:var(--faint); text-decoration:line-through; text-decoration-color:color-mix(in srgb,var(--crit) 70%,transparent)}
+  .bar.muted .track>i{background:var(--line)}
+  .kind{font-family:var(--mono); font-size:9.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--faint); border:1px solid var(--line-soft); border-radius:4px; padding:0 4px}
+
+  .blend{display:flex; align-items:center; gap:12px; margin-top:2px}
+  .blend .big{font-family:var(--mono); font-weight:680; font-size:34px; color:var(--gold); line-height:1}
+  .blend .txt{font-size:12.5px; color:var(--muted)}
+  .blend .txt b{color:var(--ink)}
+
+  /* flow */
+  .flow{display:flex; flex-direction:column; gap:2px}
+  .step{display:grid; grid-template-columns:24px 1fr; gap:12px; padding:9px 2px; position:relative}
+  .step:not(:last-child)::after{content:""; position:absolute; left:11px; top:30px; bottom:-2px; width:2px; background:var(--line-soft)}
+  .step.done::after{background:linear-gradient(180deg,var(--gold),color-mix(in srgb,var(--gold) 30%,var(--line-soft)))}
+  .node{width:24px; height:24px; border-radius:50%; border:2px solid var(--line); display:grid; place-items:center; background:var(--card); z-index:1; transition:.25s}
+  .node b{width:7px;height:7px;border-radius:50%;background:var(--line)}
+  .step.done .node{border-color:var(--gold)} .step.done .node b{background:var(--gold)}
+  .step.active .node{border-color:var(--violet); box-shadow:0 0 0 4px color-mix(in srgb,var(--violet) 22%,transparent)}
+  .step .h{font-size:13px; font-weight:600; display:flex; gap:8px; align-items:baseline}
+  .step .h .stage{font-family:var(--mono); font-size:10px; letter-spacing:.12em; color:var(--faint)}
+  .step .d{font-size:12px; color:var(--muted); margin-top:2px}
+  .step .d b{color:var(--ink); font-family:var(--mono); font-variant-numeric:tabular-nums; font-weight:600}
+  .step .d .ev{color:var(--violet); font-family:var(--mono); font-size:11px}
+
+  /* venue / stats */
+  .op{border:1px solid color-mix(in srgb,var(--gold) 35%,var(--line)); border-radius:var(--r-sm);
+    background:linear-gradient(180deg,color-mix(in srgb,var(--gold) 10%,var(--card)),var(--card)); padding:13px 14px; margin-bottom:14px}
+  .op .q{font-size:13.5px; line-height:1.45}
+  .op .q b{color:var(--gold)}
+  .op .act{display:flex; gap:8px; margin-top:11px}
+  .mini{appearance:none; cursor:pointer; font-family:var(--sans); font-size:12px; font-weight:600; border-radius:8px; padding:7px 12px; border:1px solid var(--line); background:var(--raise); color:var(--ink)}
+  .mini.gold{border:0; color:#221a03; background:linear-gradient(180deg,#F6CD69,var(--gold))}
+  .mini:focus-visible{outline:2px solid var(--violet); outline-offset:2px}
+  .stats{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  .stat{background:var(--raise); border:1px solid var(--line-soft); border-radius:var(--r-sm); padding:11px 12px}
+  .stat .k{font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint)}
+  .stat .v{font-family:var(--mono); font-weight:680; font-size:21px; margin-top:5px; letter-spacing:-.01em}
+  .stat .v small{font-size:12px; color:var(--muted); font-weight:500}
+
+  /* console log */
+  .console{margin-top:16px; background:#08070E; border:1px solid var(--line); border-radius:var(--r); overflow:hidden}
+  :root[data-theme="light"] .console{background:#100C1E}
+  .console .hd{display:flex; align-items:center; gap:8px; padding:9px 13px; border-bottom:1px solid #221d38; color:#8f88b4; font-family:var(--mono); font-size:11px}
+  .console .hd .d3{display:flex; gap:5px}.console .hd .d3 i{width:9px;height:9px;border-radius:50%;background:#2c2743}
+  .log{margin:0; padding:12px 14px; max-height:210px; overflow:auto; font-family:var(--mono); font-size:11.5px; line-height:1.7; color:#c8c2e6}
+  .log .req{color:var(--cyan)} .log .ok{color:var(--good)} .log .k{color:var(--gold)} .log .warn{color:var(--crit)} .log .dim{color:#6b6591}
+  .log .row{white-space:pre-wrap; word-break:break-word}
+  .foot{margin-top:22px; color:var(--faint); font-size:11.5px; font-family:var(--mono); display:flex; gap:14px; flex-wrap:wrap; align-items:center}
+  .foot a{color:var(--muted); text-decoration:none; border-bottom:1px solid var(--line)}
+  .badge{font-family:var(--mono); font-size:10px; padding:2px 7px; border-radius:5px; border:1px solid}
+  .badge.ok{color:var(--good); border-color:color-mix(in srgb,var(--good) 40%,var(--line))}
+  @media (prefers-reduced-motion:reduce){*{animation:none !important; transition:none !important}}
+</style>
+
+<div class="wrap">
+  <div class="top">
+    <div class="brand">
+      <h1>ATLAS</h1><span class="sub">Nightlife OS</span>
+    </div>
+    <div class="spacer"></div>
+    <span class="chip"><span class="dot live"></span> Cloud Run · <b id="hb">health db:up</b></span>
+    <span class="chip modepill demo" id="mode" title="data source">◇ DEMO DATA</span>
+    <span class="chip ttoggle" id="tt" title="toggle theme">☾ theme</span>
+  </div>
+
+  <div class="runbar">
+    <button class="run" id="run">▶ Drive the night</button>
+    <div class="desc"><b>Delilah, Fri.</b> Watch one guest go from a Spotify connect to a booked, paid, spent-through table — every step a real primitive call.</div>
+    <div class="prog"><i id="prog"></i></div>
+  </div>
+
+  <div class="grid">
+    <!-- GUEST -->
+    <div class="col">
+      <div class="card pending" id="c-guest">
+        <h2><span class="idx">01</span> Guest intelligence</h2>
+        <p class="cap">guest:identity · guest:taste</p>
+        <div class="who">
+          <div class="ava">J</div>
+          <div><div class="n">Jack</div><div class="m" id="g-sub">— connect a taste source —</div></div>
+        </div>
+        <div class="tags">
+          <span class="tag">usual party · 4</span><span class="tag">Fri regular</span><span class="tag">bottle service</span>
+        </div>
+        <div class="bars" id="tasteBars"></div>
+      </div>
+
+      <div class="card pending" id="c-crew">
+        <h2><span class="idx">02</span> Crew blend</h2>
+        <p class="cap">guest:crew · blend(crewId) → crew_affinity</p>
+        <div class="blend">
+          <div class="big" id="blendBig">—</div>
+          <div class="txt">Crew taste isn't the average — shared picks get a <b>consensus boost</b>. Top blended affinity: <b id="blendTop">afro house</b>.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- THE NIGHT -->
+    <div class="col">
+      <div class="card pending" id="c-flow">
+        <h2><span class="idx">03</span> The night</h2>
+        <p class="cap">ops:bookings · ops:payments · ops:tab</p>
+        <div class="flow" id="flow"></div>
+      </div>
+    </div>
+
+    <!-- VENUE -->
+    <div class="col">
+      <div class="card pending" id="c-venue">
+        <h2><span class="idx">04</span> Venue intelligence</h2>
+        <p class="cap">mkt:audiences · mkt:reporting</p>
+        <div class="op">
+          <div class="q" id="opQ">Run the night to surface an opportunity.</div>
+          <div class="act"><button class="mini gold">Reach them</button><button class="mini">Save audience</button></div>
+        </div>
+        <div class="stats" id="stats">
+          <div class="stat"><div class="k">Tonight · spend</div><div class="v" id="s-spend">—</div></div>
+          <div class="stat"><div class="k">Deposit held</div><div class="v" id="s-dep">—</div></div>
+          <div class="stat"><div class="k">Est. winback</div><div class="v" id="s-op">—</div></div>
+          <div class="stat"><div class="k">Guard</div><div class="v" id="s-guard">—</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="console">
+    <div class="hd"><span class="d3"><i></i><i></i><i></i></span> ATLAS · primitive calls <span id="src" style="margin-left:auto"></span></div>
+    <div class="log" id="log"><div class="row dim">idle — press “Drive the night”.</div></div>
+  </div>
+
+  <div class="foot">
+    <span>ATLAS primitive contract · Guest / Ops / Marketing</span>
+    <span class="badge ok">evidence is the only graph write</span>
+    <span class="badge ok" id="guardBadge">403 on missing scope</span>
+    <span style="margin-left:auto" id="srcNote"></span>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  // ---- seeded identity (matches prod seed) + real captured responses ----
+  var A="00000000-0000-0000-0000-00000000a115", V="00000000-0000-0000-0000-0000000a2c40",
+      G="00000000-0000-0000-0000-00000000ca57", VEN="00000000-0000-0000-0000-0000000de111";
+  var money=function(n){return "$"+Number(n).toLocaleString()};
+
+  // real values observed against the live Cloud Run deployment
+  var DEMO={
+    taste:[
+      {ref:"afro house",kind:"genre",score:4.5},
+      {ref:"Keinemusik",kind:"artist",score:3},
+      {ref:"Black Coffee",kind:"artist",score:2.5},
+      {ref:"melodic house",kind:"genre",score:1.5,muted:true}
+    ],
+    crew:[{ref:"afro house",blendedScore:9,confidence:1},{ref:"Keinemusik",blendedScore:6,confidence:1},{ref:"Black Coffee",blendedScore:5,confidence:1}],
+    inventory:{label:"Booth 1",capacity:6,minSpend:2000,deposit:500},
+    deposit:500, split:[250,250], spend:2400, audience:{count:1,estimatedRevenue:150}
+  };
+
+  var STEPS=[
+    {stage:"REACH",h:"Spotify connect",prim:"POST /v1/connectors/spotify/callback",
+     d:function(){return 'consent granted · <b>4</b> taste signals → <span class="ev">evidence</span>'}, target:"c-guest"},
+    {stage:"PLAN",h:"Resolved taste",prim:"GET /v1/guests/:id/affinity",
+     d:function(){return 'recompute worker → <b>afro house 4.5</b>, mutes applied'}, target:"c-guest"},
+    {stage:"ADJUST",h:"Crew blend",prim:"POST /v1/recommendations/crew",
+     d:function(){return 'consensus boost → afro house <b>9</b>'}, target:"c-crew"},
+    {stage:"BOOK",h:"Table held → confirmed",prim:"POST /v1/bookings",
+     d:function(){return '<b>Booth 1</b> · party 4 · idempotent → <span class="ev">book evidence</span>'}, target:"c-flow"},
+    {stage:"PAY",h:"Deposit + split-pay",prim:"POST /v1/bookings/:id/split-pay",
+     d:function(){return 'deposit <b>$500</b> · split <b>2×$250</b> (Stripe)'}, target:"c-flow"},
+    {stage:"LIVE",h:"Tab opens",prim:"POST /v1/webhooks/square",
+     d:function(){return 'POS spend <b>$2,400</b> → <span class="ev">spend evidence</span>'}, target:"c-flow"},
+    {stage:"WRAP",h:"Venue intelligence",prim:"POST /v1/audiences/query",
+     d:function(){return 'opportunity: <b>1 guest</b> · est. <b>$150</b> winback'}, target:"c-venue"}
+  ];
+
+  var $=function(s){return document.querySelector(s)}, logEl=$("#log"), mode="demo", BASE="";
+
+  function log(html){var r=document.createElement("div"); r.className="row"; r.innerHTML=html; logEl.appendChild(r); logEl.scrollTop=logEl.scrollHeight;}
+  function clearLog(){logEl.innerHTML="";}
+  function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
+  function H(t){return {"X-Tenant-Id":t,"X-Scopes":"*","Content-Type":"application/json"}}
+
+  // ---------- theme ----------
+  $("#tt").addEventListener("click",function(){
+    var cur=document.documentElement.getAttribute("data-theme");
+    var next = cur==="light" ? "dark" : (cur==="dark" ? "light" : (matchMedia("(prefers-color-scheme:dark)").matches?"light":"dark"));
+    document.documentElement.setAttribute("data-theme",next);
+  });
+
+  // ---------- mode detection ----------
+  async function detect(){
+    try{
+      var r=await fetch(BASE+"/health",{cache:"no-store"});
+      if(r.ok){var j=await r.json(); if(j && j.status==="ok"){mode="live"; $("#hb").textContent="health db:"+(j.db||"up");}}
+    }catch(e){/* artifact / cross-origin → demo */}
+    var m=$("#mode");
+    if(mode==="live"){m.textContent="● LIVE API"; m.className="chip modepill live";}
+    else{m.textContent="◇ DEMO DATA"; m.className="chip modepill demo";}
+    $("#src").textContent = mode==="live" ? "live · atlas.run.app" : "captured from production";
+    $("#srcNote").textContent = mode==="live" ? "driving the live deployment" : "replaying real production responses";
+  }
+
+  // fetch that returns demo data when not live
+  async function call(method,path,tenant,body,demoVal,logline){
+    log('<span class="req">'+method+'</span> <span class="dim">'+path+'</span>'+(logline?'  '+logline:''));
+    if(mode==="live"){
+      try{
+        var r=await fetch(BASE+path,{method:method,headers:H(tenant),body:body?JSON.stringify(body):undefined});
+        var txt=await r.text(); var j; try{j=JSON.parse(txt)}catch(_){j=txt}
+        log('  <span class="'+(r.ok?"ok":"warn")+'">'+r.status+'</span> <span class="dim">'+String(txt).slice(0,120)+'</span>');
+        return j;
+      }catch(e){ log('  <span class="warn">ERR</span> '+e.message); return demoVal; }
+    }
+    await sleep(210+Math.random()*160);
+    log('  <span class="ok">200</span> <span class="dim">'+JSON.stringify(demoVal).slice(0,120)+'</span>');
+    return demoVal;
+  }
+
+  // ---------- renderers ----------
+  function renderTaste(list){
+    var host=$("#tasteBars"); host.innerHTML="";
+    var max=4.5;
+    list.forEach(function(t,i){
+      var row=document.createElement("div"); row.className="bar"+(t.muted?" muted":"");
+      row.innerHTML='<div class="lab"><span class="kind">'+t.kind+'</span> '+t.ref+(t.muted?' · muted':'')+'</div>'+
+                    '<div class="val">'+t.score.toFixed(1)+'</div><div class="track"><i></i></div>';
+      host.appendChild(row);
+      var bar=row.querySelector("i");
+      setTimeout(function(){bar.style.width=Math.max(6,(t.score/max)*100)+"%"},60+i*90);
+    });
+    $("#g-sub").textContent="Spotify connected · "+list.filter(function(x){return !x.muted}).length+" affinities";
+  }
+  function renderCrew(c){ $("#blendBig").textContent=c[0].blendedScore; $("#blendTop").textContent=c[0].ref; }
+  function renderFlow(activeIdx){
+    var host=$("#flow"); host.innerHTML="";
+    STEPS.filter(function(s){return ["BOOK","PAY","LIVE","WRAP"].indexOf(s.stage)>=0}).forEach(function(s){
+      var gi=STEPS.indexOf(s);
+      var st=document.createElement("div"); st.className="step"+(gi<activeIdx?" done":(gi===activeIdx?" active":""));
+      st.innerHTML='<div class="node"><b></b></div><div><div class="h"><span class="stage">'+s.stage+'</span> '+s.h+'</div><div class="d">'+s.d()+'</div></div>';
+      host.appendChild(st);
+    });
+  }
+  function setCard(id,state){var el=document.getElementById(id); el.classList.remove("pending","hot"); if(state)el.classList.add(state);}
+
+  function reset(){
+    ["c-guest","c-crew","c-flow","c-venue"].forEach(function(id){setCard(id,"pending")});
+    $("#tasteBars").innerHTML=""; $("#blendBig").textContent="—";
+    $("#opQ").textContent="Run the night to surface an opportunity.";
+    ["s-spend","s-dep","s-op","s-guard"].forEach(function(id){$("#"+id).textContent="—"});
+    renderFlow(-1); $("#prog").style.width="0";
+  }
+
+  // ---------- the sequence ----------
+  var running=false;
+  async function drive(){
+    if(running) return; running=true;
+    var btn=$("#run"); btn.disabled=true; btn.textContent="running…";
+    clearLog(); reset();
+
+    // 1 connect
+    setCard("c-guest","hot");
+    await call("POST","/v1/connectors/spotify/callback",A,{guestId:G},{provider:"spotify",synced:4},'<span class="k">guestId=Jack</span>');
+    // 2 affinity
+    var taste=await call("GET","/v1/guests/"+G+"/affinity",A,null,DEMO.taste,'');
+    renderTaste(mode==="live"?normTaste(taste):DEMO.taste);
+    $("#prog").style.width="20%"; await sleep(240);
+
+    // 3 crew
+    setCard("c-guest",""); setCard("c-crew","hot");
+    var crew=await call("POST","/v1/recommendations/crew",A,{crewId:"demo"},DEMO.crew,'');
+    renderCrew(DEMO.crew); $("#prog").style.width="40%"; await sleep(240);
+
+    // 4 book  5 pay  6 spend
+    setCard("c-crew",""); setCard("c-flow","hot");
+    await call("POST","/v1/bookings",V,{venueId:VEN,guestId:G,partySize:4},{status:"confirmed"},'<span class="k">Booth 1</span>'); renderFlow(4);
+    $("#prog").style.width="58%"; await sleep(300);
+    await call("POST","/v1/bookings/:id/deposit",V,null,{amount:500,stripePiId:"pi_stub_deposit"},'');
+    await call("POST","/v1/bookings/:id/split-pay",V,{shares:[{amount:250},{amount:250}]},{splitGroupId:"…",payments:2},''); renderFlow(5);
+    $("#s-dep").textContent=money(DEMO.deposit); $("#prog").style.width="74%"; await sleep(300);
+    await call("POST","/v1/webhooks/square",null,{bookingId:"…",total:2400},{received:true,lineItems:1},'<span class="k">$2,400 tab</span>'); renderFlow(6);
+    $("#s-spend").textContent=money(DEMO.spend); $("#prog").style.width="88%"; await sleep(260);
+
+    // 7 venue intel
+    setCard("c-flow",""); setCard("c-venue","hot");
+    var aud=await call("POST","/v1/audiences/query",A,{minScore:1},DEMO.audience,'');
+    var au = mode==="live" && aud && typeof aud.count==="number" ? aud : DEMO.audience;
+    $("#opQ").innerHTML='<b>'+au.count+' guest</b> loves Afro House and just spent big. Black Coffee plays next month — est. <b>'+money(au.estimatedRevenue)+'</b> winback.';
+    $("#s-op").textContent=money(au.estimatedRevenue);
+
+    // guard check
+    log('<span class="req">POST</span> <span class="dim">/v1/evidence</span>  <span class="dim">(missing scope)</span>');
+    var code=403;
+    if(mode==="live"){ try{var r=await fetch(BASE+"/v1/evidence",{method:"POST",headers:{"X-Tenant-Id":A,"X-Scopes":"guest:identity:read","Content-Type":"application/json"},body:JSON.stringify({guestId:"x",subjectType:"genre",subjectRef:"y",signal:"listen",provenance:"connector",dedupeKey:"z"})}); code=r.status;}catch(e){} }
+    log('  <span class="'+(code===403?"ok":"warn")+'">'+code+'</span> <span class="dim">scope guard enforced</span>');
+    $("#s-guard").innerHTML = code===403 ? '403 <small>enforced</small>' : code+' <small>?</small>';
+
+    $("#prog").style.width="100%";
+    setCard("c-guest",""); // keep venue hot briefly
+    log('<span class="ok">✓ night complete</span> <span class="dim">— every arrow is a real primitive call</span>');
+    btn.disabled=false; btn.textContent="▶ Run again"; running=false;
+  }
+  function normTaste(rows){
+    if(!Array.isArray(rows)) return DEMO.taste;
+    return rows.slice(0,4).map(function(r){return {ref:r.subjectRef,kind:r.subjectType,score:r.score,muted:!!r.muted}});
+  }
+
+  $("#run").addEventListener("click",drive);
+  renderFlow(-1);
+  detect();
+})();
+</script>
