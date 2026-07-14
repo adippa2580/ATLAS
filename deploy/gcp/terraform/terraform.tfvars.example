@@ -1,0 +1,4 @@
+# Copy to terraform.tfvars and fill in. Never commit real values.
+project_id = "atlas-502319"
+region     = "us-central1"
+# db_password supplied via env: export TF_VAR_db_password=...

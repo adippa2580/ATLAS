@@ -1,0 +1,49 @@
+# Cloud Run service for the Atlas monolith (project atlas-502319).
+# The deploy script substitutes __REGION__, __PROJECT_ID__, __IMAGE_TAG__ and
+# __SQL_CONNECTION_NAME__ before `gcloud run services replace`.
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: atlas
+  labels:
+    app: atlas
+spec:
+  template:
+    metadata:
+      annotations:
+        run.googleapis.com/vpc-access-connector: atlas-connector
+        run.googleapis.com/vpc-access-egress: private-ranges-only
+        # Cloud SQL socket mount for the Postgres connector.
+        run.googleapis.com/cloudsql-instances: __SQL_CONNECTION_NAME__
+        autoscaling.knative.dev/minScale: '1'
+        autoscaling.knative.dev/maxScale: '20'
+    spec:
+      serviceAccountName: atlas-run@__PROJECT_ID__.iam.gserviceaccount.com
+      containerConcurrency: 80
+      containers:
+        - image: __REGION__-docker.pkg.dev/__PROJECT_ID__/atlas/atlas:__IMAGE_TAG__
+          ports:
+            - containerPort: 3000
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: EVIDENCE_BUS
+              value: pubsub
+            - name: DEV_TRUST_HEADERS
+              value: 'false'
+            - name: GCP_PROJECT_ID
+              value: __PROJECT_ID__
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: atlas-database-url
+                  key: latest
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: atlas-redis-url
+                  key: latest
+          resources:
+            limits:
+              cpu: '1'
+              memory: 512Mi
