@@ -48,8 +48,8 @@ async function main() {
       kind: 'table',
       label: 'Booth 1',
       capacity: 6,
-      minSpend: 2000,
-      deposit: 500,
+      minSpend: 200000, // $2,000.00 in minor units (cents)
+      deposit: 50000, //   $500.00 in minor units (cents)
     },
   });
   await prisma.entity.createMany({

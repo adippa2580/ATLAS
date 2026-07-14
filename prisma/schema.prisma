@@ -29,6 +29,7 @@ model Tenant {
   guests   Guest[]
   venues   Venue[]
   bookings Booking[]
+  crews    Crew[]
 }
 
 // ---------------------------------------------------------------------------
@@ -44,7 +45,7 @@ model Guest {
   walletPassId String?  @unique
   createdAt    DateTime @default(now())
 
-  tenant       Tenant           @relation(fields: [tenantId], references: [id])
+  tenant       Tenant             @relation(fields: [tenantId], references: [id])
   links        IdentityLink[]
   consents     ConsentGrant[]
   evidence     AffinityEvidence[]
@@ -85,12 +86,12 @@ model IdentityLink {
 
 // Append-only audit of merges (reversible)
 model IdentityMergeLog {
-  id           String   @id @default(uuid())
-  tenantId     String
-  survivingId  String
-  absorbedId   String
-  reason       String?
-  createdAt    DateTime @default(now())
+  id          String   @id @default(uuid())
+  tenantId    String
+  survivingId String
+  absorbedId  String
+  reason      String?
+  createdAt   DateTime @default(now())
 
   @@index([tenantId, survivingId])
 }
@@ -199,6 +200,7 @@ model Crew {
   ownerGuestId String
   createdAt    DateTime @default(now())
 
+  tenant     Tenant         @relation(fields: [tenantId], references: [id])
   members    CrewMember[]
   affinities CrewAffinity[]
   bookings   Booking[]
@@ -207,18 +209,21 @@ model Crew {
 }
 
 model CrewMember {
-  crewId  String
-  guestId String
-  role    String @default("member")
+  tenantId String
+  crewId   String
+  guestId  String
+  role     String @default("member")
 
   crew  Crew  @relation(fields: [crewId], references: [id])
   guest Guest @relation(fields: [guestId], references: [id])
 
   @@id([crewId, guestId])
+  @@index([tenantId, crewId])
 }
 
 model CrewAffinity {
   id           String      @id @default(uuid())
+  tenantId     String
   crewId       String
   subjectType  SubjectType
   subjectRef   String
@@ -227,7 +232,8 @@ model CrewAffinity {
 
   crew Crew @relation(fields: [crewId], references: [id])
 
-  @@unique([crewId, subjectType, subjectRef])
+  @@unique([tenantId, crewId, subjectType, subjectRef])
+  @@index([tenantId, crewId])
 }
 
 // ---------------------------------------------------------------------------
@@ -294,8 +300,8 @@ model Inventory {
   kind     InventoryKind
   label    String?
   capacity Int           @default(1)
-  minSpend Float?
-  deposit  Float?
+  minSpend Int? // minor units (cents)
+  deposit  Int? // minor units (cents)
 
   venue    Venue     @relation(fields: [venueId], references: [id])
   bookings Booking[]
@@ -312,17 +318,18 @@ enum BookingStatus {
 }
 
 model Booking {
-  id            String        @id @default(uuid())
-  tenantId      String
-  venueId       String
-  guestId       String
-  crewId        String?
-  inventoryId   String?
-  status        BookingStatus @default(held)
-  date          DateTime
-  partySize     Int           @default(1)
-  attributionId String?
-  createdAt     DateTime      @default(now())
+  id             String        @id @default(uuid())
+  tenantId       String
+  venueId        String
+  guestId        String
+  crewId         String?
+  inventoryId    String?
+  status         BookingStatus @default(held)
+  date           DateTime
+  partySize      Int           @default(1)
+  attributionId  String?
+  idempotencyKey String?
+  createdAt      DateTime      @default(now())
 
   tenant    Tenant     @relation(fields: [tenantId], references: [id])
   venue     Venue      @relation(fields: [venueId], references: [id])
@@ -332,6 +339,7 @@ model Booking {
   payments  Payment[]
   tab       Tab?
 
+  @@unique([tenantId, idempotencyKey])
   @@index([tenantId, venueId])
   @@index([tenantId, guestId])
 }
@@ -340,8 +348,9 @@ model Payment {
   id             String   @id @default(uuid())
   tenantId       String
   bookingId      String
-  stripePiId     String?
-  amount         Float
+  stripePiId     String?  @unique
+  amount         Int // minor units (cents)
+  currency       String   @default("usd")
   splitGroupId   String?
   payerGuestId   String?
   status         String   @default("pending")
@@ -350,17 +359,19 @@ model Payment {
 
   booking Booking @relation(fields: [bookingId], references: [id])
 
+  @@unique([tenantId, idempotencyKey])
   @@index([tenantId, bookingId])
 }
 
 model Tab {
-  id         String   @id @default(uuid())
-  tenantId   String
-  bookingId  String   @unique
-  total      Float    @default(0)
-  lineItems  Json?
-  closedAt   DateTime?
-  createdAt  DateTime @default(now())
+  id        String    @id @default(uuid())
+  tenantId  String
+  bookingId String    @unique
+  total     Int       @default(0) // minor units (cents)
+  currency  String    @default("usd")
+  lineItems Json?
+  closedAt  DateTime?
+  createdAt DateTime  @default(now())
 
   booking Booking @relation(fields: [bookingId], references: [id])
 }
@@ -424,8 +435,27 @@ model UsageEvent {
   id             String   @id @default(uuid())
   tenantId       String
   kind           String // booking | api_call | mcp_call
-  billableAmount Float    @default(0)
+  billableAmount Int      @default(0) // minor units (cents)
   occurredAt     DateTime @default(now())
 
   @@index([tenantId, kind])
+}
+
+// ---------------------------------------------------------------------------
+// Cross-cutting — Idempotency ledger (shared across instances; survives restart)
+// Backs the idempotency interceptor: a mutating request records its key here so
+// a retry with the same (tenantId, key) is a no-op / returns the prior outcome.
+// ---------------------------------------------------------------------------
+model IdempotencyRecord {
+  id         String   @id @default(uuid())
+  tenantId   String
+  key        String
+  method     String
+  path       String
+  statusCode Int?
+  response   Json?
+  createdAt  DateTime @default(now())
+
+  @@unique([tenantId, key])
+  @@index([tenantId, createdAt])
 }
