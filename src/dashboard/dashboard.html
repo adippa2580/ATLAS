@@ -355,7 +355,8 @@
   var DEMO_STATS_A={guests:1,evidence:7,affinities:3,crews:1,bookings:0,payments:0,entitlements:1,audiences:1,campaigns:0,venues:0,inventory:0,consents:2,usageEvents:0,entities:2,totalSpend:0};
   var DEMO_STATS_V={guests:0,evidence:2,affinities:0,crews:0,bookings:3,payments:6,entitlements:0,audiences:0,campaigns:0,venues:1,inventory:1,consents:0,usageEvents:3,entities:2,totalSpend:4800};
 
-  var IDATE="2026-07-20";
+  var IDATE="2026-07-17"; // seeded upcoming night (no-show risk / door list)
+  var PDATE="2026-05-15"; // seeded past tab'd night (product mix)
   var DEMO_DEMAND=[
     {subjectType:"genre",subjectRef:"afro house",demandScore:8.7,guestCount:51},
     {subjectType:"artist",subjectRef:"Keinemusik",demandScore:9.2,guestCount:34},
@@ -650,7 +651,7 @@
   }catch(e){iEmpty(h);}}
 
   async function loadMinspend(){var h=$("#i-minspend");try{
-    var d=await iget("/v1/insights/minspend-realization",V); if(d===undefined)d=DEMO_MINSPEND;
+    var d=await iget("/v1/insights/minspend-realization",A); if(d===undefined)d=DEMO_MINSPEND;
     if(!Array.isArray(d)||!d.length) return iEmpty(h);
     var rows=d.map(function(r){
       var f=String(r.flag||"").toLowerCase();
@@ -661,7 +662,7 @@
   }catch(e){iEmpty(h);}}
 
   async function loadNoShow(){var h=$("#i-noshow");try{
-    var d=await iget("/v1/insights/no-show-risk?date="+encodeURIComponent(IDATE),V); if(d===undefined)d=DEMO_NOSHOW;
+    var d=await iget("/v1/insights/no-show-risk?date="+encodeURIComponent(IDATE),A); if(d===undefined)d=DEMO_NOSHOW;
     if(!Array.isArray(d)||!d.length) return iEmpty(h);
     var rows=d.map(function(r){
       var name=r.displayName||r.guestName||r.name||"Guest";
@@ -673,7 +674,7 @@
   }catch(e){iEmpty(h);}}
 
   async function loadDoorlist(){var h=$("#i-doorlist");try{
-    var d=await iget("/v1/insights/doorlist?venueId="+VEN+"&date="+encodeURIComponent(IDATE),V); if(d===undefined)d=DEMO_DOOR;
+    var d=await iget("/v1/insights/doorlist?venueId="+VEN+"&date="+encodeURIComponent(IDATE),A); if(d===undefined)d=DEMO_DOOR;
     if(!Array.isArray(d)||!d.length) return iEmpty(h);
     h.innerHTML=d.map(function(r){
       var affs=Array.isArray(r.topAffinities)?r.topAffinities:[];
@@ -683,7 +684,7 @@
   }catch(e){iEmpty(h);}}
 
   async function loadMix(){var h=$("#i-mix");try{
-    var d=await iget("/v1/insights/product-mix?venueId="+VEN+"&date="+encodeURIComponent(IDATE),V); if(d===undefined)d=DEMO_MIX;
+    var d=await iget("/v1/insights/product-mix?venueId="+VEN+"&date="+encodeURIComponent(PDATE),A); if(d===undefined)d=DEMO_MIX;
     if(!Array.isArray(d)||!d.length) return iEmpty(h);
     renderBars(h,d,
       function(r){return esc(r.category);},
