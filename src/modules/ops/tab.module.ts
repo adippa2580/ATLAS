@@ -20,9 +20,33 @@ import { evidenceDedupeKey } from '../../common/util/hash';
 import { SquareAdapter } from '../../integrations/square.adapter';
 
 /**
+ * Normalize a raw POS line-item name into a coarse SKU/category key so that
+ * spend can be fanned into the taste graph at product grain (§4.2, insight H).
+ * Lowercases, maps obvious keywords, and returns a `product:<category>`
+ * subjectRef. Ordering matters — the first matching bucket wins.
+ */
+export function categorizeSku(name: string): string {
+  const n = (name ?? '').toLowerCase();
+  const has = (...kws: string[]) => kws.some((k) => n.includes(k));
+
+  let category: string;
+  if (has('champagne', 'prosecco')) category = 'champagne';
+  else if (has('tequila', 'mezcal')) category = 'tequila';
+  else if (has('vodka', 'gin', 'whisk', 'rum')) category = 'spirit';
+  else if (has('wine')) category = 'wine';
+  else if (has('beer')) category = 'beer';
+  else if (has('espresso', 'cocktail', 'martini')) category = 'cocktail';
+  else if (has('water', 'soda', 'na')) category = 'na';
+  else category = 'other';
+
+  return `product:${category}`;
+}
+
+/**
  * Tab / POS Sync (#13) — the Square POS webhook closes the loop from booking →
  * spend → CRM. Each line item on the tab becomes a `spend` signal (provenance
- * `pos`) against the venue in the guest's taste graph.
+ * `pos`) against the venue AND, per §4.2, against a normalized product/SKU
+ * category in the guest's taste graph.
  */
 @Injectable()
 export class TabService {
@@ -84,6 +108,7 @@ export class TabService {
 
     // Each line item is revealed spend — publish it into the taste graph.
     for (const [i, item] of tab.lineItems.entries()) {
+      // Venue-grain spend (unchanged): the whole tab weighs against the venue.
       await this.bus.publish({
         tenantId: booking.tenantId,
         guestId: booking.guestId,
@@ -95,6 +120,28 @@ export class TabService {
         dedupeKey: evidenceDedupeKey(
           'pos',
           `${tab.externalTabId}:${i}`,
+          'spend',
+        ),
+        observedAt: new Date().toISOString(),
+      });
+
+      // §4.2 product-grain fan-out: the SAME line ALSO lands as `product`
+      // evidence keyed to a normalized SKU/category, so per-SKU taste becomes
+      // derived affinity (insight H). The dedupeKey is distinct from the
+      // venue-grain key above and unique per booking + line index + category,
+      // so at-least-once redelivery never double-counts either grain.
+      const productRef = categorizeSku(item.name);
+      await this.bus.publish({
+        tenantId: booking.tenantId,
+        guestId: booking.guestId,
+        subjectType: SubjectType.product,
+        subjectRef: productRef,
+        signal: Signal.spend,
+        weight: Number(item.amount) || 1,
+        provenance: Provenance.pos,
+        dedupeKey: evidenceDedupeKey(
+          'pos',
+          `product:${bookingId}:${i}:${productRef}`,
           'spend',
         ),
         observedAt: new Date().toISOString(),

@@ -18,7 +18,13 @@ import { EvidenceBus } from '../../common/evidence/evidence-bus';
 import { Scopes } from '../../common/auth/scopes.decorator';
 import { Tenant, TenantContext } from '../../common/tenancy/tenant-context';
 import { evidenceDedupeKey } from '../../common/util/hash';
-import { Prisma, Provenance, Signal, SubjectType } from '@prisma/client';
+import {
+  BookingStatus,
+  Prisma,
+  Provenance,
+  Signal,
+  SubjectType,
+} from '@prisma/client';
 import { AvailabilityService } from './availability.service';
 
 class CreateBookingDto {
@@ -42,6 +48,31 @@ export class BookingsService {
     private readonly prisma: PrismaService,
     private readonly bus: EvidenceBus,
   ) {}
+
+  /**
+   * Append-only status ledger (§4.1): record a single `held → confirmed →
+   * seated → closed / cancelled` transition. Accepts a transaction client so
+   * the ledger write lands in the SAME transaction as the status write it
+   * mirrors; a plain PrismaService is assignable to `Prisma.TransactionClient`.
+   */
+  private recordStatusTransition(
+    client: Prisma.TransactionClient,
+    args: {
+      tenantId: string;
+      bookingId: string;
+      fromStatus: BookingStatus | null;
+      toStatus: BookingStatus;
+    },
+  ) {
+    return client.bookingStatusEvent.create({
+      data: {
+        tenantId: args.tenantId,
+        bookingId: args.bookingId,
+        fromStatus: args.fromStatus,
+        toStatus: args.toStatus,
+      },
+    });
+  }
 
   /**
    * Hold → confirm in one call (`Idempotency-Key` accepted). Confirming
@@ -114,10 +145,25 @@ export class BookingsService {
             idempotencyKey: idempotencyKey ?? null,
           },
         });
-        return tx.booking.update({
+        // §4.1 ledger: creation is the `∅ → held` transition.
+        await this.recordStatusTransition(tx, {
+          tenantId: ctx.tenantId,
+          bookingId: held.id,
+          fromStatus: null,
+          toStatus: BookingStatus.held,
+        });
+        const confirmed = await tx.booking.update({
           where: { id: held.id },
           data: { status: 'confirmed' },
         });
+        // §4.1 ledger: the `held → confirmed` transition, same transaction.
+        await this.recordStatusTransition(tx, {
+          tenantId: ctx.tenantId,
+          bookingId: held.id,
+          fromStatus: BookingStatus.held,
+          toStatus: BookingStatus.confirmed,
+        });
+        return confirmed;
       });
     } catch (err) {
       // A concurrent retry with the same key won the unique race — return the
@@ -173,10 +219,19 @@ export class BookingsService {
       where: { id, tenantId: ctx.tenantId },
     });
     if (!booking) throw new NotFoundException('Booking not found');
-    return this.prisma.booking.update({
+    const cancelled = await this.prisma.booking.update({
       where: { id },
       data: { status: 'cancelled' },
     });
+    // §4.1 ledger: record the `<current> → cancelled` transition alongside the
+    // status write (no surrounding transaction exists on this path).
+    await this.recordStatusTransition(this.prisma, {
+      tenantId: ctx.tenantId,
+      bookingId: id,
+      fromStatus: booking.status,
+      toStatus: BookingStatus.cancelled,
+    });
+    return cancelled;
   }
 }
 
