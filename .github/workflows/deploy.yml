@@ -88,6 +88,17 @@ jobs:
             --command npx --args "prisma,migrate,deploy" --quiet
           gcloud run jobs execute atlas-migrate --region "$REGION" --wait
 
+      - name: Seed demo dataset
+        run: |
+          SQL_CONN="$(gcloud sql instances describe atlas-pg --format='value(connectionName)')"
+          gcloud run jobs deploy atlas-seed \
+            --image "$IMAGE" --region "$REGION" \
+            --service-account "atlas-run@${PROJECT_ID}.iam.gserviceaccount.com" \
+            --set-cloudsql-instances "$SQL_CONN" \
+            --set-secrets "DATABASE_URL=atlas-database-url:latest" \
+            --command node --args "prisma/seed.mjs" --quiet
+          gcloud run jobs execute atlas-seed --region "$REGION" --wait
+
       - name: Deploy service
         run: |
           SQL_CONN="$(gcloud sql instances describe atlas-pg --format='value(connectionName)')"
