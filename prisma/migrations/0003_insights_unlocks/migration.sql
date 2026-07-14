@@ -1,12 +1,11 @@
 -- Insights unlocks (additive; no backfill).
--- 1) product-grain taste: new SubjectType value 'product' so POS line items can
---    be fanned into the taste graph at SKU/category grain.
--- 2) BookingStatusEvent: append-only status-transition ledger (measured no-show /
---    cancel / turn timing).
--- 3) TalentEngagement: modeled artist booking + cost for exact talent ROI.
-
--- AlterEnum
-ALTER TYPE "SubjectType" ADD VALUE 'product';
+-- BookingStatusEvent: append-only status-transition ledger (measured no-show /
+--   cancel / turn timing).
+-- TalentEngagement: modeled artist booking + cost for exact talent ROI.
+--
+-- NOTE: the SubjectType 'product' enum value is added separately in migration
+-- 0004 — Postgres requires `ALTER TYPE ... ADD VALUE` to be the ONLY statement
+-- in its migration (it cannot run in a multi-command string with CREATE TABLE).
 
 -- CreateTable
 CREATE TABLE "BookingStatusEvent" (

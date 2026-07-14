@@ -161,13 +161,23 @@ jobs:
       - name: Migrate database
         run: |
           SQL_CONN="$(gcloud sql instances describe atlas-pg --format='value(connectionName)')"
+          # Self-heal a previously-failed 0003 (rolled-back is a no-op on a
+          # migration that isn't in a failed state), then apply. On failure, dump
+          # the job's Cloud Logging so the real Prisma error is visible here.
           gcloud run jobs deploy atlas-migrate \
             --image "$IMAGE" --region "$REGION" \
             --service-account "atlas-run@${PROJECT_ID}.iam.gserviceaccount.com" \
             --set-cloudsql-instances "$SQL_CONN" \
             --set-secrets "DATABASE_URL=atlas-database-url:latest" \
-            --command npx --args "prisma,migrate,deploy" --quiet
-          gcloud run jobs execute atlas-migrate --region "$REGION" --wait
+            --command sh \
+            --args '-c,npx prisma migrate resolve --rolled-back 0003_insights_unlocks 2>/dev/null || true; npx prisma migrate deploy' \
+            --quiet
+          gcloud run jobs execute atlas-migrate --region "$REGION" --wait \
+            || { echo "::group::atlas-migrate execution logs"; \
+                 gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=atlas-migrate" \
+                   --project "$PROJECT_ID" --limit=80 --freshness=1h \
+                   --format='value(textPayload)' 2>/dev/null || true; \
+                 echo "::endgroup::"; exit 1; }
 
       - name: Seed demo dataset
         run: |
