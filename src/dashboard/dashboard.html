@@ -162,6 +162,25 @@
   .foot{margin-top:26px; color:var(--faint); font-size:11.5px; font-family:var(--mono); display:flex; gap:12px; flex-wrap:wrap; align-items:center}
   .badge{font-family:var(--mono); font-size:10px; padding:2px 7px; border-radius:5px; border:1px solid}
   .badge.ok{color:var(--good); border-color:color-mix(in srgb,var(--good) 40%,var(--line))}
+  /* Intelligence section — reuses core tokens */
+  .i-empty{color:var(--faint); font-size:12px; padding:12px 2px; font-family:var(--mono)}
+  .i-tiles{display:grid; grid-template-columns:repeat(3,1fr); gap:9px}
+  .itbl{width:100%; border-collapse:collapse; font-size:12px}
+  .itbl th{text-align:left; font-family:var(--mono); font-size:9.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--faint); font-weight:500; padding:6px 8px; border-bottom:1px solid var(--line-soft)}
+  .itbl th.rt{text-align:right}
+  .itbl td{padding:7px 8px; border-top:1px solid var(--line-soft); color:var(--ink); vertical-align:top}
+  .itbl tbody tr:first-child td{border-top:0}
+  .itbl td.n{font-family:var(--mono); font-variant-numeric:tabular-nums; color:var(--muted); text-align:right; white-space:nowrap}
+  .i-cards{display:flex; flex-direction:column; gap:9px}
+  .vipcard{border:1px solid var(--line-soft); border-radius:var(--r-sm); background:var(--raise); padding:10px 11px}
+  .vipcard .vh{display:flex; align-items:baseline; justify-content:space-between; gap:8px; flex-wrap:wrap}
+  .vipcard .vn{font-weight:640; font-size:13px}
+  .vsub{font-family:var(--mono); font-size:11px; color:var(--muted)}
+  .vipcard .vaff{margin-top:7px; display:flex; gap:5px; flex-wrap:wrap}
+  .flagpill{font-family:var(--mono); font-size:9.5px; text-transform:uppercase; letter-spacing:.05em; padding:1px 6px; border-radius:5px; border:1px solid; white-space:nowrap}
+  .flagpill.ok{color:var(--good); border-color:color-mix(in srgb,var(--good) 40%,var(--line))}
+  .flagpill.warn{color:var(--warn); border-color:color-mix(in srgb,var(--warn) 40%,var(--line))}
+  .flagpill.crit{color:var(--crit); border-color:color-mix(in srgb,var(--crit) 40%,var(--line))}
   @media (prefers-reduced-motion:reduce){*{animation:none !important; transition:none !important}}
 </style>
 
@@ -228,6 +247,77 @@
     </div>
   </div>
 
+  <h2 class="sec">Intelligence · guest &amp; revenue <span style="font-size:10px; letter-spacing:0; text-transform:none; color:var(--faint)">mkt:reporting:read</span></h2>
+  <div class="grid3">
+    <div class="card">
+      <h3>Taste demand index</h3>
+      <p class="cap">GET /v1/insights/demand</p>
+      <div class="bars" id="i-demand"><div class="i-empty">loading…</div></div>
+    </div>
+    <div class="card">
+      <h3>Identity coverage</h3>
+      <p class="cap">GET /v1/insights/identity-coverage</p>
+      <div class="i-tiles" id="i-ident"><div class="i-empty">loading…</div></div>
+    </div>
+    <div class="card">
+      <h3>Silent whales · at-risk</h3>
+      <p class="cap">GET /v1/insights/at-risk</p>
+      <div id="i-atrisk"><div class="i-empty">loading…</div></div>
+    </div>
+  </div>
+  <div class="grid3" style="margin-top:16px">
+    <div class="card" style="grid-column:span 2">
+      <h3>Crew super-connectors</h3>
+      <p class="cap">GET /v1/insights/connectors</p>
+      <div id="i-connectors"><div class="i-empty">loading…</div></div>
+    </div>
+    <div class="card">
+      <h3>Attribution → LTV</h3>
+      <p class="cap">GET /v1/insights/attribution-ltv</p>
+      <div id="i-attr"><div class="i-empty">loading…</div></div>
+    </div>
+  </div>
+
+  <h2 class="sec">Intelligence · ops</h2>
+  <div class="grid3">
+    <div class="card" style="grid-column:span 2">
+      <h3>Min-spend realization</h3>
+      <p class="cap">GET /v1/insights/minspend-realization</p>
+      <div id="i-minspend"><div class="i-empty">loading…</div></div>
+    </div>
+    <div class="card">
+      <h3>No-show risk <span class="idx" id="i-noshow-date">—</span></h3>
+      <p class="cap">GET /v1/insights/no-show-risk</p>
+      <div id="i-noshow"><div class="i-empty">loading…</div></div>
+    </div>
+  </div>
+  <div class="grid3" style="margin-top:16px">
+    <div class="card" style="grid-column:span 2">
+      <h3>Door list · VIP</h3>
+      <p class="cap">GET /v1/insights/doorlist</p>
+      <div class="i-cards" id="i-doorlist"><div class="i-empty">loading…</div></div>
+    </div>
+    <div class="card">
+      <h3>Product mix</h3>
+      <p class="cap">GET /v1/insights/product-mix</p>
+      <div class="bars" id="i-mix"><div class="i-empty">loading…</div></div>
+    </div>
+  </div>
+
+  <h2 class="sec">Intelligence · talent</h2>
+  <div class="grid3">
+    <div class="card">
+      <h3>Who to book</h3>
+      <p class="cap">GET /v1/talent/who-to-book</p>
+      <div id="i-book"><div class="i-empty">loading…</div></div>
+    </div>
+    <div class="card" style="grid-column:span 2">
+      <h3>Talent ROI</h3>
+      <p class="cap">GET /v1/talent/roi</p>
+      <div class="stats2" id="i-roi"><div class="i-empty">loading…</div></div>
+    </div>
+  </div>
+
   <h2 class="sec">Primitive explorer · every hub, live outputs</h2>
   <div id="explorer"></div>
 
@@ -248,7 +338,7 @@
   var $=function(s){return document.querySelector(s)};
   var money=function(n){return "$"+Number(n||0).toLocaleString()};
   var mode="demo", BASE="";
-  function H(t){return {"X-Tenant-Id":t||A,"X-Scopes":"*","Content-Type":"application/json"}}
+  function H(t){return {"X-Tenant-Id":t||A,"X-Scopes":"* mkt:reporting:read mkt:reporting:write","Content-Type":"application/json"}}
   function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
 
   var EV=[
@@ -264,6 +354,56 @@
   var CREW=[{subjectRef:"afro house",blendedScore:9,confidence:1},{subjectRef:"Keinemusik",blendedScore:6,confidence:1},{subjectRef:"Black Coffee",blendedScore:5,confidence:1}];
   var DEMO_STATS_A={guests:1,evidence:7,affinities:3,crews:1,bookings:0,payments:0,entitlements:1,audiences:1,campaigns:0,venues:0,inventory:0,consents:2,usageEvents:0,entities:2,totalSpend:0};
   var DEMO_STATS_V={guests:0,evidence:2,affinities:0,crews:0,bookings:3,payments:6,entitlements:0,audiences:0,campaigns:0,venues:1,inventory:1,consents:0,usageEvents:3,entities:2,totalSpend:4800};
+
+  var IDATE="2026-07-20";
+  var DEMO_DEMAND=[
+    {subjectType:"genre",subjectRef:"afro house",demandScore:8.7,guestCount:51},
+    {subjectType:"artist",subjectRef:"Keinemusik",demandScore:9.2,guestCount:34},
+    {subjectType:"artist",subjectRef:"Black Coffee",demandScore:7.4,guestCount:22},
+    {subjectType:"genre",subjectRef:"melodic house",demandScore:5.1,guestCount:18}
+  ];
+  var DEMO_CONN=[
+    {name:"Marcus V.",memberCount:8,crewBookings:12,groupSpend:840000,connectorScore:9.5},
+    {name:"Yuki T.",memberCount:6,crewBookings:9,groupSpend:610000,connectorScore:8.1},
+    {name:"Devon R.",memberCount:5,crewBookings:5,groupSpend:295000,connectorScore:6.4}
+  ];
+  var DEMO_IDENT={darkRevenuePct:0.38,matchRate:0.72,reachablePct:0.64};
+  var DEMO_ATRISK=[
+    {displayName:"Jordan Kane",lifetimeSpendCents:1240000,daysSince:96,topAffinity:"afro house"},
+    {displayName:"Sasha Lin",lifetimeSpendCents:880000,daysSince:74,topAffinity:"Keinemusik"},
+    {displayName:"Theo Adeyemi",lifetimeSpendCents:560000,daysSince:58,topAffinity:"melodic house"}
+  ];
+  var DEMO_ATTR=[
+    {channel:"Instagram",acquiredGuests:210,firstBookingRevenueCents:1890000,lifetimeRevenueCents:7350000},
+    {channel:"Referral",acquiredGuests:96,firstBookingRevenueCents:1120000,lifetimeRevenueCents:5210000},
+    {channel:"Spotify",acquiredGuests:64,firstBookingRevenueCents:540000,lifetimeRevenueCents:2980000}
+  ];
+  var DEMO_MINSPEND=[
+    {label:"Booth 1",minSpendCents:200000,medianTabCents:243000,pctClearingMin:0.82,flag:"ok"},
+    {label:"Booth 2",minSpendCents:150000,medianTabCents:132000,pctClearingMin:0.41,flag:"under"},
+    {label:"Bar rail",minSpendCents:50000,medianTabCents:78000,pctClearingMin:0.90,flag:"ok"}
+  ];
+  var DEMO_NOSHOW=[
+    {displayName:"Alex Mercer",partySize:6,riskScore:0.78,suggestedDepositTier:"high"},
+    {displayName:"Priya N.",partySize:4,riskScore:0.52,suggestedDepositTier:"medium"},
+    {displayName:"Sam O.",partySize:2,riskScore:0.19,suggestedDepositTier:"low"}
+  ];
+  var DEMO_DOOR=[
+    {displayName:"Marcus V.",partySize:8,lifetimeTabCents:840000,topAffinities:["afro house","Keinemusik"],trustNet:9.2},
+    {displayName:"Yuki T.",partySize:5,lifetimeTabCents:610000,topAffinities:["melodic house"],trustNet:7.8}
+  ];
+  var DEMO_MIX=[
+    {category:"Champagne",totalCents:1840000,itemCount:64},
+    {category:"Spirits",totalCents:1220000,itemCount:130},
+    {category:"Cocktails",totalCents:640000,itemCount:210},
+    {category:"Food",totalCents:310000,itemCount:95}
+  ];
+  var DEMO_BOOK=[
+    {subjectRef:"Keinemusik",demandScore:9.2,guestCount:34,crewReach:120},
+    {subjectRef:"Black Coffee",demandScore:7.4,guestCount:22,crewReach:88},
+    {subjectRef:"Adriatique",demandScore:6.1,guestCount:15,crewReach:54}
+  ];
+  var DEMO_ROI={entityId:"Keinemusik",date:"2026-06-27",nightRevenueCents:4820000,baselineCents:3100000,liftCents:1720000,roi:2.4};
 
   var CAT=[
     {hub:"Guest",hue:"var(--gold)",items:[
@@ -447,6 +587,130 @@
     btn.textContent="Run"; btn.disabled=false;
   }
 
+  // ── Intelligence · live insight panels ───────────────────────────────
+  var moneyC=function(c){return money(Math.round(Number(c||0)/100))};
+  var pct=function(x){var n=Number(x||0); if(n>0&&n<=1) n*=100; return Math.round(n)+"%";};
+  function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+  function iEmpty(host,msg){host.innerHTML='<div class="i-empty">'+(msg||"No data yet")+'</div>';}
+  function tile(k,v){return '<div class="st"><div class="k">'+k+'</div><div class="v">'+v+'</div></div>';}
+  function tierCls(t){t=String(t||"").toLowerCase();return t==="high"?"crit":(t==="low"?"ok":"warn");}
+  function renderBars(host,rows,labelFn,valFn,scoreFn){
+    host.innerHTML=""; var max=0;
+    rows.forEach(function(r){max=Math.max(max,Number(scoreFn(r))||0)}); if(max<=0) max=1;
+    rows.forEach(function(r,i){
+      var row=document.createElement("div"); row.className="bar";
+      row.innerHTML='<div class="lab">'+labelFn(r)+'</div><div class="val">'+valFn(r)+'</div><div class="track"><i></i></div>';
+      host.appendChild(row);
+      var bar=row.querySelector("i"), w=Math.max(6,(Number(scoreFn(r))/max)*100);
+      setTimeout(function(){bar.style.width=w+"%"},60+i*70);
+    });
+  }
+  // live fetch → data | null (fail/empty) | undefined (demo mode: use sample)
+  async function iget(path,tenant){
+    if(mode!=="live") return undefined;
+    var r=await apiCall("GET",path,tenant||A);
+    if(r&&r.ok&&r.json!=null&&!(r.json&&r.json.error)) return r.json;
+    return null;
+  }
+
+  async function loadDemand(){var h=$("#i-demand");try{
+    var d=await iget("/v1/insights/demand",A); if(d===undefined)d=DEMO_DEMAND;
+    if(!Array.isArray(d)||!d.length) return iEmpty(h);
+    renderBars(h,d,
+      function(r){return '<span class="kind">'+esc(r.subjectType)+'</span> '+esc(r.subjectRef);},
+      function(r){return Number(r.demandScore||0).toFixed(1)+' · '+(r.guestCount||0)+'g';},
+      function(r){return r.demandScore;});
+  }catch(e){iEmpty(h);}}
+
+  async function loadIdent(){var h=$("#i-ident");try{
+    var d=await iget("/v1/insights/identity-coverage",A); if(d===undefined)d=DEMO_IDENT;
+    if(!d||typeof d!=="object"||Array.isArray(d)) return iEmpty(h);
+    h.innerHTML=tile("Dark revenue",pct(d.darkRevenuePct))+tile("Match rate",pct(d.matchRate))+tile("Reachable",pct(d.reachablePct));
+  }catch(e){iEmpty(h);}}
+
+  async function loadAtRisk(){var h=$("#i-atrisk");try{
+    var d=await iget("/v1/insights/at-risk",A); if(d===undefined)d=DEMO_ATRISK;
+    if(!Array.isArray(d)||!d.length) return iEmpty(h);
+    var rows=d.map(function(r){return '<tr><td>'+esc(r.displayName)+'<div class="vsub">'+esc(r.topAffinity)+'</div></td><td class="n">'+moneyC(r.lifetimeSpendCents)+'</td><td class="n">'+(r.daysSince||0)+'d</td></tr>';}).join("");
+    h.innerHTML='<table class="itbl"><thead><tr><th>guest</th><th class="rt">lifetime</th><th class="rt">quiet</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  }catch(e){iEmpty(h);}}
+
+  async function loadConnectors(){var h=$("#i-connectors");try{
+    var d=await iget("/v1/insights/connectors",A); if(d===undefined)d=DEMO_CONN;
+    if(!Array.isArray(d)||!d.length) return iEmpty(h);
+    var rows=d.map(function(r){return '<tr><td>'+esc(r.name)+'</td><td class="n">'+(r.memberCount||0)+'</td><td class="n">'+(r.crewBookings||0)+'</td><td class="n">'+moneyC(r.groupSpend)+'</td><td class="n">'+Number(r.connectorScore||0).toFixed(1)+'</td></tr>';}).join("");
+    h.innerHTML='<table class="itbl"><thead><tr><th>connector</th><th class="rt">members</th><th class="rt">bookings</th><th class="rt">group spend</th><th class="rt">score</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  }catch(e){iEmpty(h);}}
+
+  async function loadAttr(){var h=$("#i-attr");try{
+    var d=await iget("/v1/insights/attribution-ltv",A); if(d===undefined)d=DEMO_ATTR;
+    if(!Array.isArray(d)||!d.length) return iEmpty(h);
+    var rows=d.map(function(r){return '<tr><td>'+esc(r.channel)+'<div class="vsub">'+(r.acquiredGuests||0)+' guests · first '+moneyC(r.firstBookingRevenueCents)+'</div></td><td class="n">'+moneyC(r.lifetimeRevenueCents)+'</td></tr>';}).join("");
+    h.innerHTML='<table class="itbl"><thead><tr><th>channel</th><th class="rt">lifetime</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  }catch(e){iEmpty(h);}}
+
+  async function loadMinspend(){var h=$("#i-minspend");try{
+    var d=await iget("/v1/insights/minspend-realization",V); if(d===undefined)d=DEMO_MINSPEND;
+    if(!Array.isArray(d)||!d.length) return iEmpty(h);
+    var rows=d.map(function(r){
+      var f=String(r.flag||"").toLowerCase();
+      var cls=(f==="ok"||f==="clear")?"ok":((f==="under"||f==="miss"||f==="crit")?"crit":"warn");
+      return '<tr><td>'+esc(r.label)+'</td><td class="n">'+moneyC(r.minSpendCents)+'</td><td class="n">'+moneyC(r.medianTabCents)+'</td><td class="n">'+pct(r.pctClearingMin)+'</td><td><span class="flagpill '+cls+'">'+esc(r.flag||cls)+'</span></td></tr>';
+    }).join("");
+    h.innerHTML='<table class="itbl"><thead><tr><th>space</th><th class="rt">min spend</th><th class="rt">median tab</th><th class="rt">clearing</th><th>flag</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  }catch(e){iEmpty(h);}}
+
+  async function loadNoShow(){var h=$("#i-noshow");try{
+    var d=await iget("/v1/insights/no-show-risk?date="+encodeURIComponent(IDATE),V); if(d===undefined)d=DEMO_NOSHOW;
+    if(!Array.isArray(d)||!d.length) return iEmpty(h);
+    var rows=d.map(function(r){
+      var name=r.displayName||r.guestName||r.name||"Guest";
+      var risk=(r.riskScore!=null)?r.riskScore:((r.risk!=null)?r.risk:r.score);
+      var tier=r.suggestedDepositTier||r.depositTier||"—";
+      return '<tr><td>'+esc(name)+'<div class="vsub">party '+(r.partySize||0)+'</div></td><td class="n">'+pct(risk)+'</td><td><span class="flagpill '+tierCls(tier)+'">'+esc(tier)+'</span></td></tr>';
+    }).join("");
+    h.innerHTML='<table class="itbl"><thead><tr><th>booking</th><th class="rt">risk</th><th>deposit</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  }catch(e){iEmpty(h);}}
+
+  async function loadDoorlist(){var h=$("#i-doorlist");try{
+    var d=await iget("/v1/insights/doorlist?venueId="+VEN+"&date="+encodeURIComponent(IDATE),V); if(d===undefined)d=DEMO_DOOR;
+    if(!Array.isArray(d)||!d.length) return iEmpty(h);
+    h.innerHTML=d.map(function(r){
+      var affs=Array.isArray(r.topAffinities)?r.topAffinities:[];
+      var chips=affs.map(function(a){return '<span class="kind">'+esc(a)+'</span>';}).join("");
+      return '<div class="vipcard"><div class="vh"><span class="vn">'+esc(r.displayName)+'</span><span class="vsub">party '+(r.partySize||0)+' · '+moneyC(r.lifetimeTabCents)+' lifetime · trust '+Number(r.trustNet||0).toFixed(1)+'</span></div><div class="vaff">'+(chips||'<span class="vsub">—</span>')+'</div></div>';
+    }).join("");
+  }catch(e){iEmpty(h);}}
+
+  async function loadMix(){var h=$("#i-mix");try{
+    var d=await iget("/v1/insights/product-mix?venueId="+VEN+"&date="+encodeURIComponent(IDATE),V); if(d===undefined)d=DEMO_MIX;
+    if(!Array.isArray(d)||!d.length) return iEmpty(h);
+    renderBars(h,d,
+      function(r){return esc(r.category);},
+      function(r){return moneyC(r.totalCents)+' · '+(r.itemCount||0);},
+      function(r){return r.totalCents;});
+  }catch(e){iEmpty(h);}}
+
+  async function loadBook(){var h=$("#i-book");try{
+    var d=await iget("/v1/talent/who-to-book",A); if(d===undefined)d=DEMO_BOOK;
+    if(!Array.isArray(d)||!d.length) return iEmpty(h);
+    var rows=d.map(function(r){return '<tr><td>'+esc(r.subjectRef)+'</td><td class="n">'+Number(r.demandScore||0).toFixed(1)+'</td><td class="n">'+(r.guestCount||0)+'</td><td class="n">'+(r.crewReach||0)+'</td></tr>';}).join("");
+    h.innerHTML='<table class="itbl"><thead><tr><th>talent</th><th class="rt">demand</th><th class="rt">guests</th><th class="rt">reach</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  }catch(e){iEmpty(h);}}
+
+  async function loadRoi(){var h=$("#i-roi");try{
+    var d=await iget("/v1/talent/roi",A); if(d===undefined)d=DEMO_ROI;
+    if(Array.isArray(d)) d=d[0];
+    if(!d||typeof d!=="object") return iEmpty(h);
+    h.innerHTML=tile("Night revenue",moneyC(d.nightRevenueCents))+tile("Baseline",moneyC(d.baselineCents))+tile("Lift",moneyC(d.liftCents))+tile("ROI",Number(d.roi||0).toFixed(2)+"×");
+  }catch(e){iEmpty(h);}}
+
+  function loadIntel(){
+    $("#i-noshow-date").textContent=IDATE;
+    loadDemand(); loadIdent(); loadAtRisk(); loadConnectors(); loadAttr();
+    loadMinspend(); loadNoShow(); loadDoorlist(); loadMix(); loadBook(); loadRoi();
+  }
+
   var running=false;
   async function drive(){
     if(running) return; running=true;
@@ -476,6 +740,6 @@
 
   $("#run").addEventListener("click",drive);
   renderFlow(-1); renderExplorer();
-  detect().then(loadTotals);
+  detect().then(function(){ loadTotals(); loadIntel(); });
 })();
 </script>
