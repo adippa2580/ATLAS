@@ -26,18 +26,18 @@ resource "google_sql_database_instance" "atlas" {
   database_version = "POSTGRES_16"
   region           = var.region
   settings {
-    tier              = "db-custom-2-7680"
-    availability_type = "REGIONAL" # multi-AZ failover
+    tier              = "db-custom-1-3840"
+    availability_type = "ZONAL"
     backup_configuration {
-      enabled                        = true
-      point_in_time_recovery_enabled = true
+      enabled = true
     }
     ip_configuration {
-      ipv4_enabled = false
-      # private_network = google_compute_network.atlas.id
+      # Public IP is fine here — Cloud Run reaches it through the managed Cloud
+      # SQL connector socket (authenticated), with no authorized networks open.
+      ipv4_enabled = true
     }
   }
-  deletion_protection = true
+  deletion_protection = false
 }
 
 resource "google_sql_database" "atlas" {

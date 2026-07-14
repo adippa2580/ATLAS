@@ -70,17 +70,49 @@ if [ -z "${TF_VAR_db_password:-}" ]; then
   fi
 fi
 
+# Terraform reads all inputs from TF_VAR_* so `apply` and `import` agree.
+export TF_VAR_project_id="${PROJECT_ID}"
+export TF_VAR_region="${REGION}"
+
+# Remote state bucket (idempotent) so state survives re-clones / disconnects.
+bold "Ensuring Terraform state bucket gs://${PROJECT_ID}-tfstate"
+gcloud storage buckets create "gs://${PROJECT_ID}-tfstate" \
+  --location="${REGION}" --uniform-bucket-level-access >/dev/null 2>&1 || true
+
 bold "Provisioning infrastructure (Terraform) — Cloud SQL is slow, ~10-15 min"
 pushd deploy/gcp/terraform >/dev/null
 [ -f terraform.tfvars ] || cp terraform.tfvars.example terraform.tfvars
-"$TF" init -input=false >/dev/null || die "terraform init failed"
-# First apply can race API enablement; retry once, then fail hard.
+"$TF" init -input=false -reconfigure >/dev/null || die "terraform init failed"
+
+# Adopt any resources that already exist in the project (from earlier partial
+# runs) into state, so apply reconciles instead of hitting 409 Already Exists.
+# Tolerant: skips if already tracked, and no-ops if the object doesn't exist.
+adopt() {
+  "$TF" state list 2>/dev/null | grep -qxF "$1" && return 0
+  "$TF" import -input=false "$1" "$2" >/dev/null 2>&1 || true
+}
+bold "Adopting any pre-existing resources into state"
+P="${PROJECT_ID}"
+adopt google_service_account.atlas_run    "projects/${P}/serviceAccounts/atlas-run@${P}.iam.gserviceaccount.com"
+adopt google_service_account.github_deploy "projects/${P}/serviceAccounts/atlas-github-deploy@${P}.iam.gserviceaccount.com"
+adopt google_storage_bucket.lake          "${P}-atlas-lake"
+adopt google_bigquery_dataset.atlas       "projects/${P}/datasets/atlas_bi"
+adopt google_artifact_registry_repository.atlas "projects/${P}/locations/${REGION}/repositories/atlas"
+adopt google_redis_instance.atlas         "projects/${P}/locations/${REGION}/instances/atlas-redis"
+adopt google_pubsub_topic.evidence        "projects/${P}/topics/atlas-evidence"
+adopt google_pubsub_subscription.evidence_recompute "projects/${P}/subscriptions/atlas-evidence-recompute"
+adopt google_vpc_access_connector.atlas   "projects/${P}/locations/${REGION}/connectors/atlas-connector"
+adopt google_secret_manager_secret.database_url "projects/${P}/secrets/atlas-database-url"
+adopt google_secret_manager_secret.redis_url    "projects/${P}/secrets/atlas-redis-url"
+adopt google_iam_workload_identity_pool.github  "projects/${P}/locations/global/workloadIdentityPools/atlas-github"
+adopt google_iam_workload_identity_pool_provider.github "projects/${P}/locations/global/workloadIdentityPools/atlas-github/providers/github-oidc"
+adopt google_sql_database_instance.atlas  "${P}/atlas-pg"
+
+# Apply. Retry once (API enablement / eventual consistency), then fail hard.
 "$TF" apply -input=false -auto-approve \
-  -var="project_id=${PROJECT_ID}" -var="region=${REGION}" \
-  || { echo "retrying apply after API enablement..."; sleep 30; \
+  || { echo "retrying apply after transient errors..."; sleep 30; \
        "$TF" apply -input=false -auto-approve \
-         -var="project_id=${PROJECT_ID}" -var="region=${REGION}" \
-         || die "terraform apply failed — see the Error above (usually a missing role or unenabled API)"; }
+         || die "terraform apply failed — see the Error above"; }
 WIF_PROVIDER="$("$TF" output -raw wif_provider 2>/dev/null || echo '')"
 DEPLOY_SA="$("$TF" output -raw github_deploy_sa 2>/dev/null || echo '')"
 popd >/dev/null
