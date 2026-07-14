@@ -27,17 +27,25 @@ resource "google_sql_database_instance" "atlas" {
   region           = var.region
   settings {
     tier              = "db-custom-1-3840"
-    availability_type = "ZONAL"
+    availability_type = "ZONAL" # TODO(P0-infra): REGIONAL for HA/failover once budget allows.
     backup_configuration {
-      enabled = true
+      enabled                        = true
+      point_in_time_recovery_enabled = true
+      transaction_log_retention_days = 7
+      backup_retention_settings {
+        retained_backups = 30
+      }
     }
     ip_configuration {
       # Public IP is fine here — Cloud Run reaches it through the managed Cloud
       # SQL connector socket (authenticated), with no authorized networks open.
+      # TODO(P0-infra): move to private IP (private_network) — see design-review.md.
       ipv4_enabled = true
     }
   }
-  deletion_protection = false
+  # System of record — protect against accidental terraform/console deletion.
+  # Point-in-time recovery + retained backups guard against data loss.
+  deletion_protection = true
 }
 
 resource "google_sql_database" "atlas" {

@@ -9,12 +9,51 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Never let two deploys race the migrate + service-replace against the same
+# instance. Queue them instead of cancelling — a half-applied migration is worse
+# than a slow pipeline.
+concurrency:
+  group: deploy-cloud-run
+  cancel-in-progress: false
+
 permissions:
   contents: read
   id-token: write # required for WIF OIDC
 
 jobs:
+  # Gate: a broken build/lint/test must block the deploy. Mirrors ci.yml so a
+  # push that fails tests never reaches Cloud Run even if `docker build` succeeds.
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: atlas
+          POSTGRES_PASSWORD: atlas
+          POSTGRES_DB: atlas
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U atlas"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://atlas:atlas@localhost:5432/atlas?schema=public
+      EVIDENCE_BUS: memory
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma db push --skip-generate
+      - run: npm run build
+      - run: npm run lint
+      - run: npm test
+
   deploy:
+    needs: test
     runs-on: ubuntu-latest
     env:
       PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
