@@ -66,5 +66,17 @@ CREATE TABLE "IdempotencyRecord" (
 CREATE INDEX "IdempotencyRecord_tenantId_createdAt_idx" ON "IdempotencyRecord"("tenantId", "createdAt");
 CREATE UNIQUE INDEX "IdempotencyRecord_tenantId_key_key" ON "IdempotencyRecord"("tenantId", "key");
 CREATE UNIQUE INDEX "Booking_tenantId_idempotencyKey_key" ON "Booking"("tenantId", "idempotencyKey");
+
+-- Dirty-data guard: if this DB carried rows written before these constraints
+-- existed (e.g. the split-pay stub reused a stripePiId), null the duplicate
+-- values so the unique indexes can be built (NULLs are exempt from UNIQUE).
+-- Keeps the lexicographically-first id per key.
+UPDATE "Payment" p SET "stripePiId" = NULL
+WHERE "stripePiId" IS NOT NULL
+  AND "id" <> (SELECT MIN(p2."id") FROM "Payment" p2 WHERE p2."stripePiId" = p."stripePiId");
+UPDATE "Payment" p SET "idempotencyKey" = NULL
+WHERE "idempotencyKey" IS NOT NULL
+  AND "id" <> (SELECT MIN(p2."id") FROM "Payment" p2 WHERE p2."tenantId" = p."tenantId" AND p2."idempotencyKey" = p."idempotencyKey");
+
 CREATE UNIQUE INDEX "Payment_stripePiId_key" ON "Payment"("stripePiId");
 CREATE UNIQUE INDEX "Payment_tenantId_idempotencyKey_key" ON "Payment"("tenantId", "idempotencyKey");

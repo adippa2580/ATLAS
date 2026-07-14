@@ -170,7 +170,7 @@ jobs:
             --set-cloudsql-instances "$SQL_CONN" \
             --set-secrets "DATABASE_URL=atlas-database-url:latest" \
             --command sh \
-            --args '-c,npx prisma migrate resolve --rolled-back 0003_insights_unlocks 2>/dev/null || true; npx prisma migrate deploy' \
+            --args '-c,for m in 0002_p0_hardening 0003_insights_unlocks; do npx prisma migrate resolve --rolled-back $m 2>/dev/null || true; done; npx prisma migrate deploy' \
             --quiet
           gcloud run jobs execute atlas-migrate --region "$REGION" --wait \
             || { echo "::group::atlas-migrate execution logs"; \
