@@ -111,7 +111,11 @@ export class TalentService {
       }),
       // Nice-to-have "crew reach": crews that blend high on this artist.
       this.prisma.crewAffinity.findMany({
-        where: { tenantId: t, subjectType: 'artist', blendedScore: { gte: 0.5 } },
+        where: {
+          tenantId: t,
+          subjectType: 'artist',
+          blendedScore: { gte: 0.5 },
+        },
         select: { subjectRef: true, crewId: true },
       }),
     ]);
@@ -125,10 +129,7 @@ export class TalentService {
     }
 
     // Aggregate demand per artist ref, counting distinct guests.
-    const agg = new Map<
-      string,
-      { demandScore: number; guests: Set<string> }
-    >();
+    const agg = new Map<string, { demandScore: number; guests: Set<string> }>();
     for (const a of affinities) {
       if (booked.has(a.subjectRef)) continue; // demand with no supply only
       let row = agg.get(a.subjectRef);

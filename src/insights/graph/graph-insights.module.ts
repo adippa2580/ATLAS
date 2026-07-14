@@ -173,9 +173,7 @@ export class GraphInsightsService {
             where: { tenantId: t, guestId: { in: guestIds } },
             select: { guestId: true, venueId: true },
           })
-        : Promise.resolve(
-            [] as { guestId: string; venueId: string }[],
-          ),
+        : Promise.resolve([] as { guestId: string; venueId: string }[]),
     ]);
 
     // Dedupe guest<->venue pairs so a guest counts once per venue it booked.

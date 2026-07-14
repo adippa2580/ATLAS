@@ -23,6 +23,10 @@ import { IntegrationsModule } from './integrations/integrations.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { OutcomesModule } from './outcomes/outcomes.module';
 import { StatsModule } from './stats/stats.module';
+import { GraphInsightsModule } from './insights/graph/graph-insights.module';
+import { RevenueInsightsModule } from './insights/revenue/revenue-insights.module';
+import { OpsInsightsModule } from './insights/ops/ops-insights.module';
+import { TalentModule } from './insights/talent/talent.module';
 
 @Module({
   imports: [
@@ -46,6 +50,10 @@ import { StatsModule } from './stats/stats.module';
     DashboardModule,
     OutcomesModule,
     StatsModule,
+    GraphInsightsModule,
+    RevenueInsightsModule,
+    OpsInsightsModule,
+    TalentModule,
   ],
   controllers: [HealthController],
   providers: [

@@ -239,7 +239,8 @@ export class RevenueInsightsService {
     for (const c of campaigns) channelByCampaignId.set(c.id, c.channel);
     for (const l of links) {
       const channel =
-        (l.campaignId && channelByCampaignId.get(l.campaignId)) || 'unattributed';
+        (l.campaignId && channelByCampaignId.get(l.campaignId)) ||
+        'unattributed';
       channelByLinkId.set(l.id, channel);
     }
 
@@ -259,7 +260,7 @@ export class RevenueInsightsService {
     const firstBookingRevenueByChannel = new Map<string, number>();
     for (const b of attributedBookings) {
       const channel = b.attributionId
-        ? channelByLinkId.get(b.attributionId) ?? 'unattributed'
+        ? (channelByLinkId.get(b.attributionId) ?? 'unattributed')
         : 'unattributed';
       firstBookingRevenueByChannel.set(
         channel,
