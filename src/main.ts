@@ -9,7 +9,9 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   app.useLogger(app.get(Logger));
 
-  app.setGlobalPrefix('v1', { exclude: ['health', 'dashboard'] });
+  app.setGlobalPrefix('v1', {
+    exclude: ['health', 'dashboard', 'outcomes'],
+  });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.useGlobalGuards(new ScopesGuard(app.get(Reflector)));
 

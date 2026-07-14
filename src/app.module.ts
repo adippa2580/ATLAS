@@ -12,6 +12,7 @@ import { MarketingModule } from './modules/marketing/marketing.module';
 import { McpModule } from './modules/mcp/mcp.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { OutcomesModule } from './outcomes/outcomes.module';
 import { StatsModule } from './stats/stats.module';
 
 @Module({
@@ -34,6 +35,7 @@ import { StatsModule } from './stats/stats.module';
     MarketingModule,
     McpModule,
     DashboardModule,
+    OutcomesModule,
     StatsModule,
   ],
   controllers: [HealthController],
