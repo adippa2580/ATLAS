@@ -2,48 +2,44 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
   :root{
-    --ground:#0B0A12; --panel:#141121; --card:#1B1730; --raise:#221D3A;
+    --ground:#0B0A12; --panel:#141121; --card:#1B1730; --raise:#221D3A; --raise2:#282143;
     --line:#2C2745; --line-soft:#231F3A;
     --ink:#ECE8FA; --muted:#A49CC8; --faint:#6E6797;
-    --gold:#F2C14E; --gold-dim:#8a6d24; --violet:#B784F5; --cyan:#5FE3D6;
+    --gold:#F2C14E; --gold-dim:#8a6d24; --violet:#B784F5; --cyan:#5FE3D6; --pink:#F58AC8;
     --good:#54E0A0; --warn:#F6C453; --crit:#FB7185;
     --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
     --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     --r:14px; --r-sm:9px;
   }
   :root[data-theme="light"]{
-    --ground:#F4F2FA; --panel:#FFFFFF; --card:#FBFAFF; --raise:#F1EEFB;
-    --line:#E3DEF3; --line-soft:#ECE8F8;
-    --ink:#1B1630; --muted:#5E5680; --faint:#8b83a8;
-    --gold:#9A6B00; --gold-dim:#c8a24a; --violet:#7A45C9; --cyan:#0E9B8E;
+    --ground:#F5F3FB; --panel:#FFFFFF; --card:#FBFAFF; --raise:#F1EEFB; --raise2:#E9E4F8;
+    --line:#E2DDF2; --line-soft:#ECE8F8;
+    --ink:#1B1630; --muted:#5C547E; --faint:#8b83a8;
+    --gold:#9A6B00; --gold-dim:#c8a24a; --violet:#7A45C9; --cyan:#0E9B8E; --pink:#C43D93;
     --good:#0E9E6A; --warn:#B4790B; --crit:#D33B57;
   }
-  @media (prefers-color-scheme:light){
-    :root:not([data-theme]){
-      --ground:#F4F2FA; --panel:#FFFFFF; --card:#FBFAFF; --raise:#F1EEFB;
-      --line:#E3DEF3; --line-soft:#ECE8F8;
-      --ink:#1B1630; --muted:#5E5680; --faint:#8b83a8;
-      --gold:#9A6B00; --gold-dim:#c8a24a; --violet:#7A45C9; --cyan:#0E9B8E;
-      --good:#0E9E6A; --warn:#B4790B; --crit:#D33B57;
-    }
-  }
+  @media (prefers-color-scheme:light){:root:not([data-theme]){
+    --ground:#F5F3FB; --panel:#FFFFFF; --card:#FBFAFF; --raise:#F1EEFB; --raise2:#E9E4F8;
+    --line:#E2DDF2; --line-soft:#ECE8F8; --ink:#1B1630; --muted:#5C547E; --faint:#8b83a8;
+    --gold:#9A6B00; --gold-dim:#c8a24a; --violet:#7A45C9; --cyan:#0E9B8E; --pink:#C43D93;
+    --good:#0E9E6A; --warn:#B4790B; --crit:#D33B57;
+  }}
   *{box-sizing:border-box}
   html,body{margin:0}
   body{
     background:
-      radial-gradient(1100px 600px at 82% -8%, color-mix(in srgb, var(--violet) 16%, transparent), transparent 60%),
-      radial-gradient(900px 500px at -6% 4%, color-mix(in srgb, var(--gold) 9%, transparent), transparent 55%),
+      radial-gradient(1100px 600px at 84% -10%, color-mix(in srgb,var(--violet) 15%,transparent), transparent 60%),
+      radial-gradient(900px 520px at -6% 2%, color-mix(in srgb,var(--gold) 8%,transparent), transparent 55%),
       var(--ground);
-    color:var(--ink); font-family:var(--sans);
-    -webkit-font-smoothing:antialiased; line-height:1.5;
-    min-height:100vh;
+    color:var(--ink); font-family:var(--sans); -webkit-font-smoothing:antialiased; line-height:1.5; min-height:100vh;
   }
-  .wrap{max-width:1180px; margin:0 auto; padding:22px 20px 60px}
+  .wrap{max-width:1240px; margin:0 auto; padding:20px 20px 70px}
   .mono{font-family:var(--mono); font-variant-numeric:tabular-nums}
-  .eyebrow{font-family:var(--mono); font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--faint)}
+  h2.sec{font-size:12px; font-family:var(--mono); letter-spacing:.16em; text-transform:uppercase; color:var(--faint);
+    margin:30px 2px 12px; display:flex; align-items:center; gap:10px}
+  h2.sec::after{content:""; flex:1; height:1px; background:var(--line-soft)}
 
-  /* top bar */
-  .top{display:flex; align-items:center; gap:16px; flex-wrap:wrap; padding:6px 2px 20px}
+  .top{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:4px 2px 16px}
   .brand{display:flex; align-items:baseline; gap:10px}
   .brand h1{font-size:23px; margin:0; letter-spacing:-.01em; font-weight:680}
   .brand .sub{font-family:var(--mono); font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:var(--gold)}
@@ -51,103 +47,119 @@
   .chip{display:inline-flex; align-items:center; gap:7px; font-family:var(--mono); font-size:11.5px;
     padding:5px 10px; border:1px solid var(--line); border-radius:999px; background:var(--panel); color:var(--muted)}
   .chip b{color:var(--ink); font-weight:600}
-  .dot{width:7px; height:7px; border-radius:50%; background:var(--good); box-shadow:0 0 0 0 color-mix(in srgb,var(--good) 70%,transparent)}
+  .dot{width:7px; height:7px; border-radius:50%; background:var(--good)}
   .dot.live{animation:pulse 2.4s infinite}
   @keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--good) 55%,transparent)}70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
-  .modepill{cursor:pointer; user-select:none}
-  .modepill.demo{color:var(--warn); border-color:color-mix(in srgb,var(--warn) 45%,var(--line))}
+  .modepill{cursor:default} .modepill.demo{color:var(--warn); border-color:color-mix(in srgb,var(--warn) 45%,var(--line))}
   .modepill.live{color:var(--good); border-color:color-mix(in srgb,var(--good) 45%,var(--line))}
   .ttoggle{cursor:pointer}
 
-  /* run bar */
-  .runbar{display:flex; align-items:center; gap:14px; flex-wrap:wrap;
-    background:linear-gradient(180deg, var(--panel), color-mix(in srgb,var(--panel) 88%, var(--ground)));
-    border:1px solid var(--line); border-radius:var(--r); padding:14px 16px; margin-bottom:16px}
+  .kpis{display:grid; grid-template-columns:repeat(6,1fr); gap:10px}
+  @media(max-width:900px){.kpis{grid-template-columns:repeat(3,1fr)}}
+  @media(max-width:520px){.kpis{grid-template-columns:repeat(2,1fr)}}
+  .kpi{background:var(--card); border:1px solid var(--line); border-radius:var(--r-sm); padding:11px 12px}
+  .kpi .k{font-family:var(--mono); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint)}
+  .kpi .v{font-family:var(--mono); font-weight:680; font-size:22px; margin-top:4px; letter-spacing:-.01em}
+  .kpi .v small{font-size:11px; color:var(--muted); font-weight:500}
+  .kpi.accent .v{color:var(--gold)}
+
+  .runbar{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:14px;
+    background:linear-gradient(180deg,var(--panel),color-mix(in srgb,var(--panel) 88%,var(--ground)));
+    border:1px solid var(--line); border-radius:var(--r); padding:13px 15px}
   .run{appearance:none; border:0; cursor:pointer; font-family:var(--sans); font-weight:640; font-size:14px;
     color:#221a03; background:linear-gradient(180deg,#F6CD69,var(--gold)); padding:11px 18px; border-radius:10px;
-    box-shadow:0 6px 18px -8px color-mix(in srgb,var(--gold) 70%,transparent); transition:transform .12s ease, filter .12s}
-  .run:hover{filter:brightness(1.05)} .run:active{transform:translateY(1px)}
-  .run:disabled{filter:grayscale(.5) brightness(.8); cursor:default; box-shadow:none}
+    box-shadow:0 6px 18px -8px color-mix(in srgb,var(--gold) 70%,transparent); transition:transform .12s,filter .12s}
+  .run:hover{filter:brightness(1.05)} .run:active{transform:translateY(1px)} .run:disabled{filter:grayscale(.5) brightness(.8); cursor:default}
   .run:focus-visible{outline:2px solid var(--violet); outline-offset:3px}
-  .runbar .desc{color:var(--muted); font-size:13px; max-width:52ch}
-  .runbar .desc b{color:var(--ink)}
+  .runbar .desc{color:var(--muted); font-size:13px; max-width:48ch} .runbar .desc b{color:var(--ink)}
   .prog{flex:1; min-width:120px; height:5px; border-radius:99px; background:var(--line-soft); overflow:hidden}
   .prog>i{display:block; height:100%; width:0; background:linear-gradient(90deg,var(--violet),var(--gold)); transition:width .5s ease}
 
-  /* grid */
-  .grid{display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px}
-  @media(max-width:900px){.grid{grid-template-columns:1fr}}
-  .col{display:flex; flex-direction:column; gap:16px}
-  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:16px 16px 17px; position:relative}
-  .card.pending{opacity:.5}
-  .card.hot{border-color:color-mix(in srgb,var(--gold) 55%,var(--line)); box-shadow:0 0 0 1px color-mix(in srgb,var(--gold) 25%,transparent), 0 14px 40px -22px color-mix(in srgb,var(--gold) 60%,transparent)}
-  .card h2{font-size:13px; margin:0 0 2px; font-weight:640; letter-spacing:.01em; display:flex; align-items:center; gap:8px}
-  .card .cap{color:var(--faint); font-size:11.5px; margin:0 0 14px; font-family:var(--mono)}
+  .grid3{display:grid; grid-template-columns:1.15fr .95fr .95fr; gap:16px}
+  @media(max-width:960px){.grid3{grid-template-columns:1fr}}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:16px}
+  .card h3{font-size:13px; margin:0 0 2px; font-weight:640; display:flex; align-items:center; gap:8px}
+  .card .cap{color:var(--faint); font-size:11px; margin:0 0 13px; font-family:var(--mono)}
   .idx{font-family:var(--mono); font-size:11px; color:var(--gold); border:1px solid color-mix(in srgb,var(--gold) 35%,var(--line)); border-radius:6px; padding:1px 6px}
 
-  /* guest */
-  .who{display:flex; align-items:center; gap:12px; margin-bottom:14px}
-  .ava{width:42px; height:42px; border-radius:12px; display:grid; place-items:center; font-weight:700; font-size:17px;
-    color:#221a03; background:linear-gradient(150deg,#F7D178,var(--gold))}
-  .who .n{font-weight:640; font-size:15px} .who .m{color:var(--muted); font-size:12px; font-family:var(--mono)}
-  .tags{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px}
-  .tag{font-family:var(--mono); font-size:10.5px; color:var(--muted); border:1px solid var(--line); border-radius:999px; padding:3px 8px}
+  .tg .flowlbl{display:flex; align-items:center; justify-content:space-between; font-family:var(--mono); font-size:10.5px; color:var(--faint); margin-bottom:8px}
+  .tg .flowlbl b{color:var(--violet)}
+  .evlog{background:#08070E; border:1px solid var(--line); border-radius:var(--r-sm); max-height:196px; overflow:auto}
+  :root[data-theme="light"] .evlog{background:#100C1E}
+  .evlog table{width:100%; border-collapse:collapse; font-family:var(--mono); font-size:11px}
+  .evlog th{position:sticky; top:0; background:#0e0c18; color:#7c76a1; text-align:left; font-weight:500; padding:7px 9px; font-size:9.5px; letter-spacing:.06em; text-transform:uppercase}
+  :root[data-theme="light"] .evlog th{background:#181227}
+  .evlog td{padding:6px 9px; border-top:1px solid #1c1830; color:#cdc7ea; white-space:nowrap}
+  .evlog .sig{color:var(--gold)} .evlog .prov{color:var(--cyan)} .evlog .mut{color:var(--crit)}
+  .evrow{animation:slideIn .4s ease} @keyframes slideIn{from{opacity:0; transform:translateY(-4px)}to{opacity:1}}
+  .writes{display:inline-flex; align-items:center; gap:6px; font-family:var(--mono); font-size:11px; color:var(--good)}
+  .writes b{font-size:14px}
 
-  .bars{display:flex; flex-direction:column; gap:9px; margin-top:4px}
+  .bars{display:flex; flex-direction:column; gap:8px; margin-top:2px}
   .bar{display:grid; grid-template-columns:1fr auto; gap:3px}
   .bar .lab{font-size:12.5px; display:flex; align-items:center; gap:7px}
   .bar .val{font-family:var(--mono); font-size:12px; color:var(--muted)}
-  .track{grid-column:1 / -1; height:8px; border-radius:6px; background:var(--line-soft); overflow:hidden}
+  .track{grid-column:1/-1; height:8px; border-radius:6px; background:var(--line-soft); overflow:hidden}
   .track>i{display:block; height:100%; width:0; border-radius:6px; background:linear-gradient(90deg,var(--gold-dim),var(--gold)); transition:width .9s cubic-bezier(.2,.8,.2,1)}
   .bar.muted .lab{color:var(--faint); text-decoration:line-through; text-decoration-color:color-mix(in srgb,var(--crit) 70%,transparent)}
   .bar.muted .track>i{background:var(--line)}
-  .kind{font-family:var(--mono); font-size:9.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--faint); border:1px solid var(--line-soft); border-radius:4px; padding:0 4px}
+  .kind{font-family:var(--mono); font-size:9.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--faint); border:1px solid var(--line-soft); border-radius:4px; padding:0 4px}
+  .blend{display:flex; align-items:center; gap:12px; margin:4px 0 2px}
+  .blend .big{font-family:var(--mono); font-weight:680; font-size:32px; color:var(--gold); line-height:1}
+  .blend .txt{font-size:12px; color:var(--muted)} .blend .txt b{color:var(--ink)}
 
-  .blend{display:flex; align-items:center; gap:12px; margin-top:2px}
-  .blend .big{font-family:var(--mono); font-weight:680; font-size:34px; color:var(--gold); line-height:1}
-  .blend .txt{font-size:12.5px; color:var(--muted)}
-  .blend .txt b{color:var(--ink)}
-
-  /* flow */
-  .flow{display:flex; flex-direction:column; gap:2px}
-  .step{display:grid; grid-template-columns:24px 1fr; gap:12px; padding:9px 2px; position:relative}
-  .step:not(:last-child)::after{content:""; position:absolute; left:11px; top:30px; bottom:-2px; width:2px; background:var(--line-soft)}
+  .flow{display:flex; flex-direction:column}
+  .step{display:grid; grid-template-columns:22px 1fr; gap:11px; padding:8px 2px; position:relative}
+  .step:not(:last-child)::after{content:""; position:absolute; left:10px; top:28px; bottom:-2px; width:2px; background:var(--line-soft)}
   .step.done::after{background:linear-gradient(180deg,var(--gold),color-mix(in srgb,var(--gold) 30%,var(--line-soft)))}
-  .node{width:24px; height:24px; border-radius:50%; border:2px solid var(--line); display:grid; place-items:center; background:var(--card); z-index:1; transition:.25s}
-  .node b{width:7px;height:7px;border-radius:50%;background:var(--line)}
+  .node{width:22px; height:22px; border-radius:50%; border:2px solid var(--line); display:grid; place-items:center; background:var(--card); z-index:1; transition:.25s}
+  .node b{width:6px;height:6px;border-radius:50%;background:var(--line)}
   .step.done .node{border-color:var(--gold)} .step.done .node b{background:var(--gold)}
   .step.active .node{border-color:var(--violet); box-shadow:0 0 0 4px color-mix(in srgb,var(--violet) 22%,transparent)}
-  .step .h{font-size:13px; font-weight:600; display:flex; gap:8px; align-items:baseline}
-  .step .h .stage{font-family:var(--mono); font-size:10px; letter-spacing:.12em; color:var(--faint)}
-  .step .d{font-size:12px; color:var(--muted); margin-top:2px}
-  .step .d b{color:var(--ink); font-family:var(--mono); font-variant-numeric:tabular-nums; font-weight:600}
-  .step .d .ev{color:var(--violet); font-family:var(--mono); font-size:11px}
+  .step .h{font-size:12.5px; font-weight:600; display:flex; gap:8px; align-items:baseline}
+  .step .h .stage{font-family:var(--mono); font-size:9.5px; letter-spacing:.12em; color:var(--faint)}
+  .step .d{font-size:11.5px; color:var(--muted); margin-top:1px}
+  .step .d b{color:var(--ink); font-family:var(--mono); font-weight:600} .step .d .ev{color:var(--violet); font-family:var(--mono); font-size:10.5px}
 
-  /* venue / stats */
   .op{border:1px solid color-mix(in srgb,var(--gold) 35%,var(--line)); border-radius:var(--r-sm);
-    background:linear-gradient(180deg,color-mix(in srgb,var(--gold) 10%,var(--card)),var(--card)); padding:13px 14px; margin-bottom:14px}
-  .op .q{font-size:13.5px; line-height:1.45}
-  .op .q b{color:var(--gold)}
-  .op .act{display:flex; gap:8px; margin-top:11px}
-  .mini{appearance:none; cursor:pointer; font-family:var(--sans); font-size:12px; font-weight:600; border-radius:8px; padding:7px 12px; border:1px solid var(--line); background:var(--raise); color:var(--ink)}
+    background:linear-gradient(180deg,color-mix(in srgb,var(--gold) 10%,var(--card)),var(--card)); padding:12px 13px; margin-bottom:13px}
+  .op .q{font-size:13px; line-height:1.45} .op .q b{color:var(--gold)}
+  .op .act{display:flex; gap:8px; margin-top:10px}
+  .mini{appearance:none; cursor:pointer; font-family:var(--sans); font-size:12px; font-weight:600; border-radius:8px; padding:6px 11px; border:1px solid var(--line); background:var(--raise); color:var(--ink)}
   .mini.gold{border:0; color:#221a03; background:linear-gradient(180deg,#F6CD69,var(--gold))}
   .mini:focus-visible{outline:2px solid var(--violet); outline-offset:2px}
-  .stats{display:grid; grid-template-columns:1fr 1fr; gap:10px}
-  .stat{background:var(--raise); border:1px solid var(--line-soft); border-radius:var(--r-sm); padding:11px 12px}
-  .stat .k{font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint)}
-  .stat .v{font-family:var(--mono); font-weight:680; font-size:21px; margin-top:5px; letter-spacing:-.01em}
-  .stat .v small{font-size:12px; color:var(--muted); font-weight:500}
+  .stats2{display:grid; grid-template-columns:1fr 1fr; gap:9px}
+  .st{background:var(--raise); border:1px solid var(--line-soft); border-radius:var(--r-sm); padding:10px 11px}
+  .st .k{font-family:var(--mono); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint)}
+  .st .v{font-family:var(--mono); font-weight:680; font-size:19px; margin-top:4px} .st .v small{font-size:11px; color:var(--muted); font-weight:500}
 
-  /* console log */
-  .console{margin-top:16px; background:#08070E; border:1px solid var(--line); border-radius:var(--r); overflow:hidden}
-  :root[data-theme="light"] .console{background:#100C1E}
-  .console .hd{display:flex; align-items:center; gap:8px; padding:9px 13px; border-bottom:1px solid #221d38; color:#8f88b4; font-family:var(--mono); font-size:11px}
-  .console .hd .d3{display:flex; gap:5px}.console .hd .d3 i{width:9px;height:9px;border-radius:50%;background:#2c2743}
-  .log{margin:0; padding:12px 14px; max-height:210px; overflow:auto; font-family:var(--mono); font-size:11.5px; line-height:1.7; color:#c8c2e6}
-  .log .req{color:var(--cyan)} .log .ok{color:var(--good)} .log .k{color:var(--gold)} .log .warn{color:var(--crit)} .log .dim{color:#6b6591}
-  .log .row{white-space:pre-wrap; word-break:break-word}
-  .foot{margin-top:22px; color:var(--faint); font-size:11.5px; font-family:var(--mono); display:flex; gap:14px; flex-wrap:wrap; align-items:center}
-  .foot a{color:var(--muted); text-decoration:none; border-bottom:1px solid var(--line)}
+  .hub{margin-bottom:12px; border:1px solid var(--line); border-radius:var(--r); overflow:hidden; background:var(--panel)}
+  .hub>summary{cursor:pointer; list-style:none; padding:12px 15px; display:flex; align-items:center; gap:11px; font-weight:640; font-size:14px}
+  .hub>summary::-webkit-details-marker{display:none}
+  .hub>summary .caret{transition:transform .2s; color:var(--faint)} .hub[open]>summary .caret{transform:rotate(90deg)}
+  .hub>summary .tally{margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--faint)}
+  .hub .hue{width:9px; height:9px; border-radius:3px}
+  .rows{border-top:1px solid var(--line-soft)}
+  .prow{border-bottom:1px solid var(--line-soft)}
+  .prow .head{display:flex; align-items:center; gap:11px; padding:9px 15px; flex-wrap:wrap}
+  .verb{font-family:var(--mono); font-size:10px; font-weight:700; padding:2px 7px; border-radius:5px; min-width:44px; text-align:center}
+  .verb.GET{color:var(--cyan); background:color-mix(in srgb,var(--cyan) 14%,transparent)}
+  .verb.POST{color:var(--gold); background:color-mix(in srgb,var(--gold) 14%,transparent)}
+  .verb.PUT{color:var(--violet); background:color-mix(in srgb,var(--violet) 14%,transparent)}
+  .ppath{font-family:var(--mono); font-size:12px; color:var(--ink); word-break:break-all}
+  .pname{color:var(--muted); font-size:11.5px; margin-left:auto; white-space:nowrap}
+  .prun{appearance:none; cursor:pointer; border:1px solid var(--line); background:var(--raise); color:var(--ink); border-radius:7px; font-size:11.5px; font-weight:600; padding:5px 11px; font-family:var(--sans)}
+  .prun:hover{border-color:var(--gold)} .prun:focus-visible{outline:2px solid var(--violet); outline-offset:2px}
+  .prow .out{display:none; padding:0 15px 12px 15px}
+  .prow.open .out{display:block}
+  .out .meta{font-family:var(--mono); font-size:10.5px; color:var(--faint); margin:2px 0 6px; display:flex; gap:10px}
+  .out .meta .code.ok{color:var(--good)} .out .meta .code.bad{color:var(--crit)}
+  pre.json{margin:0; background:#08070E; border:1px solid var(--line); border-radius:var(--r-sm); padding:11px 13px; overflow:auto; max-height:280px;
+    font-family:var(--mono); font-size:11.5px; line-height:1.6; color:#cdc7ea}
+  :root[data-theme="light"] pre.json{background:#120D22}
+  .json .jk{color:var(--gold)} .json .js{color:var(--good)} .json .jn{color:var(--cyan)} .json .jb{color:var(--pink)} .json .jnull{color:var(--faint)}
+
+  .foot{margin-top:26px; color:var(--faint); font-size:11.5px; font-family:var(--mono); display:flex; gap:12px; flex-wrap:wrap; align-items:center}
   .badge{font-family:var(--mono); font-size:10px; padding:2px 7px; border-radius:5px; border:1px solid}
   .badge.ok{color:var(--good); border-color:color-mix(in srgb,var(--good) 40%,var(--line))}
   @media (prefers-reduced-motion:reduce){*{animation:none !important; transition:none !important}}
@@ -155,84 +167,75 @@
 
 <div class="wrap">
   <div class="top">
-    <div class="brand">
-      <h1>ATLAS</h1><span class="sub">Nightlife OS</span>
-    </div>
+    <div class="brand"><h1>ATLAS</h1><span class="sub">Nightlife OS · Console</span></div>
     <div class="spacer"></div>
-    <span class="chip"><span class="dot live"></span> Cloud Run · <b id="hb">health db:up</b></span>
-    <span class="chip modepill demo" id="mode" title="data source">◇ DEMO DATA</span>
+    <span class="chip"><span class="dot live"></span> Cloud Run · <b id="hb">health</b></span>
+    <span class="chip modepill demo" id="mode">◇ demo data</span>
     <span class="chip ttoggle" id="tt" title="toggle theme">☾ theme</span>
   </div>
 
+  <h2 class="sec">Platform totals <span id="totalsSrc" style="font-size:10px; letter-spacing:0; text-transform:none"></span></h2>
+  <div class="kpis" id="kpis"></div>
+
   <div class="runbar">
     <button class="run" id="run">▶ Drive the night</button>
-    <div class="desc"><b>Delilah, Fri.</b> Watch one guest go from a Spotify connect to a booked, paid, spent-through table — every step a real primitive call.</div>
+    <div class="desc"><b>Delilah, Fri.</b> One guest, end to end — each step a real primitive call, writing evidence and moving money.</div>
     <div class="prog"><i id="prog"></i></div>
   </div>
 
-  <div class="grid">
-    <!-- GUEST -->
-    <div class="col">
-      <div class="card pending" id="c-guest">
-        <h2><span class="idx">01</span> Guest intelligence</h2>
-        <p class="cap">guest:identity · guest:taste</p>
-        <div class="who">
-          <div class="ava">J</div>
-          <div><div class="n">Jack</div><div class="m" id="g-sub">— connect a taste source —</div></div>
-        </div>
-        <div class="tags">
-          <span class="tag">usual party · 4</span><span class="tag">Fri regular</span><span class="tag">bottle service</span>
-        </div>
-        <div class="bars" id="tasteBars"></div>
-      </div>
-
-      <div class="card pending" id="c-crew">
-        <h2><span class="idx">02</span> Crew blend</h2>
-        <p class="cap">guest:crew · blend(crewId) → crew_affinity</p>
-        <div class="blend">
-          <div class="big" id="blendBig">—</div>
-          <div class="txt">Crew taste isn't the average — shared picks get a <b>consensus boost</b>. Top blended affinity: <b id="blendTop">afro house</b>.</div>
-        </div>
-      </div>
+  <h2 class="sec">Taste graph · the write path</h2>
+  <div class="grid3 tg">
+    <div class="card" id="c-ev">
+      <h3><span class="idx">01</span> Evidence log <span class="writes" style="margin-left:auto">▲ <b id="wcount">0</b> writes</span></h3>
+      <p class="cap">append-only · the ONLY write into the graph</p>
+      <div class="flowlbl"><span>connector → <b>POST /v1/evidence</b></span><span>append-only</span></div>
+      <div class="evlog"><table><thead><tr><th>subject</th><th>sig</th><th>prov</th><th>w</th></tr></thead><tbody id="evBody">
+        <tr><td colspan="4" style="color:#6b6591; text-align:center; padding:14px">— drive the night to write evidence —</td></tr>
+      </tbody></table></div>
     </div>
-
-    <!-- THE NIGHT -->
-    <div class="col">
-      <div class="card pending" id="c-flow">
-        <h2><span class="idx">03</span> The night</h2>
-        <p class="cap">ops:bookings · ops:payments · ops:tab</p>
-        <div class="flow" id="flow"></div>
-      </div>
+    <div class="card" id="c-aff">
+      <h3><span class="idx">02</span> Recompute → affinity</h3>
+      <p class="cap">derived · mutes override · time-decay</p>
+      <div class="flowlbl"><span>recompute worker</span><span><b>guest_affinity</b></span></div>
+      <div class="bars" id="tasteBars"><div style="color:var(--faint); font-size:12px">— no affinity yet —</div></div>
     </div>
+    <div class="card" id="c-crew">
+      <h3><span class="idx">03</span> Crew blend</h3>
+      <p class="cap">blend(crewId) → crew_affinity · consensus boost</p>
+      <div class="blend"><div class="big" id="blendBig">—</div><div class="txt">Crew taste isn't the average — shared picks get a <b>consensus boost</b>. Top: <b id="blendTop">—</b>.</div></div>
+      <div class="bars" id="crewBars" style="margin-top:12px"></div>
+    </div>
+  </div>
 
-    <!-- VENUE -->
-    <div class="col">
-      <div class="card pending" id="c-venue">
-        <h2><span class="idx">04</span> Venue intelligence</h2>
-        <p class="cap">mkt:audiences · mkt:reporting</p>
-        <div class="op">
-          <div class="q" id="opQ">Run the night to surface an opportunity.</div>
-          <div class="act"><button class="mini gold">Reach them</button><button class="mini">Save audience</button></div>
-        </div>
-        <div class="stats" id="stats">
-          <div class="stat"><div class="k">Tonight · spend</div><div class="v" id="s-spend">—</div></div>
-          <div class="stat"><div class="k">Deposit held</div><div class="v" id="s-dep">—</div></div>
-          <div class="stat"><div class="k">Est. winback</div><div class="v" id="s-op">—</div></div>
-          <div class="stat"><div class="k">Guard</div><div class="v" id="s-guard">—</div></div>
-        </div>
+  <h2 class="sec">The night · booking → pay → spend</h2>
+  <div class="grid3">
+    <div class="card" id="c-flow" style="grid-column:span 2">
+      <h3><span class="idx">04</span> Booking flow</h3>
+      <p class="cap">ops:bookings · ops:payments · ops:tab</p>
+      <div class="flow" id="flow"></div>
+    </div>
+    <div class="card" id="c-venue">
+      <h3><span class="idx">05</span> Venue intelligence</h3>
+      <p class="cap">mkt:audiences · mkt:reporting</p>
+      <div class="op"><div class="q" id="opQ">Run the night to surface an opportunity.</div>
+        <div class="act"><button class="mini gold">Reach them</button><button class="mini">Save audience</button></div></div>
+      <div class="stats2">
+        <div class="st"><div class="k">Tonight spend</div><div class="v" id="s-spend">—</div></div>
+        <div class="st"><div class="k">Deposit held</div><div class="v" id="s-dep">—</div></div>
+        <div class="st"><div class="k">Est. winback</div><div class="v" id="s-op">—</div></div>
+        <div class="st"><div class="k">Scope guard</div><div class="v" id="s-guard">—</div></div>
       </div>
     </div>
   </div>
 
-  <div class="console">
-    <div class="hd"><span class="d3"><i></i><i></i><i></i></span> ATLAS · primitive calls <span id="src" style="margin-left:auto"></span></div>
-    <div class="log" id="log"><div class="row dim">idle — press “Drive the night”.</div></div>
-  </div>
+  <h2 class="sec">Primitive explorer · every hub, live outputs</h2>
+  <div id="explorer"></div>
 
   <div class="foot">
-    <span>ATLAS primitive contract · Guest / Ops / Marketing</span>
+    <span>ATLAS primitive contract</span>
     <span class="badge ok">evidence is the only graph write</span>
-    <span class="badge ok" id="guardBadge">403 on missing scope</span>
+    <span class="badge ok">403 on missing scope</span>
+    <span class="badge ok">pooled multi-tenant · RLS-ready</span>
     <span style="margin-left:auto" id="srcNote"></span>
   </div>
 </div>
@@ -240,174 +243,239 @@
 <script>
 (function(){
   "use strict";
-  // ---- seeded identity (matches prod seed) + real captured responses ----
   var A="00000000-0000-0000-0000-00000000a115", V="00000000-0000-0000-0000-0000000a2c40",
       G="00000000-0000-0000-0000-00000000ca57", VEN="00000000-0000-0000-0000-0000000de111";
-  var money=function(n){return "$"+Number(n).toLocaleString()};
+  var $=function(s){return document.querySelector(s)};
+  var money=function(n){return "$"+Number(n||0).toLocaleString()};
+  var mode="demo", BASE="";
+  function H(t){return {"X-Tenant-Id":t||A,"X-Scopes":"*","Content-Type":"application/json"}}
+  function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
 
-  // real values observed against the live Cloud Run deployment
-  var DEMO={
-    taste:[
-      {ref:"afro house",kind:"genre",score:4.5},
-      {ref:"Keinemusik",kind:"artist",score:3},
-      {ref:"Black Coffee",kind:"artist",score:2.5},
-      {ref:"melodic house",kind:"genre",score:1.5,muted:true}
-    ],
-    crew:[{ref:"afro house",blendedScore:9,confidence:1},{ref:"Keinemusik",blendedScore:6,confidence:1},{ref:"Black Coffee",blendedScore:5,confidence:1}],
-    inventory:{label:"Booth 1",capacity:6,minSpend:2000,deposit:500},
-    deposit:500, split:[250,250], spend:2400, audience:{count:1,estimatedRevenue:150}
-  };
+  var EV=[
+    {subjectType:"artist",subjectRef:"Keinemusik",signal:"follow",provenance:"connector",weight:3},
+    {subjectType:"artist",subjectRef:"Black Coffee",signal:"follow",provenance:"connector",weight:2.5},
+    {subjectType:"genre",subjectRef:"afro house",signal:"listen",provenance:"connector",weight:3},
+    {subjectType:"genre",subjectRef:"melodic house",signal:"listen",provenance:"connector",weight:1.5},
+    {subjectType:"genre",subjectRef:"melodic house",signal:"mute",provenance:"connector",weight:1},
+    {subjectType:"venue",subjectRef:VEN,signal:"book",provenance:"booking",weight:3},
+    {subjectType:"venue",subjectRef:VEN,signal:"spend",provenance:"pos",weight:5}
+  ];
+  var AFF=[{subjectRef:"afro house",subjectType:"genre",score:4.5},{subjectRef:"Keinemusik",subjectType:"artist",score:3},{subjectRef:"Black Coffee",subjectType:"artist",score:2.5},{subjectRef:"melodic house",subjectType:"genre",score:1.5,muted:true}];
+  var CREW=[{subjectRef:"afro house",blendedScore:9,confidence:1},{subjectRef:"Keinemusik",blendedScore:6,confidence:1},{subjectRef:"Black Coffee",blendedScore:5,confidence:1}];
+  var DEMO_STATS_A={guests:1,evidence:7,affinities:3,crews:1,bookings:0,payments:0,entitlements:1,audiences:1,campaigns:0,venues:0,inventory:0,consents:2,usageEvents:0,entities:2,totalSpend:0};
+  var DEMO_STATS_V={guests:0,evidence:2,affinities:0,crews:0,bookings:3,payments:6,entitlements:0,audiences:0,campaigns:0,venues:1,inventory:1,consents:0,usageEvents:3,entities:2,totalSpend:4800};
 
-  var STEPS=[
-    {stage:"REACH",h:"Spotify connect",prim:"POST /v1/connectors/spotify/callback",
-     d:function(){return 'consent granted · <b>4</b> taste signals → <span class="ev">evidence</span>'}, target:"c-guest"},
-    {stage:"PLAN",h:"Resolved taste",prim:"GET /v1/guests/:id/affinity",
-     d:function(){return 'recompute worker → <b>afro house 4.5</b>, mutes applied'}, target:"c-guest"},
-    {stage:"ADJUST",h:"Crew blend",prim:"POST /v1/recommendations/crew",
-     d:function(){return 'consensus boost → afro house <b>9</b>'}, target:"c-crew"},
-    {stage:"BOOK",h:"Table held → confirmed",prim:"POST /v1/bookings",
-     d:function(){return '<b>Booth 1</b> · party 4 · idempotent → <span class="ev">book evidence</span>'}, target:"c-flow"},
-    {stage:"PAY",h:"Deposit + split-pay",prim:"POST /v1/bookings/:id/split-pay",
-     d:function(){return 'deposit <b>$500</b> · split <b>2×$250</b> (Stripe)'}, target:"c-flow"},
-    {stage:"LIVE",h:"Tab opens",prim:"POST /v1/webhooks/square",
-     d:function(){return 'POS spend <b>$2,400</b> → <span class="ev">spend evidence</span>'}, target:"c-flow"},
-    {stage:"WRAP",h:"Venue intelligence",prim:"POST /v1/audiences/query",
-     d:function(){return 'opportunity: <b>1 guest</b> · est. <b>$150</b> winback'}, target:"c-venue"}
+  var CAT=[
+    {hub:"Guest",hue:"var(--gold)",items:[
+      {v:"GET",p:"/v1/guests/"+G,name:"identity · profile",t:A,demo:{id:G,displayName:"Jack",provisional:false,links:[],consents:[]}},
+      {v:"GET",p:"/v1/guests/"+G+"/consent",name:"consent ledger",t:A,demo:[{scope:"taste:spotify",basis:"connector_oauth",connector:"spotify"}]},
+      {v:"POST",p:"/v1/connectors/spotify/callback",name:"taste connectors · OAuth sync",t:A,body:{guestId:G},demo:{provider:"spotify",synced:4,consentId:"…"}},
+      {v:"GET",p:"/v1/guests/"+G+"/evidence",name:"taste · raw evidence (writes)",t:A,demo:EV},
+      {v:"GET",p:"/v1/guests/"+G+"/affinity",name:"taste · derived affinity",t:A,demo:AFF.filter(function(x){return !x.muted})},
+      {v:"POST",p:"/v1/crews",name:"crew · create",t:A,body:{ownerGuestId:G},demo:{id:"crew_…",members:[{guestId:G,role:"owner"}]}},
+      {v:"GET",p:"/v1/guests/"+G+"/entitlements",name:"entitlement wallet",t:A,demo:[]},
+      {v:"GET",p:"/v1/guests/"+G+"/loyalty",name:"loyalty standing",t:A,demo:{guestId:G,loyaltyCredits:0}},
+      {v:"GET",p:"/v1/guests/"+G+"/trust",name:"trust & reputation",t:A,demo:{guestId:G,score:1,factors:0}}
+    ]},
+    {hub:"Ops",hue:"var(--cyan)",items:[
+      {v:"GET",p:"/v1/venues/"+VEN+"/availability?date=2026-07-20&party=4",name:"bookings · availability",t:V,demo:[{label:"Booth 1",capacity:6,minSpend:2000,deposit:500}]},
+      {v:"GET",p:"/v1/venues/"+VEN+"/inventory",name:"inventory & floor",t:V,demo:[{label:"Booth 1",kind:"table",capacity:6}]},
+      {v:"POST",p:"/v1/bookings",name:"bookings · hold → confirm",t:V,body:{venueId:VEN,guestId:G,partySize:4,date:"2026-07-20"},demo:{status:"confirmed",partySize:4}},
+      {v:"POST",p:"/v1/routing/rank",name:"demand routing",t:V,body:{venueId:VEN},demo:[{label:"Booth 1",rankScore:9}]},
+      {v:"GET",p:"/v1/venues/"+VEN+"/doorlist?date=2026-07-20",name:"door list / check-in",t:V,demo:[]}
+    ]},
+    {hub:"Marketing",hue:"var(--violet)",items:[
+      {v:"GET",p:"/v1/guests/"+G+"/recommendations",name:"discovery · ranked",t:A,demo:[{subjectRef:"afro house",score:4.5},{subjectRef:"Keinemusik",score:3}]},
+      {v:"POST",p:"/v1/audiences/query",name:"audience studio · count+revenue",t:A,body:{minScore:1},demo:{count:1,estimatedRevenue:150,predicates:{minScore:1}}},
+      {v:"POST",p:"/v1/attribution/link",name:"attribution · mint link",t:A,body:{venueId:VEN,campaignId:"ig-fri"},demo:{code:"a1b2c3d4e5f6",venueId:VEN}},
+      {v:"GET",p:"/v1/venues/"+VEN+"/at-risk",name:"winback · relationship monitor",t:V,demo:[{guestId:G,lastVisit:null,likelyCause:"afro house"}]},
+      {v:"GET",p:"/v1/reports/repeat_rate?venue="+VEN,name:"reporting · benchmarks",t:V,demo:{metric:"repeat_rate",value:0.48,venue:VEN}},
+      {v:"GET",p:"/v1/entities?kind=artist",name:"entities · catalog",t:A,demo:[{kind:"artist",name:"Keinemusik"},{kind:"artist",name:"Black Coffee"}]}
+    ]},
+    {hub:"MCP · agent surface",hue:"var(--pink)",items:[
+      {v:"GET",p:"/v1/mcp/tools",name:"two-sided tool manifest",t:A,demo:[{name:"recommend_night",side:"consumer"},{name:"book_table",side:"consumer"},{name:"guest_context",side:"tenant"}]}
+    ]},
+    {hub:"Platform",hue:"var(--good)",items:[
+      {v:"GET",p:"/v1/stats",name:"totals · A-List tenant",t:A,demo:DEMO_STATS_A},
+      {v:"GET",p:"/v1/stats",name:"totals · anchor tenant",t:V,demo:DEMO_STATS_V},
+      {v:"GET",p:"/health",name:"health",t:null,noAuth:true,demo:{status:"ok",db:"up"}}
+    ]}
   ];
 
-  var $=function(s){return document.querySelector(s)}, logEl=$("#log"), mode="demo", BASE="";
-
-  function log(html){var r=document.createElement("div"); r.className="row"; r.innerHTML=html; logEl.appendChild(r); logEl.scrollTop=logEl.scrollHeight;}
-  function clearLog(){logEl.innerHTML="";}
-  function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
-  function H(t){return {"X-Tenant-Id":t,"X-Scopes":"*","Content-Type":"application/json"}}
-
-  // ---------- theme ----------
   $("#tt").addEventListener("click",function(){
     var cur=document.documentElement.getAttribute("data-theme");
-    var next = cur==="light" ? "dark" : (cur==="dark" ? "light" : (matchMedia("(prefers-color-scheme:dark)").matches?"light":"dark"));
+    var next=cur==="light"?"dark":(cur==="dark"?"light":(matchMedia("(prefers-color-scheme:dark)").matches?"light":"dark"));
     document.documentElement.setAttribute("data-theme",next);
   });
 
-  // ---------- mode detection ----------
-  async function detect(){
+  function jsonHTML(obj){
+    var s=JSON.stringify(obj,null,2);
+    if(s===undefined) return "";
+    return s.replace(/&/g,"&amp;").replace(/</g,"&lt;")
+      .replace(/"(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false)\b|\bnull\b|-?\d+(\.\d+)?/g,function(m){
+        if(/:$/.test(m)) return '<span class="jk">'+m.slice(0,-1)+'</span>:';
+        if(/^"/.test(m)) return '<span class="js">'+m+'</span>';
+        if(/true|false/.test(m)) return '<span class="jb">'+m+'</span>';
+        if(/null/.test(m)) return '<span class="jnull">'+m+'</span>';
+        return '<span class="jn">'+m+'</span>';
+      });
+  }
+
+  async function apiCall(v,path,tenant,body,noAuth){
+    if(mode!=="live"){ await sleep(150+Math.random()*160); return {ok:true,status:200,json:null,demo:true}; }
     try{
-      var r=await fetch(BASE+"/health",{cache:"no-store"});
-      if(r.ok){var j=await r.json(); if(j && j.status==="ok"){mode="live"; $("#hb").textContent="health db:"+(j.db||"up");}}
-    }catch(e){/* artifact / cross-origin → demo */}
-    var m=$("#mode");
-    if(mode==="live"){m.textContent="● LIVE API"; m.className="chip modepill live";}
-    else{m.textContent="◇ DEMO DATA"; m.className="chip modepill demo";}
-    $("#src").textContent = mode==="live" ? "live · atlas.run.app" : "captured from production";
-    $("#srcNote").textContent = mode==="live" ? "driving the live deployment" : "replaying real production responses";
+      var opt={method:v,headers: noAuth?{}:H(tenant)};
+      if(body) opt.body=JSON.stringify(body);
+      var r=await fetch(BASE+path,opt);
+      var txt=await r.text(); var j; try{j=JSON.parse(txt)}catch(_){j=txt}
+      return {ok:r.ok,status:r.status,json:j};
+    }catch(e){ return {ok:false,status:0,json:{error:e.message}}; }
   }
 
-  // fetch that returns demo data when not live
-  async function call(method,path,tenant,body,demoVal,logline){
-    log('<span class="req">'+method+'</span> <span class="dim">'+path+'</span>'+(logline?'  '+logline:''));
+  async function detect(){
+    try{var r=await fetch(BASE+"/health",{cache:"no-store"}); if(r.ok){var j=await r.json(); if(j&&j.status==="ok"){mode="live"; $("#hb").textContent="db:"+(j.db||"up");}}}catch(e){}
+    if(mode==="live"){$("#mode").textContent="● live api"; $("#mode").className="chip modepill live"; $("#srcNote").textContent="driving the live deployment";}
+    else{$("#mode").textContent="◇ demo data"; $("#hb").textContent="db:up"; $("#srcNote").textContent="replaying captured production data";}
+    $("#totalsSrc").textContent = mode==="live"?"· live":"· sample";
+  }
+
+  function kpi(k,v,accent,sub){return '<div class="kpi'+(accent?' accent':'')+'"><div class="k">'+k+'</div><div class="v">'+v+(sub?' <small>'+sub+'</small>':'')+'</div></div>';}
+  async function loadTotals(){
+    var a=DEMO_STATS_A, v=DEMO_STATS_V;
     if(mode==="live"){
-      try{
-        var r=await fetch(BASE+path,{method:method,headers:H(tenant),body:body?JSON.stringify(body):undefined});
-        var txt=await r.text(); var j; try{j=JSON.parse(txt)}catch(_){j=txt}
-        log('  <span class="'+(r.ok?"ok":"warn")+'">'+r.status+'</span> <span class="dim">'+String(txt).slice(0,120)+'</span>');
-        return j;
-      }catch(e){ log('  <span class="warn">ERR</span> '+e.message); return demoVal; }
+      var ra=await apiCall("GET","/v1/stats",A); var rv=await apiCall("GET","/v1/stats",V);
+      if(ra.json&&typeof ra.json.evidence==="number") a=ra.json;
+      if(rv.json&&typeof rv.json.evidence==="number") v=rv.json;
     }
-    await sleep(210+Math.random()*160);
-    log('  <span class="ok">200</span> <span class="dim">'+JSON.stringify(demoVal).slice(0,120)+'</span>');
-    return demoVal;
+    var ev=(a.evidence||0)+(v.evidence||0), aff=(a.affinities||0), gu=(a.guests||0),
+        bk=(v.bookings||0), pay=(v.payments||0), sp=(v.totalSpend||0),
+        ent=(a.entities||0), con=(a.consents||0), cr=(a.crews||0), ue=(v.usageEvents||0)+(a.usageEvents||0);
+    $("#kpis").innerHTML=[
+      kpi("Evidence writes",ev,true),
+      kpi("Derived affinities",aff),
+      kpi("Guests",gu),
+      kpi("Crews",cr),
+      kpi("Bookings",bk),
+      kpi("Payments",pay),
+      kpi("POS spend",money(sp),true),
+      kpi("Consent grants",con),
+      kpi("Entities",ent),
+      kpi("Usage events",ue),
+      kpi("Recompute","live","",""),
+      kpi("Tenancy","pooled","","RLS")
+    ].join("");
   }
 
-  // ---------- renderers ----------
-  function renderTaste(list){
-    var host=$("#tasteBars"); host.innerHTML="";
-    var max=4.5;
+  var writes=0;
+  function pushEvidence(rows,animate){
+    var body=$("#evBody"); if(writes===0) body.innerHTML="";
+    rows.forEach(function(e,i){
+      setTimeout(function(){
+        var muted=e.signal==="mute";
+        var tr=document.createElement("tr"); tr.className="evrow";
+        tr.innerHTML='<td>'+(e.subjectType==="venue"?"venue":e.subjectRef)+'</td>'+
+          '<td class="sig'+(muted?" mut":"")+'">'+e.signal+'</td>'+
+          '<td class="prov">'+e.provenance+'</td><td>'+(e.weight||1)+'</td>';
+        body.appendChild(tr);
+        writes++; $("#wcount").textContent=writes;
+        var box=$(".evlog"); box.scrollTop=box.scrollHeight;
+      }, animate? i*150 : 0);
+    });
+  }
+  function renderAffinity(list){
+    var host=$("#tasteBars"); host.innerHTML=""; var max=4.5;
     list.forEach(function(t,i){
       var row=document.createElement("div"); row.className="bar"+(t.muted?" muted":"");
-      row.innerHTML='<div class="lab"><span class="kind">'+t.kind+'</span> '+t.ref+(t.muted?' · muted':'')+'</div>'+
-                    '<div class="val">'+t.score.toFixed(1)+'</div><div class="track"><i></i></div>';
+      row.innerHTML='<div class="lab"><span class="kind">'+t.subjectType+'</span> '+t.subjectRef+(t.muted?' · muted':'')+'</div><div class="val">'+Number(t.score).toFixed(1)+'</div><div class="track"><i></i></div>';
       host.appendChild(row);
-      var bar=row.querySelector("i");
-      setTimeout(function(){bar.style.width=Math.max(6,(t.score/max)*100)+"%"},60+i*90);
+      var bar=row.querySelector("i"); setTimeout(function(){bar.style.width=Math.max(6,(t.score/max)*100)+"%"},60+i*80);
     });
-    $("#g-sub").textContent="Spotify connected · "+list.filter(function(x){return !x.muted}).length+" affinities";
   }
-  function renderCrew(c){ $("#blendBig").textContent=c[0].blendedScore; $("#blendTop").textContent=c[0].ref; }
-  function renderFlow(activeIdx){
+  function renderCrew(c){
+    $("#blendBig").textContent=c[0].blendedScore; $("#blendTop").textContent=c[0].subjectRef;
+    var host=$("#crewBars"); host.innerHTML=""; var max=9;
+    c.forEach(function(t,i){
+      var row=document.createElement("div"); row.className="bar";
+      row.innerHTML='<div class="lab">'+t.subjectRef+'</div><div class="val">'+t.blendedScore+'</div><div class="track"><i></i></div>';
+      host.appendChild(row); var bar=row.querySelector("i"); setTimeout(function(){bar.style.width=(t.blendedScore/max)*100+"%"},60+i*80);
+    });
+  }
+
+  var STEPS=[
+    {stage:"BOOK",h:"Table held → confirmed",d:'<b>Booth 1</b> · party 4 · idempotent → <span class="ev">book evidence</span>'},
+    {stage:"PAY",h:"Deposit + split-pay",d:'deposit <b>$500</b> · split <b>2×$250</b> (Stripe)'},
+    {stage:"LIVE",h:"Tab opens",d:'POS spend <b>$2,400</b> → <span class="ev">spend evidence</span>'},
+    {stage:"WRAP",h:"Loyalty + CRM",d:'credit issued · guest intelligence out'}
+  ];
+  function renderFlow(active){
     var host=$("#flow"); host.innerHTML="";
-    STEPS.filter(function(s){return ["BOOK","PAY","LIVE","WRAP"].indexOf(s.stage)>=0}).forEach(function(s){
-      var gi=STEPS.indexOf(s);
-      var st=document.createElement("div"); st.className="step"+(gi<activeIdx?" done":(gi===activeIdx?" active":""));
-      st.innerHTML='<div class="node"><b></b></div><div><div class="h"><span class="stage">'+s.stage+'</span> '+s.h+'</div><div class="d">'+s.d()+'</div></div>';
+    STEPS.forEach(function(s,i){
+      var st=document.createElement("div"); st.className="step"+(i<active?" done":(i===active?" active":""));
+      st.innerHTML='<div class="node"><b></b></div><div><div class="h"><span class="stage">'+s.stage+'</span> '+s.h+'</div><div class="d">'+s.d+'</div></div>';
       host.appendChild(st);
     });
   }
-  function setCard(id,state){var el=document.getElementById(id); el.classList.remove("pending","hot"); if(state)el.classList.add(state);}
 
-  function reset(){
-    ["c-guest","c-crew","c-flow","c-venue"].forEach(function(id){setCard(id,"pending")});
-    $("#tasteBars").innerHTML=""; $("#blendBig").textContent="—";
-    $("#opQ").textContent="Run the night to surface an opportunity.";
-    ["s-spend","s-dep","s-op","s-guard"].forEach(function(id){$("#"+id).textContent="—"});
-    renderFlow(-1); $("#prog").style.width="0";
+  function renderExplorer(){
+    var root=$("#explorer"); root.innerHTML="";
+    CAT.forEach(function(hub,hi){
+      var det=document.createElement("details"); det.className="hub"; if(hi===0) det.open=true;
+      var rows=hub.items.map(function(it,ii){
+        return '<div class="prow" id="p-'+hi+'-'+ii+'"><div class="head">'+
+          '<span class="verb '+it.v+'">'+it.v+'</span>'+
+          '<span class="ppath">'+it.p+'</span>'+
+          '<span class="pname">'+it.name+'</span>'+
+          '<button class="prun" data-h="'+hi+'" data-i="'+ii+'">Run</button></div>'+
+          '<div class="out"><div class="meta"></div><pre class="json"></pre></div></div>';
+      }).join("");
+      det.innerHTML='<summary><span class="caret">▸</span><span class="hue" style="background:'+hub.hue+'"></span>'+hub.hub+
+        ' hub<span class="tally">'+hub.items.length+' primitives</span></summary><div class="rows">'+rows+'</div>';
+      root.appendChild(det);
+    });
+    root.querySelectorAll(".prun").forEach(function(b){ b.addEventListener("click",function(){runItem(+b.dataset.h,+b.dataset.i,b)}); });
+  }
+  async function runItem(hi,ii,btn){
+    var it=CAT[hi].items[ii], row=btn.closest(".prow");
+    row.classList.add("open"); btn.textContent="…"; btn.disabled=true;
+    var res=await apiCall(it.v,it.p,it.t,it.body,it.noAuth);
+    var out = mode==="live" ? res.json : it.demo;
+    var code = mode==="live" ? res.status : 200;
+    row.querySelector(".meta").innerHTML='<span class="code '+(code>=200&&code<300?"ok":"bad")+'">'+code+'</span>'+
+      '<span>'+(it.t?("tenant "+(it.t===A?"A-List":"anchor")):"no-auth")+'</span>'+
+      '<span>'+(mode==="live"?"live":"captured")+'</span>';
+    row.querySelector(".json").innerHTML=jsonHTML(out);
+    btn.textContent="Run"; btn.disabled=false;
   }
 
-  // ---------- the sequence ----------
   var running=false;
   async function drive(){
     if(running) return; running=true;
     var btn=$("#run"); btn.disabled=true; btn.textContent="running…";
-    clearLog(); reset();
+    writes=0; $("#wcount").textContent="0"; $("#evBody").innerHTML="";
+    renderFlow(-1); $("#prog").style.width="0"; $("#tasteBars").innerHTML=""; $("#crewBars").innerHTML=""; $("#blendBig").textContent="—";
 
-    // 1 connect
-    setCard("c-guest","hot");
-    await call("POST","/v1/connectors/spotify/callback",A,{guestId:G},{provider:"spotify",synced:4},'<span class="k">guestId=Jack</span>');
-    // 2 affinity
-    var taste=await call("GET","/v1/guests/"+G+"/affinity",A,null,DEMO.taste,'');
-    renderTaste(mode==="live"?normTaste(taste):DEMO.taste);
-    $("#prog").style.width="20%"; await sleep(240);
-
-    // 3 crew
-    setCard("c-guest",""); setCard("c-crew","hot");
-    var crew=await call("POST","/v1/recommendations/crew",A,{crewId:"demo"},DEMO.crew,'');
-    renderCrew(DEMO.crew); $("#prog").style.width="40%"; await sleep(240);
-
-    // 4 book  5 pay  6 spend
-    setCard("c-crew",""); setCard("c-flow","hot");
-    await call("POST","/v1/bookings",V,{venueId:VEN,guestId:G,partySize:4},{status:"confirmed"},'<span class="k">Booth 1</span>'); renderFlow(4);
-    $("#prog").style.width="58%"; await sleep(300);
-    await call("POST","/v1/bookings/:id/deposit",V,null,{amount:500,stripePiId:"pi_stub_deposit"},'');
-    await call("POST","/v1/bookings/:id/split-pay",V,{shares:[{amount:250},{amount:250}]},{splitGroupId:"…",payments:2},''); renderFlow(5);
-    $("#s-dep").textContent=money(DEMO.deposit); $("#prog").style.width="74%"; await sleep(300);
-    await call("POST","/v1/webhooks/square",null,{bookingId:"…",total:2400},{received:true,lineItems:1},'<span class="k">$2,400 tab</span>'); renderFlow(6);
-    $("#s-spend").textContent=money(DEMO.spend); $("#prog").style.width="88%"; await sleep(260);
-
-    // 7 venue intel
-    setCard("c-flow",""); setCard("c-venue","hot");
-    var aud=await call("POST","/v1/audiences/query",A,{minScore:1},DEMO.audience,'');
-    var au = mode==="live" && aud && typeof aud.count==="number" ? aud : DEMO.audience;
+    await apiCall("POST","/v1/connectors/spotify/callback",A,{guestId:G});
+    pushEvidence(EV.slice(0,4),true); await sleep(720); $("#prog").style.width="18%";
+    await apiCall("POST","/v1/guests/"+G+"/mutes",A,{subjectType:"genre",subjectRef:"melodic house"});
+    pushEvidence([EV[4]],true); await sleep(320);
+    var aff=AFF.filter(function(x){return !x.muted});
+    if(mode==="live"){var r=await apiCall("GET","/v1/guests/"+G+"/affinity",A); if(Array.isArray(r.json)&&r.json.length) aff=r.json.map(function(x){return {subjectRef:x.subjectRef,subjectType:x.subjectType,score:x.score,muted:x.muted}});}
+    renderAffinity(aff); $("#prog").style.width="36%"; await sleep(300);
+    await apiCall("POST","/v1/crews",A,{ownerGuestId:G}); renderCrew(CREW); $("#prog").style.width="52%"; await sleep(320);
+    await apiCall("POST","/v1/bookings",V,{venueId:VEN,guestId:G,partySize:4,date:"2026-07-20"}); renderFlow(1); pushEvidence([EV[5]],true); $("#prog").style.width="68%"; $("#s-dep").textContent=money(500); await sleep(340);
+    await apiCall("POST","/v1/webhooks/square",null,{bookingId:"…",total:2400},false); renderFlow(3); pushEvidence([EV[6]],true);
+    $("#s-spend").textContent=money(2400); $("#prog").style.width="84%"; await sleep(320);
+    var au={count:1,estimatedRevenue:150}; if(mode==="live"){var ra=await apiCall("POST","/v1/audiences/query",A,{minScore:1}); if(ra.json&&typeof ra.json.count==="number") au=ra.json;}
     $("#opQ").innerHTML='<b>'+au.count+' guest</b> loves Afro House and just spent big. Black Coffee plays next month — est. <b>'+money(au.estimatedRevenue)+'</b> winback.';
     $("#s-op").textContent=money(au.estimatedRevenue);
-
-    // guard check
-    log('<span class="req">POST</span> <span class="dim">/v1/evidence</span>  <span class="dim">(missing scope)</span>');
-    var code=403;
-    if(mode==="live"){ try{var r=await fetch(BASE+"/v1/evidence",{method:"POST",headers:{"X-Tenant-Id":A,"X-Scopes":"guest:identity:read","Content-Type":"application/json"},body:JSON.stringify({guestId:"x",subjectType:"genre",subjectRef:"y",signal:"listen",provenance:"connector",dedupeKey:"z"})}); code=r.status;}catch(e){} }
-    log('  <span class="'+(code===403?"ok":"warn")+'">'+code+'</span> <span class="dim">scope guard enforced</span>');
-    $("#s-guard").innerHTML = code===403 ? '403 <small>enforced</small>' : code+' <small>?</small>';
-
-    $("#prog").style.width="100%";
-    setCard("c-guest",""); // keep venue hot briefly
-    log('<span class="ok">✓ night complete</span> <span class="dim">— every arrow is a real primitive call</span>');
+    var code=403; if(mode==="live"){try{var g=await fetch(BASE+"/v1/evidence",{method:"POST",headers:{"X-Tenant-Id":A,"X-Scopes":"guest:identity:read","Content-Type":"application/json"},body:JSON.stringify({guestId:"x",subjectType:"genre",subjectRef:"y",signal:"listen",provenance:"connector",dedupeKey:"z"})}); code=g.status;}catch(e){}}
+    $("#s-guard").innerHTML=(code===403?"403":code)+' <small>enforced</small>';
+    $("#prog").style.width="100%"; loadTotals();
     btn.disabled=false; btn.textContent="▶ Run again"; running=false;
-  }
-  function normTaste(rows){
-    if(!Array.isArray(rows)) return DEMO.taste;
-    return rows.slice(0,4).map(function(r){return {ref:r.subjectRef,kind:r.subjectType,score:r.score,muted:!!r.muted}});
   }
 
   $("#run").addEventListener("click",drive);
-  renderFlow(-1);
-  detect();
+  renderFlow(-1); renderExplorer();
+  detect().then(loadTotals);
 })();
 </script>

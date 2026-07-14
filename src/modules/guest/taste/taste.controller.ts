@@ -23,6 +23,13 @@ export class TasteController {
     return this.taste.getAffinity(ctx, id);
   }
 
+  // The raw append-only evidence log — the actual writes into the graph.
+  @Get('guests/:id/evidence')
+  @Scopes('guest:affinity:read')
+  evidence(@Tenant() ctx: TenantContext, @Param('id') id: string) {
+    return this.taste.listEvidence(ctx, id);
+  }
+
   @Post('guests/:id/mutes')
   @Scopes('guest:affinity:write')
   mute(

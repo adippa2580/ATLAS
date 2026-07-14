@@ -12,6 +12,7 @@ import { MarketingModule } from './modules/marketing/marketing.module';
 import { McpModule } from './modules/mcp/mcp.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { StatsModule } from './stats/stats.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     MarketingModule,
     McpModule,
     DashboardModule,
+    StatsModule,
   ],
   controllers: [HealthController],
 })

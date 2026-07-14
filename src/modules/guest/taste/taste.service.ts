@@ -71,6 +71,15 @@ export class TasteService {
     return record;
   }
 
+  /** Raw append-only evidence for a guest — the actual writes into the graph. */
+  async listEvidence(ctx: TenantContext, guestId: string) {
+    return this.prisma.affinityEvidence.findMany({
+      where: { tenantId: ctx.tenantId, guestId },
+      orderBy: { observedAt: 'desc' },
+      take: 25,
+    });
+  }
+
   /** Resolved taste: derived affinity with mutes applied, ranked. */
   async getAffinity(ctx: TenantContext, guestId: string) {
     const rows = await this.prisma.guestAffinity.findMany({
