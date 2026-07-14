@@ -132,6 +132,7 @@ enum SubjectType {
   event
   crew
   table
+  product
 }
 
 enum Signal {
@@ -439,6 +440,43 @@ model UsageEvent {
   occurredAt     DateTime @default(now())
 
   @@index([tenantId, kind])
+}
+
+// ---------------------------------------------------------------------------
+// Ops — Booking status transition ledger (append-only). Records every
+// held->confirmed->seated->closed/cancelled move so no-show / cancel / turn
+// TIMING is measured, not inferred from the booking's current status alone.
+// ---------------------------------------------------------------------------
+model BookingStatusEvent {
+  id         String         @id @default(uuid())
+  tenantId   String
+  bookingId  String
+  fromStatus BookingStatus?
+  toStatus   BookingStatus
+  reason     String?
+  at         DateTime       @default(now())
+
+  @@index([tenantId, bookingId])
+  @@index([tenantId, at])
+}
+
+// ---------------------------------------------------------------------------
+// Talent — a booked artist engagement at a venue on a date, with the modeled
+// booking cost (minor units). Enables exact talent ROI: revenue on the
+// (venueId, date) night minus the same-weekday baseline, net of `cost`.
+// ---------------------------------------------------------------------------
+model TalentEngagement {
+  id        String   @id @default(uuid())
+  tenantId  String
+  venueId   String
+  entityId  String // Entity(kind=artist)
+  date      DateTime
+  cost      Int? // talent fee, minor units (cents)
+  status    String   @default("booked") // booked | confirmed | cancelled
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, venueId, date])
+  @@index([tenantId, entityId])
 }
 
 // ---------------------------------------------------------------------------
