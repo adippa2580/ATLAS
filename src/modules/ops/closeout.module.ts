@@ -40,8 +40,10 @@ export class CloseoutService {
       include: { tab: true },
     });
 
+    // All money is integer minor units (cents). totalTab is a sum of integer
+    // cents; the take-rate is rounded back to an integer number of cents.
     const totalTab = bookings.reduce((sum, b) => sum + (b.tab?.total ?? 0), 0);
-    const takeRate = totalTab * TAKE_RATE;
+    const takeRate = Math.round(totalTab * TAKE_RATE);
 
     const usage = await this.prisma.usageEvent.create({
       data: {

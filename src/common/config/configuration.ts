@@ -1,3 +1,13 @@
+/**
+ * How the platform resolves a request's TenantContext.
+ *  - 'trust-headers': legacy/dev path — trust X-Tenant-Id / X-Scopes headers.
+ *    This is the currently-live demo behavior and remains the DEFAULT so nothing
+ *    breaks until OAuth is provisioned.
+ *  - 'oauth': verify a Bearer JWT against a remote JWKS (see token-verifier.ts)
+ *    and derive the TenantContext from the token's claims.
+ */
+export type AuthMode = 'trust-headers' | 'oauth';
+
 export interface AppConfig {
   env: string;
   port: number;
@@ -7,6 +17,12 @@ export interface AppConfig {
   gcpProjectId: string;
   pubsubEvidenceTopic: string;
   devTrustHeaders: boolean;
+  authMode: AuthMode;
+  oidc: {
+    jwksUrl: string;
+    issuer: string;
+    audience: string;
+  };
   connectors: {
     stripeSecretKey: string;
     stripeWebhookSecret: string;
@@ -29,6 +45,14 @@ export default (): AppConfig => ({
   gcpProjectId: process.env.GCP_PROJECT_ID ?? '',
   pubsubEvidenceTopic: process.env.PUBSUB_EVIDENCE_TOPIC ?? 'atlas-evidence',
   devTrustHeaders: (process.env.DEV_TRUST_HEADERS ?? 'true') === 'true',
+  // DEFAULT 'trust-headers' keeps the live demo working with no env changes.
+  // Set AUTH_MODE=oauth (plus OIDC_* below) to enable real token verification.
+  authMode: (process.env.AUTH_MODE as AuthMode) ?? 'trust-headers',
+  oidc: {
+    jwksUrl: process.env.OIDC_JWKS_URL ?? '',
+    issuer: process.env.OIDC_ISSUER ?? '',
+    audience: process.env.OIDC_AUDIENCE ?? '',
+  },
   connectors: {
     stripeSecretKey: process.env.STRIPE_SECRET_KEY ?? '',
     stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? '',

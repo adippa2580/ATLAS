@@ -6,6 +6,6 @@ import { AffinityRecomputeService } from './affinity-recompute.service';
 @Module({
   controllers: [TasteController],
   providers: [TasteService, AffinityRecomputeService],
-  exports: [TasteService],
+  exports: [TasteService, AffinityRecomputeService],
 })
 export class TasteModule {}

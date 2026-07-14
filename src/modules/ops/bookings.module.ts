@@ -1,5 +1,6 @@
 import {
   Body,
+  ConflictException,
   Controller,
   Get,
   Headers,
@@ -17,7 +18,7 @@ import { EvidenceBus } from '../../common/evidence/evidence-bus';
 import { Scopes } from '../../common/auth/scopes.decorator';
 import { Tenant, TenantContext } from '../../common/tenancy/tenant-context';
 import { evidenceDedupeKey } from '../../common/util/hash';
-import { Provenance, Signal, SubjectType } from '@prisma/client';
+import { Prisma, Provenance, Signal, SubjectType } from '@prisma/client';
 import { AvailabilityService } from './availability.service';
 
 class CreateBookingDto {
@@ -51,26 +52,97 @@ export class BookingsService {
     dto: CreateBookingDto,
     idempotencyKey?: string,
   ) {
-    // Create the hold first, then confirm — the state machine, collapsed.
-    const held = await this.prisma.booking.create({
-      data: {
-        tenantId: ctx.tenantId,
-        venueId: dto.venueId,
-        guestId: dto.guestId,
-        crewId: dto.crewId,
-        inventoryId: dto.inventoryId,
-        status: 'held',
-        date: new Date(dto.date),
-        partySize: dto.partySize ?? 1,
-        attributionId: dto.attributionId,
-      },
-    });
+    // P0-4 idempotency (fast path): if this key already produced a booking,
+    // return it — never create a second booking or a second usage event.
+    if (idempotencyKey) {
+      const existing = await this.prisma.booking.findUnique({
+        where: {
+          tenantId_idempotencyKey: {
+            tenantId: ctx.tenantId,
+            idempotencyKey,
+          },
+        },
+      });
+      if (existing) return existing;
+    }
 
-    const booking = await this.prisma.booking.update({
-      where: { id: held.id },
-      data: { status: 'confirmed' },
-    });
+    let created: Awaited<ReturnType<typeof this.prisma.booking.create>>;
+    try {
+      // P0-5 overbooking + P0-4 atomicity: hold → confirm in ONE interactive
+      // transaction, guarded by a row lock on the inventory so concurrent
+      // creates serialise on the capacity check.
+      created = await this.prisma.$transaction(async (tx) => {
+        if (dto.inventoryId) {
+          // Lock the inventory row FOR UPDATE, scoped to this tenant.
+          const locked = await tx.$queryRaw<
+            { id: string; capacity: number }[]
+          >`SELECT "id", "capacity" FROM "Inventory"
+            WHERE "id" = ${dto.inventoryId} AND "tenantId" = ${ctx.tenantId}
+            FOR UPDATE`;
+          const inventory = locked[0];
+          if (!inventory) throw new NotFoundException('Inventory not found');
 
+          // Count non-cancelled bookings already on this table for the day.
+          const range = AvailabilityService.dayRange(dto.date);
+          const taken = await tx.booking.count({
+            where: {
+              tenantId: ctx.tenantId,
+              inventoryId: dto.inventoryId,
+              status: { not: 'cancelled' },
+              ...(range ? { date: range } : { date: new Date(dto.date) }),
+            },
+          });
+          if (taken >= inventory.capacity) {
+            throw new ConflictException(
+              'Inventory is fully booked for this date',
+            );
+          }
+        }
+
+        // Hold → confirm, collapsed into the transaction.
+        const held = await tx.booking.create({
+          data: {
+            tenantId: ctx.tenantId,
+            venueId: dto.venueId,
+            guestId: dto.guestId,
+            crewId: dto.crewId,
+            inventoryId: dto.inventoryId,
+            status: 'held',
+            date: new Date(dto.date),
+            partySize: dto.partySize ?? 1,
+            attributionId: dto.attributionId,
+            idempotencyKey: idempotencyKey ?? null,
+          },
+        });
+        return tx.booking.update({
+          where: { id: held.id },
+          data: { status: 'confirmed' },
+        });
+      });
+    } catch (err) {
+      // A concurrent retry with the same key won the unique race — return the
+      // existing booking rather than surfacing a 500 (and do NOT re-meter).
+      if (
+        idempotencyKey &&
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002'
+      ) {
+        const existing = await this.prisma.booking.findUnique({
+          where: {
+            tenantId_idempotencyKey: {
+              tenantId: ctx.tenantId,
+              idempotencyKey,
+            },
+          },
+        });
+        if (existing) return existing;
+      }
+      throw err;
+    }
+
+    const booking = created;
+
+    // Evidence + metering fire exactly once, only for a newly-created booking.
     // A confirmed booking is the strongest taste signal there is.
     await this.bus.publish({
       tenantId: ctx.tenantId,

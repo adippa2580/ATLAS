@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { EvidenceBus } from '../../../common/evidence/evidence-bus';
 import { TenantContext } from '../../../common/tenancy/tenant-context';
-import { Signal } from '@prisma/client';
+import { Prisma, Signal } from '@prisma/client';
 import { AppendEvidenceDto, MuteDto } from './dto';
 import { sha256 } from '../../../common/util/hash';
 
@@ -32,29 +32,47 @@ export class TasteService {
     }
 
     const observedAt = new Date();
-    const record = await this.prisma.affinityEvidence.upsert({
-      where: {
-        tenantId_dedupeKey: {
-          tenantId: ctx.tenantId,
-          dedupeKey: dto.dedupeKey,
-        },
-      },
-      create: {
-        tenantId: ctx.tenantId,
-        guestId: dto.guestId,
-        subjectType: dto.subjectType,
-        subjectRef: dto.subjectRef,
-        signal: dto.signal,
-        weight: dto.weight ?? 1,
-        provenance: dto.provenance,
-        consentId: dto.consentId,
-        dedupeKey: dto.dedupeKey,
-        observedAt,
-      },
-      // Duplicate delivery is harmless — keep the original.
-      update: {},
-    });
 
+    // Append-only: try to INSERT a fresh evidence row. A unique-violation on
+    // (tenantId, dedupeKey) means this is a duplicate / at-least-once redelivery
+    // — return the existing row and do NOT publish, so the derived affinity is
+    // never re-applied for the same evidence (P0-6: evidence double-count).
+    let record;
+    try {
+      record = await this.prisma.affinityEvidence.create({
+        data: {
+          tenantId: ctx.tenantId,
+          guestId: dto.guestId,
+          subjectType: dto.subjectType,
+          subjectRef: dto.subjectRef,
+          signal: dto.signal,
+          weight: dto.weight ?? 1,
+          provenance: dto.provenance,
+          consentId: dto.consentId,
+          dedupeKey: dto.dedupeKey,
+          observedAt,
+        },
+      });
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002'
+      ) {
+        // Duplicate dedupeKey — the original evidence stands unchanged and was
+        // already published on first insert. Return it without republishing.
+        return this.prisma.affinityEvidence.findUnique({
+          where: {
+            tenantId_dedupeKey: {
+              tenantId: ctx.tenantId,
+              dedupeKey: dto.dedupeKey,
+            },
+          },
+        });
+      }
+      throw err;
+    }
+
+    // Only genuinely-new evidence is published into the recompute stream.
     await this.bus.publish({
       tenantId: ctx.tenantId,
       guestId: dto.guestId,

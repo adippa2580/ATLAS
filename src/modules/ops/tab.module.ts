@@ -1,5 +1,4 @@
 import {
-  Body,
   Controller,
   Get,
   Headers,
@@ -8,6 +7,8 @@ import {
   NotFoundException,
   Param,
   Post,
+  RawBody,
+  Req,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Prisma, Provenance, Signal, SubjectType } from '@prisma/client';
@@ -32,13 +33,28 @@ export class TabService {
   ) {}
 
   /**
-   * Signed Square webhook. Authenticated by signature (no scope); the tenant is
-   * resolved from the referenced booking rather than a token.
+   * Signed Square webhook. Authenticated by the Square signature over the RAW
+   * body (no scope); the tenant is resolved from the referenced booking rather
+   * than a token. Spend is recorded in integer minor units (cents).
    */
-  async handleWebhook(payload: any, signature?: string) {
-    if (!this.square.verifyWebhook(payload, signature)) {
+  async handleWebhook(
+    rawBody: Buffer | undefined,
+    signature?: string,
+    notificationUrl?: string,
+  ) {
+    if (!this.square.verifyWebhook(rawBody, signature, notificationUrl)) {
       return { received: false };
     }
+
+    // Act on exactly the verified bytes.
+    let payload: any;
+    try {
+      payload = rawBody ? JSON.parse(rawBody.toString('utf8')) : undefined;
+    } catch {
+      return { received: false };
+    }
+    if (!payload) return { received: true, matched: 0 };
+
     const bookingId: string | undefined =
       payload?.bookingId ?? payload?.reference ?? payload?.referenceId;
     if (!bookingId) return { received: true, matched: 0 };
@@ -102,13 +118,20 @@ export class TabService {
 export class SquareWebhookController {
   constructor(private readonly svc: TabService) {}
 
-  // No @Scopes — authenticated by Square signature, tenant resolved from booking.
+  // No @Scopes — authenticated by Square signature over the raw body, tenant
+  // resolved from the referenced booking.
   @Post('square')
   webhook(
-    @Body() payload: any,
-    @Headers('x-square-signature') signature?: string,
+    @Req() req: any,
+    @RawBody() rawBody: Buffer,
+    @Headers('x-square-hmacsha256-signature') signature?: string,
   ) {
-    return this.svc.handleWebhook(payload, signature);
+    // Square signs over the exact notification URL it POSTed to. Prefer an
+    // explicit configured URL; otherwise reconstruct it from the request.
+    const notificationUrl =
+      process.env.SQUARE_WEBHOOK_URL ??
+      `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+    return this.svc.handleWebhook(rawBody, signature, notificationUrl);
   }
 }
 

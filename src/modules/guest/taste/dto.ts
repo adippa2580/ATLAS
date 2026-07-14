@@ -1,4 +1,11 @@
-import { IsEnum, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import {
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
 import { Provenance, Signal, SubjectType } from '@prisma/client';
 
 export class AppendEvidenceDto {
@@ -14,9 +21,11 @@ export class AppendEvidenceDto {
   @IsEnum(Signal)
   signal!: Signal;
 
+  // Bound the weight so a caller can't inject a huge value to poison the graph.
   @IsOptional()
   @IsNumber()
-  @Min(0)
+  @Min(-10)
+  @Max(10)
   weight?: number;
 
   @IsEnum(Provenance)

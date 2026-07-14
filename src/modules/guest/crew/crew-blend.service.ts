@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { TenantContext } from '../../../common/tenancy/tenant-context';
 import { SubjectType } from '@prisma/client';
@@ -20,11 +20,25 @@ export class CrewBlendService {
   constructor(private readonly prisma: PrismaService) {}
 
   async recompute(ctx: TenantContext, crewId: string): Promise<void> {
+    // Tenant-scoping (P0-2): the crew must belong to the caller's tenant, and
+    // every crew read/write below is scoped by tenantId. A single recompute
+    // operates entirely within one tenant.
+    const crew = await this.prisma.crew.findUnique({ where: { id: crewId } });
+    if (!crew || crew.tenantId !== ctx.tenantId) {
+      throw new NotFoundException('Crew not found for tenant');
+    }
+
     const members = await this.prisma.crewMember.findMany({
-      where: { crewId },
+      where: { tenantId: ctx.tenantId, crewId },
     });
     const guestIds = members.map((m) => m.guestId);
-    if (guestIds.length === 0) return;
+    if (guestIds.length === 0) {
+      // Still clear any stale blend for this crew within the tenant.
+      await this.prisma.crewAffinity.deleteMany({
+        where: { tenantId: ctx.tenantId, crewId },
+      });
+      return;
+    }
 
     const affinities = await this.prisma.guestAffinity.findMany({
       where: { tenantId: ctx.tenantId, guestId: { in: guestIds } },
@@ -69,9 +83,11 @@ export class CrewBlendService {
     });
 
     await this.prisma.$transaction([
-      this.prisma.crewAffinity.deleteMany({ where: { crewId } }),
+      this.prisma.crewAffinity.deleteMany({
+        where: { tenantId: ctx.tenantId, crewId },
+      }),
       this.prisma.crewAffinity.createMany({
-        data: rows.map((r) => ({ crewId, ...r })),
+        data: rows.map((r) => ({ tenantId: ctx.tenantId, crewId, ...r })),
       }),
     ]);
   }

@@ -8,9 +8,16 @@ import {
   NotFoundException,
   Param,
   Post,
+  RawBody,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { IsArray, IsNumber, IsString, ValidateNested } from 'class-validator';
+import {
+  IsArray,
+  IsInt,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -21,7 +28,9 @@ import type { Payment } from '@prisma/client';
 
 class ShareDto {
   @IsString() guestId!: string;
-  @IsNumber() amount!: number;
+  // Money is integer minor units (cents). Optional so a `total` can be split
+  // evenly across the listed guests instead of specifying each amount.
+  @IsOptional() @IsInt() amount?: number;
 }
 
 class SplitPayDto {
@@ -29,6 +38,11 @@ class SplitPayDto {
   @ValidateNested({ each: true })
   @Type(() => ShareDto)
   shares!: ShareDto[];
+
+  // Optional total (integer cents) to divide evenly across `shares`. When set,
+  // it takes precedence over any per-share amounts and the shares are
+  // guaranteed to sum EXACTLY to this total (deterministic remainder).
+  @IsOptional() @IsInt() total?: number;
 }
 
 /**
@@ -43,26 +57,46 @@ export class PaymentsService {
     private readonly stripe: StripeAdapter,
   ) {}
 
+  /**
+   * Split a total (integer cents) into `n` integer shares that sum EXACTLY to
+   * the total. The base share is `floor(total / n)`; the leftover cents
+   * (`total - base * n`) are handed out one-per-share to the first `remainder`
+   * shares — deterministic, and never creates or loses a cent.
+   */
+  private static splitEvenCents(total: number, n: number): number[] {
+    if (n <= 0) return [];
+    const base = Math.floor(total / n);
+    const remainder = total - base * n;
+    return Array.from({ length: n }, (_, i) => base + (i < remainder ? 1 : 0));
+  }
+
   async splitPay(ctx: TenantContext, bookingId: string, dto: SplitPayDto) {
     const booking = await this.prisma.booking.findFirst({
       where: { id: bookingId, tenantId: ctx.tenantId },
     });
     if (!booking) throw new NotFoundException('Booking not found');
 
+    // Resolve each share's amount in integer cents. If a `total` is supplied it
+    // is divided evenly with the remainder assigned deterministically; the
+    // shares are then guaranteed to sum exactly to `total`. Otherwise the
+    // per-share integer amounts are used as-is.
+    const amounts =
+      dto.total != null
+        ? PaymentsService.splitEvenCents(dto.total, dto.shares.length)
+        : dto.shares.map((s) => s.amount ?? 0);
+
     const splitGroupId = randomUUID();
     const payments: Payment[] = [];
-    for (const share of dto.shares) {
+    for (const [i, share] of dto.shares.entries()) {
+      const amount = amounts[i];
       const idempotencyKey = `split_${splitGroupId}_${share.guestId}`;
-      const pi = await this.stripe.createPaymentIntent(
-        share.amount,
-        idempotencyKey,
-      );
+      const pi = await this.stripe.createPaymentIntent(amount, idempotencyKey);
       const payment = await this.prisma.payment.create({
         data: {
           tenantId: ctx.tenantId,
           bookingId,
           stripePiId: pi.id,
-          amount: share.amount,
+          amount,
           splitGroupId,
           payerGuestId: share.guestId,
           status: pi.status,
@@ -81,22 +115,44 @@ export class PaymentsService {
   }
 
   /**
-   * Signed Stripe webhook. Authenticated by signature (no scope), so the tenant
-   * is resolved from the matched Payment rather than a token.
+   * Signed Stripe webhook. Authenticated by the Stripe signature over the RAW
+   * body (no scope); the tenant is resolved from the matched Payment rather than
+   * a token. Only `payment_intent.succeeded` marks a payment succeeded.
    */
-  async handleWebhook(payload: any, signature?: string) {
-    if (!this.stripe.verifyWebhook(payload, signature)) {
+  async handleWebhook(rawBody: Buffer | undefined, signature?: string) {
+    if (!this.stripe.verifyWebhook(rawBody, signature)) {
       return { received: false };
     }
-    const piId: string | undefined =
-      payload?.data?.object?.id ?? payload?.paymentIntentId ?? payload?.id;
+
+    // Act on exactly the verified bytes.
+    let event: any;
+    try {
+      event = rawBody ? JSON.parse(rawBody.toString('utf8')) : undefined;
+    } catch {
+      return { received: false };
+    }
+    if (!event) return { received: true, matched: 0 };
+
+    // Verify the event TYPE before mutating anything.
+    if (event.type !== 'payment_intent.succeeded') {
+      return { received: true, ignored: event.type ?? 'unknown' };
+    }
+
+    const piId: string | undefined = event?.data?.object?.id;
     if (!piId) return { received: true, matched: 0 };
 
-    const result = await this.prisma.payment.updateMany({
+    // Look up by the now-unique stripePiId, then update SCOPED to that single
+    // record (its own tenantId) — never an unscoped updateMany.
+    const payment = await this.prisma.payment.findUnique({
       where: { stripePiId: piId },
+    });
+    if (!payment) return { received: true, matched: 0 };
+
+    await this.prisma.payment.update({
+      where: { id: payment.id },
       data: { status: 'succeeded' },
     });
-    return { received: true, matched: result.count };
+    return { received: true, matched: 1, tenantId: payment.tenantId };
   }
 }
 
@@ -127,13 +183,14 @@ export class PaymentsController {
 export class StripeWebhookController {
   constructor(private readonly svc: PaymentsService) {}
 
-  // No @Scopes — authenticated by Stripe signature, tenant resolved from payload.
+  // No @Scopes — authenticated by Stripe signature over the raw body, tenant
+  // resolved from the matched Payment.
   @Post('stripe')
   webhook(
-    @Body() payload: any,
+    @RawBody() rawBody: Buffer,
     @Headers('stripe-signature') signature?: string,
   ) {
-    return this.svc.handleWebhook(payload, signature);
+    return this.svc.handleWebhook(rawBody, signature);
   }
 }
 

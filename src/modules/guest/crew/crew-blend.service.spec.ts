@@ -9,6 +9,8 @@ describe('CrewBlendService (blend invariants)', () => {
   function makeService(affinities: any[], members: any[]) {
     const captured: any[] = [];
     const prisma: any = {
+      // Crew is tenant-scoped: recompute validates the crew belongs to the tenant.
+      crew: { findUnique: async () => ({ id: 'crew1', tenantId: 't1' }) },
       crewMember: { findMany: async () => members },
       guestAffinity: { findMany: async () => affinities },
       crewAffinity: {
@@ -56,6 +58,20 @@ describe('CrewBlendService (blend invariants)', () => {
     const refs = captured.map((r) => r.subjectRef);
     expect(refs).toContain('Y');
     expect(refs).not.toContain('X'); // muted by member b
+    // Every persisted crew-affinity row carries the tenant (P0-2 scoping).
+    expect(captured.every((r) => r.tenantId === 't1')).toBe(true);
+  });
+
+  it('rejects a crew that belongs to another tenant', async () => {
+    const prisma: any = {
+      crew: { findUnique: async () => ({ id: 'crew1', tenantId: 'other' }) },
+      crewMember: { findMany: async () => [] },
+      guestAffinity: { findMany: async () => [] },
+      crewAffinity: { deleteMany: () => ({}), createMany: () => ({}) },
+      $transaction: async (ops: any[]) => ops,
+    };
+    const svc = new CrewBlendService(prisma);
+    await expect(svc.recompute(ctx as any, 'crew1')).rejects.toThrow();
   });
 
   it('boosts subjects shared across the crew above solo subjects', async () => {

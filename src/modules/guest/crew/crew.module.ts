@@ -4,6 +4,7 @@ import {
   Get,
   Injectable,
   Module,
+  NotFoundException,
   Param,
   Post,
   Put,
@@ -36,7 +37,14 @@ export class CrewService {
         tenantId: ctx.tenantId,
         name: dto.name,
         ownerGuestId: dto.ownerGuestId,
-        members: { create: { guestId: dto.ownerGuestId, role: 'owner' } },
+        // CrewMember is tenant-scoped (P0-2) — carry the crew's tenant.
+        members: {
+          create: {
+            tenantId: ctx.tenantId,
+            guestId: dto.ownerGuestId,
+            role: 'owner',
+          },
+        },
       },
       include: { members: true },
     });
@@ -45,24 +53,40 @@ export class CrewService {
   }
 
   async setMembers(ctx: TenantContext, crewId: string, dto: SetMembersDto) {
-    await this.prisma.crewMember.deleteMany({ where: { crewId } });
+    // Only mutate a crew that belongs to the caller's tenant.
+    await this.assertCrewInTenant(ctx, crewId);
+    await this.prisma.crewMember.deleteMany({
+      where: { tenantId: ctx.tenantId, crewId },
+    });
     await this.prisma.crewMember.createMany({
-      data: dto.guestIds.map((guestId) => ({ crewId, guestId })),
+      data: dto.guestIds.map((guestId) => ({
+        tenantId: ctx.tenantId,
+        crewId,
+        guestId,
+      })),
       skipDuplicates: true,
     });
     // Crew is an input, not an invite — changing it re-runs the blend.
     await this.blend.recompute(ctx, crewId);
-    return this.prisma.crew.findUnique({
-      where: { id: crewId },
+    return this.prisma.crew.findFirst({
+      where: { id: crewId, tenantId: ctx.tenantId },
       include: { members: true },
     });
   }
 
-  getAffinity(_ctx: TenantContext, crewId: string) {
+  async getAffinity(ctx: TenantContext, crewId: string) {
+    await this.assertCrewInTenant(ctx, crewId);
     return this.prisma.crewAffinity.findMany({
-      where: { crewId },
+      where: { tenantId: ctx.tenantId, crewId },
       orderBy: { blendedScore: 'desc' },
     });
+  }
+
+  private async assertCrewInTenant(ctx: TenantContext, crewId: string) {
+    const crew = await this.prisma.crew.findUnique({ where: { id: crewId } });
+    if (!crew || crew.tenantId !== ctx.tenantId) {
+      throw new NotFoundException('Crew not found for tenant');
+    }
   }
 }
 
