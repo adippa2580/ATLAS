@@ -438,8 +438,14 @@ model UsageEvent {
   kind           String // booking | api_call | mcp_call
   billableAmount Int      @default(0) // minor units (cents)
   occurredAt     DateTime @default(now())
+  // W7 take-rate dimensions: which acquisition path produced the booking and
+  // which venue campaign gets the attribution receipt.
+  path           String? // app | venue_link
+  campaignId     String?
+  bookingId      String?
 
   @@index([tenantId, kind])
+  @@index([tenantId, path])
 }
 
 // ---------------------------------------------------------------------------

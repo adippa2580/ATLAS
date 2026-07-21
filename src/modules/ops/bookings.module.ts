@@ -35,6 +35,8 @@ class CreateBookingDto {
   @IsString() date!: string;
   @IsOptional() @IsInt() partySize?: number;
   @IsOptional() @IsString() attributionId?: string;
+  /** Venue campaign carried by the attribution link (W7 metering dimension). */
+  @IsOptional() @IsString() campaignId?: string;
 }
 
 /**
@@ -82,6 +84,9 @@ export class BookingsService {
     ctx: TenantContext,
     dto: CreateBookingDto,
     idempotencyKey?: string,
+    // Evidence provenance for the `book` signal. Venue-link (class 1b) checkouts
+    // pass `venue_link` so pre-merge evidence stays single-venue (W1 §4.3).
+    provenance: Provenance = Provenance.booking,
   ) {
     // P0-4 idempotency (fast path): if this key already produced a booking,
     // return it — never create a second booking or a second usage event.
@@ -197,7 +202,7 @@ export class BookingsService {
       subjectRef: dto.venueId,
       signal: Signal.book,
       weight: 3,
-      provenance: Provenance.booking,
+      provenance,
       dedupeKey: evidenceDedupeKey(
         'booking',
         idempotencyKey ?? booking.id,
@@ -206,9 +211,18 @@ export class BookingsService {
       observedAt: new Date().toISOString(),
     });
 
-    // Metering: booking emits a usage_event for take-rate billing.
+    // Metering: booking emits a usage_event for take-rate billing, carrying
+    // the W7 dimensions (path + campaign + booking). billableAmount stays 0 at
+    // creation — the take-rate is levied on seated bookings at closeout.
     await this.prisma.usageEvent.create({
-      data: { tenantId: ctx.tenantId, kind: 'booking', billableAmount: 0 },
+      data: {
+        tenantId: ctx.tenantId,
+        kind: 'booking',
+        billableAmount: 0,
+        path: provenance === Provenance.venue_link ? 'venue_link' : 'app',
+        campaignId: dto.campaignId,
+        bookingId: booking.id,
+      },
     });
 
     return booking;

@@ -23,6 +23,17 @@ export interface AppConfig {
     issuer: string;
     audience: string;
   };
+  /**
+   * W7 take-rate, basis points. Table 1000 (10%) / ticket 800 (8%) are the
+   * W7 one-pager PLACEHOLDER numbers, adopted 2026-07-21 pending Jack — set
+   * the ratified values via env before any venue conversation. Closeout keeps
+   * its prior 5% placeholder as the tab-fallback default.
+   */
+  takeRateBps: {
+    table: number;
+    ticket: number;
+    closeout: number;
+  };
   connectors: {
     stripeSecretKey: string;
     stripeWebhookSecret: string;
@@ -52,6 +63,11 @@ export default (): AppConfig => ({
     jwksUrl: process.env.OIDC_JWKS_URL ?? '',
     issuer: process.env.OIDC_ISSUER ?? '',
     audience: process.env.OIDC_AUDIENCE ?? '',
+  },
+  takeRateBps: {
+    table: parseInt(process.env.TAKE_RATE_TABLE_BPS ?? '1000', 10),
+    ticket: parseInt(process.env.TAKE_RATE_TICKET_BPS ?? '800', 10),
+    closeout: parseInt(process.env.TAKE_RATE_CLOSEOUT_BPS ?? '500', 10),
   },
   connectors: {
     stripeSecretKey: process.env.STRIPE_SECRET_KEY ?? '',
