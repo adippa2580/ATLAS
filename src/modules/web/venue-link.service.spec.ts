@@ -21,8 +21,9 @@ describe('VenueLinkService', () => {
     existingPhoneLink?: any;
     inventory?: any[];
     bookingCount?: number;
+    deposit?: number;
   }) {
-    const created: Record<string, any[]> = { guests: [], links: [] };
+    const created: Record<string, any[]> = { guests: [], links: [], payments: [] };
     const prisma: any = {
       attributionLink: {
         findUnique: async ({ where }: any) =>
@@ -42,7 +43,21 @@ describe('VenueLinkService', () => {
             { id: 'i1', kind: 'table', label: 'Booth 1', capacity: 6, minSpend: 200000, deposit: 50000 },
           ],
       },
-      booking: { count: async () => opts.bookingCount ?? 0 },
+      booking: {
+        count: async () => opts.bookingCount ?? 0,
+        findFirst: async () => ({
+          id: 'b1',
+          date: new Date('2026-07-25'),
+          partySize: 4,
+          venue: { name: 'Club X' },
+        }),
+      },
+      payment: {
+        create: async ({ data }: any) => {
+          created.payments.push(data);
+          return { id: 'pay1', ...data };
+        },
+      },
       identityLink: {
         findUnique: async () => opts.existingPhoneLink ?? null,
         create: async ({ data }: any) => {
@@ -56,14 +71,30 @@ describe('VenueLinkService', () => {
           created.guests.push(g);
           return g;
         },
-        findFirst: async () => ({ id: 'g-old', walletPassId: 'wp_old' }),
+        findFirst: async () => ({
+          id: 'g-old',
+          tenantId: 't1',
+          walletPassId: 'wp_old',
+        }),
       },
     };
+    // inventory.findFirst for the deposit lookup at checkout
+    prisma.inventory.findFirst = async () => ({
+      id: 'i1',
+      deposit: opts.deposit ?? 0,
+    });
     const bookings: any = {
       create: jest.fn(async () => ({ id: 'b1', status: 'confirmed' })),
     };
-    const svc = new VenueLinkService(prisma, bookings);
-    return { svc, bookings, created };
+    const stripe: any = {
+      createPaymentIntent: jest.fn(async (amount: number, idem: string) => ({
+        id: `pi_stub_${idem}`,
+        clientSecret: 'secret_x',
+        status: 'requires_payment_method',
+      })),
+    };
+    const svc = new VenueLinkService(prisma, bookings, stripe);
+    return { svc, bookings, created, stripe };
   }
 
   it('404s an unknown link code', async () => {
@@ -114,6 +145,37 @@ describe('VenueLinkService', () => {
     expect(created.guests).toHaveLength(0);
   });
 
+  it('opens a deposit PaymentIntent when the table carries a deposit', async () => {
+    const { svc, created, stripe } = makeService({ deposit: 50000 });
+    const res = await svc.checkout(
+      'CLUBX',
+      { displayName: 'Dan', phone: '+61400000000', date: '2026-07-25', inventoryId: 'i1' } as any,
+      'idem-9',
+    );
+    expect(stripe.createPaymentIntent).toHaveBeenCalledWith(50000, 'idem-9:deposit');
+    expect(created.payments[0].amount).toBe(50000);
+    expect(created.payments[0].bookingId).toBe('b1');
+    expect(res.payment?.clientSecret).toBe('secret_x');
+  });
+
+  it('skips payment when the table has no deposit', async () => {
+    const { svc, created } = makeService({ deposit: 0 });
+    const res = await svc.checkout(
+      'CLUBX',
+      { displayName: 'Dan', phone: '+61400000000', date: '2026-07-25', inventoryId: 'i1' } as any,
+    );
+    expect(created.payments).toHaveLength(0);
+    expect(res.payment).toBeNull();
+  });
+
+  it('serves an Apple-Wallet-shaped pass payload for a known pass id', async () => {
+    const { svc } = makeService({});
+    const pass = await svc.pass('wp_old');
+    expect(pass.serialNumber).toBe('wp_old');
+    expect(pass.barcode?.message).toBe('b1');
+    expect(pass.description).toContain('Club X');
+  });
+
   it('books through the standard machinery with venue_link provenance + attribution', async () => {
     const { svc, bookings } = makeService({});
     await svc.checkout(
@@ -127,5 +189,6 @@ describe('VenueLinkService', () => {
     expect(dto.venueId).toBe('v1');
     expect(idem).toBe('idem-123');
     expect(provenance).toBe(Provenance.venue_link);
+    expect(dto.campaignId).toBe('ig-jul');
   });
 });

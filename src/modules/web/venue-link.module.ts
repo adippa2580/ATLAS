@@ -20,6 +20,7 @@ import {
   Min,
 } from 'class-validator';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { StripeAdapter } from '../../integrations/stripe.adapter';
 import { TenantContext } from '../../common/tenancy/tenant-context';
 import { sha256 } from '../../common/util/hash';
 import { Provenance } from '@prisma/client';
@@ -58,6 +59,7 @@ export class VenueLinkService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly bookings: BookingsService,
+    private readonly stripe: StripeAdapter,
   ) {}
 
   private async resolveLink(code: string) {
@@ -111,6 +113,46 @@ export class VenueLinkService {
       tables,
       // A-List is present only as rails on this surface (venue-branded).
       poweredBy: 'A-List',
+    };
+  }
+
+  /**
+   * The Wallet pass payload — Apple-Wallet-shaped stub (PassKit signing lands
+   * with real certs). The pass id is a durable device-linked identifier and
+   * the pre-app update channel; the barcode carries the latest booking.
+   */
+  async pass(walletPassId: string) {
+    const guest = await this.prisma.guest.findFirst({
+      where: { walletPassId },
+    });
+    if (!guest) throw new NotFoundException('Unknown pass');
+    const booking = await this.prisma.booking.findFirst({
+      where: { tenantId: guest.tenantId, guestId: guest.id },
+      orderBy: { date: 'desc' },
+      include: { venue: true },
+    });
+    return {
+      formatVersion: 1,
+      passTypeIdentifier: 'pass.com.alist.table',
+      serialNumber: walletPassId,
+      organizationName: 'A-List',
+      description: booking?.venue
+        ? `Your table at ${booking.venue.name}`
+        : 'Your A-List pass',
+      relevantDate: booking?.date?.toISOString() ?? null,
+      barcode: booking
+        ? { format: 'PKBarcodeFormatQR', message: booking.id }
+        : null,
+      generic: {
+        primaryFields: booking?.venue
+          ? [{ key: 'venue', label: 'VENUE', value: booking.venue.name }]
+          : [],
+        secondaryFields:
+          booking?.partySize != null
+            ? [{ key: 'party', label: 'PARTY', value: booking.partySize }]
+            : [],
+      },
+      stub: true,
     };
   }
 
@@ -180,7 +222,8 @@ export class VenueLinkService {
     }
 
     // Booking through the standard machinery (idempotency, inventory lock,
-    // status ledger, metering) — with venue_link evidence provenance.
+    // status ledger, metering) — with venue_link evidence provenance and the
+    // campaign carried as a W7 metering dimension.
     const booking = await this.bookings.create(
       ctx,
       {
@@ -190,14 +233,45 @@ export class VenueLinkService {
         date: dto.date,
         partySize: dto.partySize,
         attributionId: link.id,
+        campaignId: link.campaignId ?? undefined,
       },
       idempotencyKey,
       Provenance.venue_link,
     );
 
+    // Deposit capture: when the table carries a deposit, open a PaymentIntent
+    // now (express-pay confirms it client-side). Stub mode returns a canned PI
+    // so the flow is exercisable without Stripe credentials.
+    let payment: { id: string; clientSecret: string | null } | null = null;
+    if (dto.inventoryId) {
+      const inventory = await this.prisma.inventory.findFirst({
+        where: { id: dto.inventoryId, tenantId: ctx.tenantId },
+      });
+      if (inventory?.deposit && inventory.deposit > 0) {
+        const payIdem = `${idempotencyKey ?? booking.id}:deposit`;
+        const pi = await this.stripe.createPaymentIntent(
+          inventory.deposit,
+          payIdem,
+        );
+        const row = await this.prisma.payment.create({
+          data: {
+            tenantId: ctx.tenantId,
+            bookingId: booking.id,
+            stripePiId: pi.id,
+            amount: inventory.deposit,
+            payerGuestId: guestId,
+            status: 'pending',
+            idempotencyKey: payIdem,
+          },
+        });
+        payment = { id: row.id, clientSecret: pi.clientSecret ?? null };
+      }
+    }
+
     // V3 — confirmation is the conversion moment, never before checkout.
     return {
       booking,
+      payment,
       walletPassId,
       provisionalGuestId: guestId,
       appDeepLink: `alist://signup?pg=${guestId}`,
@@ -211,6 +285,11 @@ export class VenueLinkService {
 @Controller('v1/venue-link')
 export class VenueLinkController {
   constructor(private readonly service: VenueLinkService) {}
+
+  @Get('pass/:passId')
+  pass(@Param('passId') passId: string) {
+    return this.service.pass(passId);
+  }
 
   @Get(':code')
   map(@Param('code') code: string, @Query('date') date?: string) {

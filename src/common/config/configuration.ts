@@ -23,6 +23,16 @@ export interface AppConfig {
     issuer: string;
     audience: string;
   };
+  /**
+   * W7 take-rate, basis points. Table/ticket default 0 — the real numbers are a
+   * Jack-gated decision; nothing is billed until they are set. Closeout keeps
+   * its prior 5% placeholder as the default so existing behaviour is unchanged.
+   */
+  takeRateBps: {
+    table: number;
+    ticket: number;
+    closeout: number;
+  };
   connectors: {
     stripeSecretKey: string;
     stripeWebhookSecret: string;
@@ -52,6 +62,11 @@ export default (): AppConfig => ({
     jwksUrl: process.env.OIDC_JWKS_URL ?? '',
     issuer: process.env.OIDC_ISSUER ?? '',
     audience: process.env.OIDC_AUDIENCE ?? '',
+  },
+  takeRateBps: {
+    table: parseInt(process.env.TAKE_RATE_TABLE_BPS ?? '0', 10),
+    ticket: parseInt(process.env.TAKE_RATE_TICKET_BPS ?? '0', 10),
+    closeout: parseInt(process.env.TAKE_RATE_CLOSEOUT_BPS ?? '500', 10),
   },
   connectors: {
     stripeSecretKey: process.env.STRIPE_SECRET_KEY ?? '',

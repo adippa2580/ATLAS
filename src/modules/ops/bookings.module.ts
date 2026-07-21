@@ -35,6 +35,8 @@ class CreateBookingDto {
   @IsString() date!: string;
   @IsOptional() @IsInt() partySize?: number;
   @IsOptional() @IsString() attributionId?: string;
+  /** Venue campaign carried by the attribution link (W7 metering dimension). */
+  @IsOptional() @IsString() campaignId?: string;
 }
 
 /**
@@ -209,9 +211,18 @@ export class BookingsService {
       observedAt: new Date().toISOString(),
     });
 
-    // Metering: booking emits a usage_event for take-rate billing.
+    // Metering: booking emits a usage_event for take-rate billing, carrying
+    // the W7 dimensions (path + campaign + booking). billableAmount stays 0 at
+    // creation — the take-rate is levied on seated bookings at closeout.
     await this.prisma.usageEvent.create({
-      data: { tenantId: ctx.tenantId, kind: 'booking', billableAmount: 0 },
+      data: {
+        tenantId: ctx.tenantId,
+        kind: 'booking',
+        billableAmount: 0,
+        path: provenance === Provenance.venue_link ? 'venue_link' : 'app',
+        campaignId: dto.campaignId,
+        bookingId: booking.id,
+      },
     });
 
     return booking;
