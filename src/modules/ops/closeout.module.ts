@@ -44,22 +44,70 @@ export class CloseoutService {
         venueId,
         ...(range ? { date: range } : {}),
       },
-      include: { tab: true },
+      include: { tab: true, inventory: true },
     });
 
-    // All money is integer minor units (cents). totalTab is a sum of integer
-    // cents; the take-rate is bps-scaled and rounded back to integer cents.
-    const bps = this.config.get<number>('takeRateBps.closeout') ?? 500;
+    // All money is integer minor units (cents).
+    // W7 model (ADOPTED 2026-07-21, PLACEHOLDER rates pending Jack): per-seated-
+    // booking take — tableBps on the table minimum (tab total when no minimum),
+    // ticketBps on ticket revenue — metered as one usage_event PER BOOKING with
+    // path/campaign dimensions. Setting both bps to 0 falls back to the legacy
+    // aggregate closeout rate on total tab.
+    const tableBps = this.config.get<number>('takeRateBps.table') ?? 1000;
+    const ticketBps = this.config.get<number>('takeRateBps.ticket') ?? 800;
+    const closeoutBps = this.config.get<number>('takeRateBps.closeout') ?? 500;
     const totalTab = bookings.reduce((sum, b) => sum + (b.tab?.total ?? 0), 0);
-    const takeRate = Math.round((totalTab * bps) / 10_000);
 
-    const usage = await this.prisma.usageEvent.create({
-      data: {
-        tenantId: ctx.tenantId,
-        kind: 'booking',
-        billableAmount: takeRate,
-      },
-    });
+    // Campaign attribution for the metering dimensions.
+    const attributionIds = [
+      ...new Set(bookings.map((b) => b.attributionId).filter(Boolean)),
+    ] as string[];
+    const links = attributionIds.length
+      ? await this.prisma.attributionLink.findMany({
+          where: { id: { in: attributionIds } },
+        })
+      : [];
+    const campaignByAttr = new Map(links.map((l) => [l.id, l.campaignId]));
+
+    let takeRate = 0;
+    let usage: { id: string } | null = null;
+    const perBooking = tableBps > 0 || ticketBps > 0;
+    if (perBooking) {
+      for (const b of bookings) {
+        if (b.status === 'cancelled') continue;
+        const kind = b.inventory?.kind;
+        const base =
+          kind === 'table'
+            ? (b.inventory?.minSpend ?? b.tab?.total ?? 0)
+            : kind === 'ticket'
+              ? (b.tab?.total ?? 0)
+              : 0;
+        const bps = kind === 'table' ? tableBps : kind === 'ticket' ? ticketBps : 0;
+        const take = Math.round((base * bps) / 10_000);
+        takeRate += take;
+        usage = await this.prisma.usageEvent.create({
+          data: {
+            tenantId: ctx.tenantId,
+            kind: 'booking',
+            billableAmount: take,
+            path: b.attributionId ? 'venue_link' : 'app',
+            campaignId: b.attributionId
+              ? (campaignByAttr.get(b.attributionId) ?? null)
+              : null,
+            bookingId: b.id,
+          },
+        });
+      }
+    } else {
+      takeRate = Math.round((totalTab * closeoutBps) / 10_000);
+      usage = await this.prisma.usageEvent.create({
+        data: {
+          tenantId: ctx.tenantId,
+          kind: 'booking',
+          billableAmount: takeRate,
+        },
+      });
+    }
 
     // V4 — post-visit conversion window: venue-link guests who are still
     // provisional get the loyalty-claim message ("You earned credit at
@@ -94,9 +142,12 @@ export class CloseoutService {
       bookings: bookings.length,
       totalTab,
       takeRate,
-      takeRateBps: bps,
+      takeRateModel: perBooking ? 'per_booking' : 'closeout_tab',
+      takeRateBps: perBooking
+        ? { table: tableBps, ticket: ticketBps }
+        : { closeout: closeoutBps },
       postVisitMessages,
-      usageEventId: usage.id,
+      usageEventId: usage?.id ?? null,
     };
   }
 }
