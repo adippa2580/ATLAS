@@ -82,6 +82,9 @@ export class BookingsService {
     ctx: TenantContext,
     dto: CreateBookingDto,
     idempotencyKey?: string,
+    // Evidence provenance for the `book` signal. Venue-link (class 1b) checkouts
+    // pass `venue_link` so pre-merge evidence stays single-venue (W1 §4.3).
+    provenance: Provenance = Provenance.booking,
   ) {
     // P0-4 idempotency (fast path): if this key already produced a booking,
     // return it — never create a second booking or a second usage event.
@@ -197,7 +200,7 @@ export class BookingsService {
       subjectRef: dto.venueId,
       signal: Signal.book,
       weight: 3,
-      provenance: Provenance.booking,
+      provenance,
       dedupeKey: evidenceDedupeKey(
         'booking',
         idempotencyKey ?? booking.id,

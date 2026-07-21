@@ -12,6 +12,7 @@ import configuration, { AuthMode } from './common/config/configuration';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { EvidenceModule } from './common/evidence/evidence.module';
 import { TenantMiddleware } from './common/tenancy/tenant.middleware';
+import { VenueLinkModule } from './modules/web/venue-link.module';
 import { TokenVerifier } from './common/auth/token-verifier';
 import { IdempotencyInterceptor } from './common/idempotency/idempotency.interceptor';
 import { HealthController } from './health.controller';
@@ -54,6 +55,8 @@ import { TalentModule } from './insights/talent/talent.module';
     RevenueInsightsModule,
     OpsInsightsModule,
     TalentModule,
+    // Public venue-link (class 1b) surface — tenant resolved from the link code.
+    VenueLinkModule,
   ],
   controllers: [HealthController],
   providers: [
@@ -69,7 +72,10 @@ export class AppModule implements NestModule, OnModuleInit {
   constructor(private readonly config: ConfigService) {}
 
   configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(TenantMiddleware).forRoutes('*');
+    consumer
+      .apply(TenantMiddleware)
+      .exclude('v1/venue-link/(.*)')
+      .forRoutes('*');
   }
 
   /**
