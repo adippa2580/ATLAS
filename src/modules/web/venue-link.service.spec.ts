@@ -23,7 +23,11 @@ describe('VenueLinkService', () => {
     bookingCount?: number;
     deposit?: number;
   }) {
-    const created: Record<string, any[]> = { guests: [], links: [], payments: [] };
+    const created: Record<string, any[]> = {
+      guests: [],
+      links: [],
+      payments: [],
+    };
     const prisma: any = {
       attributionLink: {
         findUnique: async ({ where }: any) =>
@@ -40,7 +44,14 @@ describe('VenueLinkService', () => {
       inventory: {
         findMany: async () =>
           opts.inventory ?? [
-            { id: 'i1', kind: 'table', label: 'Booth 1', capacity: 6, minSpend: 200000, deposit: 50000 },
+            {
+              id: 'i1',
+              kind: 'table',
+              label: 'Booth 1',
+              capacity: 6,
+              minSpend: 200000,
+              deposit: 50000,
+            },
           ],
       },
       booking: {
@@ -149,10 +160,18 @@ describe('VenueLinkService', () => {
     const { svc, created, stripe } = makeService({ deposit: 50000 });
     const res = await svc.checkout(
       'CLUBX',
-      { displayName: 'Dan', phone: '+61400000000', date: '2026-07-25', inventoryId: 'i1' } as any,
+      {
+        displayName: 'Dan',
+        phone: '+61400000000',
+        date: '2026-07-25',
+        inventoryId: 'i1',
+      } as any,
       'idem-9',
     );
-    expect(stripe.createPaymentIntent).toHaveBeenCalledWith(50000, 'idem-9:deposit');
+    expect(stripe.createPaymentIntent).toHaveBeenCalledWith(
+      50000,
+      'idem-9:deposit',
+    );
     expect(created.payments[0].amount).toBe(50000);
     expect(created.payments[0].bookingId).toBe('b1');
     expect(res.payment?.clientSecret).toBe('secret_x');
@@ -160,10 +179,12 @@ describe('VenueLinkService', () => {
 
   it('skips payment when the table has no deposit', async () => {
     const { svc, created } = makeService({ deposit: 0 });
-    const res = await svc.checkout(
-      'CLUBX',
-      { displayName: 'Dan', phone: '+61400000000', date: '2026-07-25', inventoryId: 'i1' } as any,
-    );
+    const res = await svc.checkout('CLUBX', {
+      displayName: 'Dan',
+      phone: '+61400000000',
+      date: '2026-07-25',
+      inventoryId: 'i1',
+    } as any);
     expect(created.payments).toHaveLength(0);
     expect(res.payment).toBeNull();
   });
@@ -180,7 +201,12 @@ describe('VenueLinkService', () => {
     const { svc, bookings } = makeService({});
     await svc.checkout(
       'CLUBX',
-      { displayName: 'Dan', phone: '+61400000000', date: '2026-07-25', inventoryId: 'i1' } as any,
+      {
+        displayName: 'Dan',
+        phone: '+61400000000',
+        date: '2026-07-25',
+        inventoryId: 'i1',
+      } as any,
       'idem-123',
     );
     const [ctx, dto, idem, provenance] = bookings.create.mock.calls[0];

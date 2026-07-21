@@ -82,7 +82,8 @@ export class CloseoutService {
             : kind === 'ticket'
               ? (b.tab?.total ?? 0)
               : 0;
-        const bps = kind === 'table' ? tableBps : kind === 'ticket' ? ticketBps : 0;
+        const bps =
+          kind === 'table' ? tableBps : kind === 'ticket' ? ticketBps : 0;
         const take = Math.round((base * bps) / 10_000);
         takeRate += take;
         usage = await this.prisma.usageEvent.create({

@@ -52,8 +52,14 @@ describe('CloseoutService', () => {
         return undefined;
       },
     };
-    const klaviyo: any = { sendCampaign: jest.fn(async () => ({ delivered: 1 })) };
-    return { svc: new CloseoutService(prisma, config, klaviyo), usage, klaviyo };
+    const klaviyo: any = {
+      sendCampaign: jest.fn(async () => ({ delivered: 1 })),
+    };
+    return {
+      svc: new CloseoutService(prisma, config, klaviyo),
+      usage,
+      klaviyo,
+    };
   }
 
   const ctx = { tenantId: 't1', scopes: [] } as any;
@@ -82,7 +88,9 @@ describe('CloseoutService', () => {
   });
 
   it('falls back to the aggregate tab rate when table/ticket bps are 0', async () => {
-    const { svc, usage } = make({ bps: { table: 0, ticket: 0, closeout: 500 } });
+    const { svc, usage } = make({
+      bps: { table: 0, ticket: 0, closeout: 500 },
+    });
     const res = await svc.closeout(ctx, 'v1', {});
     expect(res.takeRateModel).toBe('closeout_tab');
     expect(res.takeRate).toBe(8_000); // 5% of 160_000

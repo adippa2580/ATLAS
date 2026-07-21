@@ -12,13 +12,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { randomUUID } from 'crypto';
-import {
-  IsEmail,
-  IsInt,
-  IsOptional,
-  IsString,
-  Min,
-} from 'class-validator';
+import { IsEmail, IsInt, IsOptional, IsString, Min } from 'class-validator';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StripeAdapter } from '../../integrations/stripe.adapter';
 import { TenantContext } from '../../common/tenancy/tenant-context';

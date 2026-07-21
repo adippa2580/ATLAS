@@ -118,11 +118,25 @@ describe('CrewBlendService (blend invariants)', () => {
   it('up-weights booking-backed member contributions (invariant 5)', async () => {
     const members = [{ guestId: 'a' }, { guestId: 'b' }];
     const affinities = [
-      { guestId: 'a', subjectType: SubjectType.genre, subjectRef: 'paid', score: 4, muted: false },
-      { guestId: 'b', subjectType: SubjectType.genre, subjectRef: 'browsed', score: 4, muted: false },
+      {
+        guestId: 'a',
+        subjectType: SubjectType.genre,
+        subjectRef: 'paid',
+        score: 4,
+        muted: false,
+      },
+      {
+        guestId: 'b',
+        subjectType: SubjectType.genre,
+        subjectRef: 'browsed',
+        score: 4,
+        muted: false,
+      },
     ];
     const { svc, captured } = makeService(affinities, members, {
-      paid: [{ guestId: 'a', subjectType: SubjectType.genre, subjectRef: 'paid' }],
+      paid: [
+        { guestId: 'a', subjectType: SubjectType.genre, subjectRef: 'paid' },
+      ],
     });
     await svc.recompute(ctx as any, 'crew1');
     const paid = captured.find((r) => r.subjectRef === 'paid');
@@ -133,7 +147,13 @@ describe('CrewBlendService (blend invariants)', () => {
   it('adds the crew-history posterior on top of the composed prior (invariant 6)', async () => {
     const members = [{ guestId: 'a' }];
     const affinities = [
-      { guestId: 'a', subjectType: SubjectType.venue, subjectRef: 'v1', score: 2, muted: false },
+      {
+        guestId: 'a',
+        subjectType: SubjectType.venue,
+        subjectRef: 'v1',
+        score: 2,
+        muted: false,
+      },
     ];
     const { svc, captured } = makeService(affinities, members, {
       history: [{ venueId: 'v1', _count: { _all: 2 } }],
@@ -148,7 +168,13 @@ describe('CrewBlendService (blend invariants)', () => {
   it('creates a crew affinity from history alone, but a mute still vetoes', async () => {
     const members = [{ guestId: 'a' }];
     const affinities = [
-      { guestId: 'a', subjectType: SubjectType.venue, subjectRef: 'vMuted', score: 5, muted: true },
+      {
+        guestId: 'a',
+        subjectType: SubjectType.venue,
+        subjectRef: 'vMuted',
+        score: 5,
+        muted: true,
+      },
     ];
     const { svc, captured } = makeService(affinities, members, {
       history: [
