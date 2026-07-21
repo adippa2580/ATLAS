@@ -3,6 +3,7 @@ import { AudiencesModule } from './audiences/audiences.module';
 import { DiscoveryModule } from './discovery/discovery.module';
 import { LifecycleModule } from './lifecycle/lifecycle.module';
 import { AttributionModule } from './attribution/attribution.module';
+import { PromotersModule } from './promoters/promoters.module';
 import { WinbackModule } from './winback/winback.module';
 import { ReportingModule } from './reporting/reporting.module';
 import { EntitiesModule } from './entities/entities.module';
@@ -18,6 +19,7 @@ import { EntitiesModule } from './entities/entities.module';
     DiscoveryModule,
     LifecycleModule,
     AttributionModule,
+    PromotersModule,
     WinbackModule,
     ReportingModule,
     EntitiesModule,
@@ -27,6 +29,7 @@ import { EntitiesModule } from './entities/entities.module';
     DiscoveryModule,
     LifecycleModule,
     AttributionModule,
+    PromotersModule,
     WinbackModule,
     ReportingModule,
     EntitiesModule,

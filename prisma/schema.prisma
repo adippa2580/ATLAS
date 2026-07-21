@@ -402,8 +402,27 @@ model AttributionLink {
   tenantId   String
   venueId    String?
   campaignId String?
+  // Promoter tracking (W6 pull-forward): a promoter is a creator whose links
+  // carry attribution — same rails as campaigns, per-person accounting.
+  promoterId String?
   code       String   @unique
   createdAt  DateTime @default(now())
+
+  promoter Promoter? @relation(fields: [promoterId], references: [id])
+
+  @@index([tenantId])
+  @@index([tenantId, promoterId])
+}
+
+model Promoter {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  contact   String? // phone/email/IG handle
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  links AttributionLink[]
 
   @@index([tenantId])
 }
