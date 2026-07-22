@@ -43,6 +43,11 @@ spec:
             # in STUB mode; set the EVENTBRITE_API_TOKEN repo secret to go live.
             - name: EVENTBRITE_API_TOKEN
               value: '__EVENTBRITE_API_TOKEN__'
+            # Klaviyo delivery rail. Empty (no repo secret) → adapter stays in
+            # STUB mode (logs, never sends); set the KLAVIYO_API_KEY repo secret
+            # to push real metric events to the venue's Klaviyo flows.
+            - name: KLAVIYO_API_KEY
+              value: '__KLAVIYO_API_KEY__'
             - name: ALIST_FEED_URL
               value: https://ofjcnikfebfgopytsgbm.supabase.co
             - name: ALIST_FEED_KEY

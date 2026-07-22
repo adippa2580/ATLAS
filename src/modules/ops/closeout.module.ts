@@ -129,12 +129,18 @@ export class CloseoutService {
       : [];
     let postVisitMessages = 0;
     if (provisionalGuests.length) {
-      await this.klaviyo.sendCampaign(provisionalGuests.length, {
-        template: 'post_visit_loyalty_claim',
-        venue: venue?.name ?? venueId,
-        message: `You earned credit at ${venue?.name ?? 'the venue'} — claim it in A-List.`,
-        guestIds: provisionalGuests.map((g) => g.id),
-      });
+      await this.klaviyo.sendCampaign(
+        provisionalGuests.length,
+        {
+          template: 'post_visit_loyalty_claim',
+          venue: venue?.name ?? venueId,
+          message: `You earned credit at ${venue?.name ?? 'the venue'} — claim it in A-List.`,
+          guestIds: provisionalGuests.map((g) => g.id),
+        },
+        KlaviyoAdapter.toRecipients(provisionalGuests, {
+          venue: venue?.name ?? venueId,
+        }),
+      );
       postVisitMessages = provisionalGuests.length;
     }
 

@@ -197,6 +197,10 @@ jobs:
           # Eventbrite demand connector from stub → live. Unset renders empty,
           # so the adapter stays in STUB mode (safe to wire ahead of the token).
           EVENTBRITE_API_TOKEN: ${{ secrets.EVENTBRITE_API_TOKEN }}
+          # Optional: set the KLAVIYO_API_KEY repo secret to flip the Klaviyo
+          # delivery rail from stub → live. Unset renders empty, so the adapter
+          # stays in STUB mode (safe to wire ahead of the key).
+          KLAVIYO_API_KEY: ${{ secrets.KLAVIYO_API_KEY }}
         run: |
           SQL_CONN="$(gcloud sql instances describe atlas-pg --format='value(connectionName)')"
           sed -e "s/__REGION__/${REGION}/g" \
@@ -205,5 +209,6 @@ jobs:
               -e "s#__SQL_CONNECTION_NAME__#${SQL_CONN}#g" \
               -e "s#__SPOTIFY_CLIENT_SECRET__#${SPOTIFY_CLIENT_SECRET}#g" \
               -e "s#__EVENTBRITE_API_TOKEN__#${EVENTBRITE_API_TOKEN}#g" \
+              -e "s#__KLAVIYO_API_KEY__#${KLAVIYO_API_KEY}#g" \
               deploy/gcp/cloudrun.yaml > /tmp/cloudrun.rendered.yaml
           gcloud run services replace /tmp/cloudrun.rendered.yaml --region "$REGION"

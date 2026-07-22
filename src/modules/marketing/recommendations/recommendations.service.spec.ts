@@ -25,6 +25,15 @@ describe('RecommendationsService', () => {
       venue: {
         findFirst: async () => ({ id: 'v1', tenantId: 't1', city: 'Miami' }),
       },
+      guest: {
+        findMany: async ({ where }: any) =>
+          (where.id?.in ?? []).map((id: string) => ({
+            id,
+            email: `${id}@example.com`,
+            primaryPhone: null,
+            displayName: null,
+          })),
+      },
       guestAffinity: { findMany: async () => opts.affinities ?? [] },
       booking: { findMany: async () => opts.repeatBookings ?? [] },
       inventory: { count: async () => opts.dropCount ?? 0 },
@@ -131,6 +140,9 @@ describe('RecommendationsService', () => {
     expect(klaviyo.sendCampaign).toHaveBeenCalledWith(
       2,
       expect.objectContaining({ template: 'event_promo' }),
+      expect.arrayContaining([
+        expect.objectContaining({ externalId: 'g1', email: 'g1@example.com' }),
+      ]),
     );
     expect(res.matched).toBe(2);
   });
@@ -225,6 +237,7 @@ describe('RecommendationsService', () => {
         template: 'regulars_lock_in',
         rival: 'Rival Rooftop',
       }),
+      expect.arrayContaining([expect.objectContaining({ externalId: 'g1' })]),
     );
     expect(res.matched).toBe(2);
   });

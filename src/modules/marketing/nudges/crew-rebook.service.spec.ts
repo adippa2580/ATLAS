@@ -26,6 +26,15 @@ describe('CrewRebookService', () => {
             where.crewId.in.includes(m.crewId),
           ),
       },
+      guest: {
+        findMany: async ({ where }: any) =>
+          (where.id?.in ?? []).map((id: string) => ({
+            id,
+            email: `${id}@example.com`,
+            primaryPhone: null,
+            displayName: null,
+          })),
+      },
       idempotencyRecord: {
         findFirst: async ({ where }: any) =>
           ledger.find((r) => r.key === where.key) ?? null,

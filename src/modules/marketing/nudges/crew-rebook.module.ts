@@ -94,6 +94,17 @@ export class CrewRebookService {
       membersByCrew.set(m.crewId, arr);
     }
 
+    // Contact keys for every crew member, resolved once, so the Klaviyo rail can
+    // deliver to each member's own email/phone in live mode.
+    const contactRows = await this.prisma.guest.findMany({
+      where: {
+        tenantId: ctx.tenantId,
+        id: { in: [...new Set(members.map((m) => m.guestId))] },
+      },
+      select: { id: true, email: true, primaryPhone: true, displayName: true },
+    });
+    const contactByGuest = new Map(contactRows.map((g) => [g.id, g]));
+
     const nudgeDay = this.nudgeDay(now);
     let crewsNudged = 0;
     let sent = 0;
@@ -109,15 +120,25 @@ export class CrewRebookService {
       });
       if (already) continue;
 
-      await this.klaviyo.sendCampaign(guestIds.length, {
-        template: 'crew_rebook_nudge',
-        crewId,
-        guestIds,
-        lastVisit: lastPastByCrew.get(crewId),
-        sinceDays,
-        message:
-          "Get the crew back together — your table's waiting. Re-book your last spot in a tap.",
-      });
+      const recipients = KlaviyoAdapter.toRecipients(
+        guestIds
+          .map((id) => contactByGuest.get(id))
+          .filter((g): g is NonNullable<typeof g> => !!g),
+        { crewId },
+      );
+      await this.klaviyo.sendCampaign(
+        guestIds.length,
+        {
+          template: 'crew_rebook_nudge',
+          crewId,
+          guestIds,
+          lastVisit: lastPastByCrew.get(crewId),
+          sinceDays,
+          message:
+            "Get the crew back together — your table's waiting. Re-book your last spot in a tap.",
+        },
+        recipients,
+      );
 
       await this.prisma.idempotencyRecord.create({
         data: {
