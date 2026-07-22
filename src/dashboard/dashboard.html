@@ -1,61 +1,74 @@
 <title>ATLAS — Nightlife Operations Console</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
+  /* Token system adopted from /outcomes (dark-first for the night console).
+     The 7 --pc-* pillar colours are the shared correlation language: the same
+     data set carries the same colour here and on Outcomes. */
   :root{
-    --ground:#0B0A12; --panel:#141121; --card:#1B1730; --raise:#221D3A; --raise2:#282143;
-    --line:#2C2745; --line-soft:#231F3A;
-    --ink:#ECE8FA; --muted:#A49CC8; --faint:#6E6797;
-    --gold:#F2C14E; --gold-dim:#8a6d24; --violet:#B784F5; --cyan:#5FE3D6; --pink:#F58AC8;
-    --good:#54E0A0; --warn:#F6C453; --crit:#FB7185;
+    --ground:#100C14; --panel:#191320; --card:#191320; --raise:#1E1727; --raise2:#241C30;
+    --line:#2A2233; --line-soft:#221A2B;
+    --ink:#EDE8F1; --ink2:#C6BDCF; --muted:#928AA0; --faint:#61596E;
+    --brand:#CE93C6; --brand-ink:#DDA9D5; --brand-wash:#2A1A29;
+    --gold:#CE93C6; --gold-dim:#7c4b76; --violet:#9098EC; --cyan:#4FB6C9; --pink:#D19BCB;
+    --good:#4ED08A; --warn:#E3B25B; --crit:#F0836E; --info:#6AA5E0;
+    --hub-guest:#D19BCB; --hub-ops:#4FB6C9; --hub-mkt:#9098EC;
+    --pc-taste:#c55285; --pc-identity:#933e92; --pc-crews:#6f52b9; --pc-venues:#129db0;
+    --pc-bookings:#618aeb; --pc-revenue:#b48706; --pc-marketing:#ac4b06;
+    --shadow:0 1px 2px rgba(0,0,0,.45),0 10px 30px -18px rgba(0,0,0,.75);
     --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
     --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    --r:14px; --r-sm:9px;
+    --r:12px; --r-sm:8px;
   }
   :root[data-theme="light"]{
-    --ground:#F5F3FB; --panel:#FFFFFF; --card:#FBFAFF; --raise:#F1EEFB; --raise2:#E9E4F8;
-    --line:#E2DDF2; --line-soft:#ECE8F8;
-    --ink:#1B1630; --muted:#5C547E; --faint:#8b83a8;
-    --gold:#9A6B00; --gold-dim:#c8a24a; --violet:#7A45C9; --cyan:#0E9B8E; --pink:#C43D93;
-    --good:#0E9E6A; --warn:#B4790B; --crit:#D33B57;
+    --ground:#F6F5F8; --panel:#FFFFFF; --card:#FFFFFF; --raise:#FBFAFC; --raise2:#F1EFF4;
+    --line:#E7E3EC; --line-soft:#EFECF3;
+    --ink:#1A151F; --ink2:#443C4C; --muted:#6E6579; --faint:#9C93A6;
+    --brand:#8A3A83; --brand-ink:#6E2A68; --brand-wash:#F4E9F2;
+    --gold:#8A3A83; --gold-dim:#b77bb1; --violet:#4C51BF; --cyan:#0E7490; --pink:#8A3A83;
+    --good:#12864B; --warn:#B7791F; --crit:#C8422F; --info:#2B6CB0;
+    --hub-guest:#8A3A83; --hub-ops:#0E7490; --hub-mkt:#4C51BF;
+    --pc-taste:#d16091; --pc-identity:#832f83; --pc-crews:#6649af; --pc-venues:#05b9cf;
+    --pc-bookings:#78a1ff; --pc-revenue:#d29f0a; --pc-marketing:#a44602;
+    --shadow:0 1px 2px rgba(26,21,31,.05),0 8px 24px -16px rgba(26,21,31,.28);
   }
   @media (prefers-color-scheme:light){:root:not([data-theme]){
-    --ground:#F5F3FB; --panel:#FFFFFF; --card:#FBFAFF; --raise:#F1EEFB; --raise2:#E9E4F8;
-    --line:#E2DDF2; --line-soft:#ECE8F8; --ink:#1B1630; --muted:#5C547E; --faint:#8b83a8;
-    --gold:#9A6B00; --gold-dim:#c8a24a; --violet:#7A45C9; --cyan:#0E9B8E; --pink:#C43D93;
-    --good:#0E9E6A; --warn:#B4790B; --crit:#D33B57;
+    --ground:#F6F5F8; --panel:#FFFFFF; --card:#FFFFFF; --raise:#FBFAFC; --raise2:#F1EFF4;
+    --line:#E7E3EC; --line-soft:#EFECF3;
+    --ink:#1A151F; --ink2:#443C4C; --muted:#6E6579; --faint:#9C93A6;
+    --brand:#8A3A83; --brand-ink:#6E2A68; --brand-wash:#F4E9F2;
+    --gold:#8A3A83; --gold-dim:#b77bb1; --violet:#4C51BF; --cyan:#0E7490; --pink:#8A3A83;
+    --good:#12864B; --warn:#B7791F; --crit:#C8422F; --info:#2B6CB0;
+    --hub-guest:#8A3A83; --hub-ops:#0E7490; --hub-mkt:#4C51BF;
+    --pc-taste:#d16091; --pc-identity:#832f83; --pc-crews:#6649af; --pc-venues:#05b9cf;
+    --pc-bookings:#78a1ff; --pc-revenue:#d29f0a; --pc-marketing:#a44602;
+    --shadow:0 1px 2px rgba(26,21,31,.05),0 8px 24px -16px rgba(26,21,31,.28);
   }}
   *{box-sizing:border-box}
   html,body{margin:0}
-  body{
-    background:
-      radial-gradient(1100px 600px at 84% -10%, color-mix(in srgb,var(--violet) 15%,transparent), transparent 60%),
-      radial-gradient(900px 520px at -6% 2%, color-mix(in srgb,var(--gold) 8%,transparent), transparent 55%),
-      var(--ground);
-    color:var(--ink); font-family:var(--sans); -webkit-font-smoothing:antialiased; line-height:1.5; min-height:100vh;
-  }
+  body{background:var(--ground); color:var(--ink); font-family:var(--sans); -webkit-font-smoothing:antialiased; line-height:1.5; min-height:100vh}
   .wrap{max-width:1240px; margin:0 auto; padding:20px 20px 70px}
   .mono{font-family:var(--mono); font-variant-numeric:tabular-nums}
   h2.sec{font-size:12px; font-family:var(--mono); letter-spacing:.16em; text-transform:uppercase; color:var(--faint);
     margin:30px 2px 12px; display:flex; align-items:center; gap:10px}
   h2.sec::after{content:""; flex:1; height:1px; background:var(--line-soft)}
 
-  .surfacenav{display:flex; gap:4px; flex-wrap:wrap; align-items:center; padding:6px 0 12px; margin-bottom:6px; border-bottom:1px solid rgba(255,255,255,.07)}
-  .surfacenav a{font-family:var(--mono); font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:#6B7280; padding:7px 12px; border-radius:7px; text-decoration:none; transition:color .12s ease, background .12s ease}
-  .surfacenav a:hover{color:#22D3EE; background:rgba(34,211,238,.08)}
-  .surfacenav a.on{color:#04050A; background:#22D3EE}
-  .surfacenav a:focus-visible{outline:2px solid #22D3EE; outline-offset:2px}
-  .wibtn{appearance:none; cursor:pointer; font-family:var(--mono); font-size:11px; letter-spacing:.06em; color:#22D3EE; background:rgba(34,211,238,.10); border:1px solid rgba(34,211,238,.35); border-radius:7px; padding:6px 11px}
-  .wibtn:hover{background:rgba(34,211,238,.18)}
-  .wiform{margin:10px 0 4px; padding:12px; border:1px solid rgba(255,255,255,.10); border-radius:9px; background:rgba(255,255,255,.03)}
+  .surfacenav{display:flex; gap:4px; flex-wrap:wrap; align-items:center; padding:6px 0 12px; margin-bottom:6px; border-bottom:1px solid var(--line)}
+  .surfacenav a{font-family:var(--mono); font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); padding:7px 12px; border-radius:7px; text-decoration:none; transition:color .12s ease, background .12s ease}
+  .surfacenav a:hover{color:var(--brand-ink); background:var(--brand-wash)}
+  .surfacenav a.on{color:var(--ground); background:var(--brand)}
+  .surfacenav a:focus-visible{outline:2px solid var(--brand); outline-offset:2px}
+  .wibtn{appearance:none; cursor:pointer; font-family:var(--mono); font-size:11px; letter-spacing:.06em; color:var(--brand-ink); background:var(--brand-wash); border:1px solid color-mix(in srgb,var(--brand) 45%,transparent); border-radius:7px; padding:6px 11px}
+  .wibtn:hover{filter:brightness(1.08)}
+  .wiform{margin:10px 0 4px; padding:12px; border:1px solid var(--line); border-radius:9px; background:var(--raise)}
   .wirow{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px}
-  .wiin{flex:1; min-width:110px; background:#111524; border:1px solid rgba(255,255,255,.12); border-radius:7px; color:#F5F7FF; font-size:13px; padding:8px 10px; font-family:var(--sans)}
-  .wiin:focus-visible{outline:2px solid #22D3EE; outline-offset:1px}
+  .wiin{flex:1; min-width:110px; background:var(--ground); border:1px solid var(--line); border-radius:7px; color:var(--ink); font-size:13px; padding:8px 10px; font-family:var(--sans)}
+  .wiin:focus-visible{outline:2px solid var(--brand); outline-offset:1px}
   .wiparty{flex:0 0 66px; min-width:66px}
-  .wiconsent{display:flex; gap:7px; align-items:center; font-size:12px; color:#B8C0D4; margin-bottom:8px; cursor:pointer}
-  .wiseat{appearance:none; cursor:pointer; border:0; border-radius:7px; background:#22D3EE; color:#04050A; font-weight:640; font-size:13px; padding:8px 14px; font-family:var(--sans)}
+  .wiconsent{display:flex; gap:7px; align-items:center; font-size:12px; color:var(--ink2); margin-bottom:8px; cursor:pointer}
+  .wiseat{appearance:none; cursor:pointer; border:0; border-radius:7px; background:var(--brand); color:var(--ground); font-weight:640; font-size:13px; padding:8px 14px; font-family:var(--sans)}
   .wiseat:hover{filter:brightness(1.06)}
-  .wimsg{font-family:var(--mono); font-size:11.5px; color:#34D399}
-  .wimsg.err{color:#FBBF24}
+  .wimsg{font-family:var(--mono); font-size:11.5px; color:var(--good)}
+  .wimsg.err{color:var(--warn)}
   .top{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:4px 2px 16px}
   .brand{display:flex; align-items:baseline; gap:10px}
   .brand h1{font-size:23px; margin:0; letter-spacing:-.01em; font-weight:680}
@@ -84,7 +97,7 @@
     background:linear-gradient(180deg,var(--panel),color-mix(in srgb,var(--panel) 88%,var(--ground)));
     border:1px solid var(--line); border-radius:var(--r); padding:13px 15px}
   .run{appearance:none; border:0; cursor:pointer; font-family:var(--sans); font-weight:640; font-size:14px;
-    color:#221a03; background:linear-gradient(180deg,#F6CD69,var(--gold)); padding:11px 18px; border-radius:10px;
+    color:var(--ground); background:linear-gradient(180deg,var(--brand-ink),var(--brand)); padding:11px 18px; border-radius:10px;
     box-shadow:0 6px 18px -8px color-mix(in srgb,var(--gold) 70%,transparent); transition:transform .12s,filter .12s}
   .run:hover{filter:brightness(1.05)} .run:active{transform:translateY(1px)} .run:disabled{filter:grayscale(.5) brightness(.8); cursor:default}
   .run:focus-visible{outline:2px solid var(--violet); outline-offset:3px}
@@ -94,19 +107,19 @@
 
   .grid3{display:grid; grid-template-columns:1.15fr .95fr .95fr; gap:16px}
   @media(max-width:960px){.grid3{grid-template-columns:1fr}}
-  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:16px}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:16px; box-shadow:var(--shadow)}
   .card h3{font-size:13px; margin:0 0 2px; font-weight:640; display:flex; align-items:center; gap:8px}
   .card .cap{color:var(--faint); font-size:11px; margin:0 0 13px; font-family:var(--mono)}
   .idx{font-family:var(--mono); font-size:11px; color:var(--gold); border:1px solid color-mix(in srgb,var(--gold) 35%,var(--line)); border-radius:6px; padding:1px 6px}
 
   .tg .flowlbl{display:flex; align-items:center; justify-content:space-between; font-family:var(--mono); font-size:10.5px; color:var(--faint); margin-bottom:8px}
   .tg .flowlbl b{color:var(--violet)}
-  .evlog{background:#08070E; border:1px solid var(--line); border-radius:var(--r-sm); max-height:196px; overflow:auto}
-  :root[data-theme="light"] .evlog{background:#100C1E}
+  .evlog{background:var(--raise); border:1px solid var(--line); border-radius:var(--r-sm); max-height:196px; overflow:auto}
+  :root[data-theme="light"] .evlog{background:var(--raise2)}
   .evlog table{width:100%; border-collapse:collapse; font-family:var(--mono); font-size:11px}
-  .evlog th{position:sticky; top:0; background:#0e0c18; color:#7c76a1; text-align:left; font-weight:500; padding:7px 9px; font-size:9.5px; letter-spacing:.06em; text-transform:uppercase}
-  :root[data-theme="light"] .evlog th{background:#181227}
-  .evlog td{padding:6px 9px; border-top:1px solid #1c1830; color:#cdc7ea; white-space:nowrap}
+  .evlog th{position:sticky; top:0; background:var(--raise2); color:var(--faint); text-align:left; font-weight:500; padding:7px 9px; font-size:9.5px; letter-spacing:.06em; text-transform:uppercase}
+  :root[data-theme="light"] .evlog th{background:var(--raise)}
+  .evlog td{padding:6px 9px; border-top:1px solid var(--line-soft); color:var(--ink2); white-space:nowrap}
   .evlog .sig{color:var(--gold)} .evlog .prov{color:var(--cyan)} .evlog .mut{color:var(--crit)}
   .evrow{animation:slideIn .4s ease} @keyframes slideIn{from{opacity:0; transform:translateY(-4px)}to{opacity:1}}
   .writes{display:inline-flex; align-items:center; gap:6px; font-family:var(--mono); font-size:11px; color:var(--good)}
@@ -143,7 +156,7 @@
   .op .q{font-size:13px; line-height:1.45} .op .q b{color:var(--gold)}
   .op .act{display:flex; gap:8px; margin-top:10px}
   .mini{appearance:none; cursor:pointer; font-family:var(--sans); font-size:12px; font-weight:600; border-radius:8px; padding:6px 11px; border:1px solid var(--line); background:var(--raise); color:var(--ink)}
-  .mini.gold{border:0; color:#221a03; background:linear-gradient(180deg,#F6CD69,var(--gold))}
+  .mini.gold{border:0; color:var(--ground); background:linear-gradient(180deg,var(--brand-ink),var(--brand))}
   .mini:focus-visible{outline:2px solid var(--violet); outline-offset:2px}
   .stats2{display:grid; grid-template-columns:1fr 1fr; gap:9px}
   .st{background:var(--raise); border:1px solid var(--line-soft); border-radius:var(--r-sm); padding:10px 11px}
@@ -171,9 +184,9 @@
   .prow.open .out{display:block}
   .out .meta{font-family:var(--mono); font-size:10.5px; color:var(--faint); margin:2px 0 6px; display:flex; gap:10px}
   .out .meta .code.ok{color:var(--good)} .out .meta .code.bad{color:var(--crit)}
-  pre.json{margin:0; background:#08070E; border:1px solid var(--line); border-radius:var(--r-sm); padding:11px 13px; overflow:auto; max-height:280px;
-    font-family:var(--mono); font-size:11.5px; line-height:1.6; color:#cdc7ea}
-  :root[data-theme="light"] pre.json{background:#120D22}
+  pre.json{margin:0; background:var(--raise); border:1px solid var(--line); border-radius:var(--r-sm); padding:11px 13px; overflow:auto; max-height:280px;
+    font-family:var(--mono); font-size:11.5px; line-height:1.6; color:var(--ink2)}
+  :root[data-theme="light"] pre.json{background:var(--raise2)}
   .json .jk{color:var(--gold)} .json .js{color:var(--good)} .json .jn{color:var(--cyan)} .json .jb{color:var(--pink)} .json .jnull{color:var(--faint)}
 
   .foot{margin-top:26px; color:var(--faint); font-size:11.5px; font-family:var(--mono); display:flex; gap:12px; flex-wrap:wrap; align-items:center}
@@ -198,6 +211,38 @@
   .flagpill.ok{color:var(--good); border-color:color-mix(in srgb,var(--good) 40%,var(--line))}
   .flagpill.warn{color:var(--warn); border-color:color-mix(in srgb,var(--warn) 40%,var(--line))}
   .flagpill.crit{color:var(--crit); border-color:color-mix(in srgb,var(--crit) 40%,var(--line))}
+  /* --- pillar strip (adopted from /outcomes — same 7 sets, same colours) --- */
+  .pillars{display:grid; grid-template-columns:repeat(7,1fr); gap:8px; margin:4px 0 4px}
+  @media(max-width:1040px){.pillars{grid-template-columns:repeat(4,1fr)}}
+  @media(max-width:640px){.pillars{grid-template-columns:repeat(2,1fr)}}
+  .pl{--pc:var(--brand); background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px 11px; text-align:left; box-shadow:var(--shadow); color:var(--ink); text-decoration:none; display:block; transition:border-color .15s}
+  .pl:hover{border-color:var(--pc)}
+  .pl:focus-visible{outline:2px solid var(--pc); outline-offset:2px}
+  .pl .top2{display:flex; align-items:center; gap:8px}
+  .pl .g{width:20px; height:20px; border-radius:6px; flex:none; background:color-mix(in srgb,var(--pc) 22%,transparent); border:1px solid color-mix(in srgb,var(--pc) 55%,transparent)}
+  .pl .nm{font-size:11.5px; font-weight:640; line-height:1.15}
+  .pl .hubtag{font-size:8.5px; font-family:var(--mono); letter-spacing:.1em; text-transform:uppercase; color:var(--pc); margin-top:1px}
+  .pl .sig{font-size:10px; color:var(--muted); margin-top:6px; line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .pl[data-pc="taste"]{--pc:var(--pc-taste)} .pl[data-pc="identity"]{--pc:var(--pc-identity)} .pl[data-pc="crews"]{--pc:var(--pc-crews)}
+  .pl[data-pc="venues"]{--pc:var(--pc-venues)} .pl[data-pc="bookings"]{--pc:var(--pc-bookings)} .pl[data-pc="revenue"]{--pc:var(--pc-revenue)} .pl[data-pc="marketing"]{--pc:var(--pc-marketing)}
+
+  /* pillar chip — tags every card with its data set(s) */
+  .plchip{--pc:var(--brand); font-family:var(--mono); font-size:9px; letter-spacing:.08em; text-transform:uppercase; font-weight:600;
+    color:var(--pc); background:color-mix(in srgb,var(--pc) 13%,transparent); border:1px solid color-mix(in srgb,var(--pc) 45%,transparent);
+    border-radius:5px; padding:1.5px 6px; white-space:nowrap}
+  .plchip[data-pc="taste"]{--pc:var(--pc-taste)} .plchip[data-pc="identity"]{--pc:var(--pc-identity)} .plchip[data-pc="crews"]{--pc:var(--pc-crews)}
+  .plchip[data-pc="venues"]{--pc:var(--pc-venues)} .plchip[data-pc="bookings"]{--pc:var(--pc-bookings)} .plchip[data-pc="revenue"]{--pc:var(--pc-revenue)} .plchip[data-pc="marketing"]{--pc:var(--pc-marketing)}
+
+  /* lineage ribbon — the write path across the sets */
+  .lineage{display:flex; align-items:stretch; gap:0; flex-wrap:wrap; background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:12px 14px 10px; box-shadow:var(--shadow); margin:8px 0 2px}
+  .ln{--pc:var(--brand); display:flex; flex-direction:column; gap:2px; padding:4px 8px; border-left:2px solid color-mix(in srgb,var(--pc) 65%,transparent)}
+  .ln .n{font-size:11.5px; font-weight:640; color:var(--ink); white-space:nowrap}
+  .ln .w{font-family:var(--mono); font-size:9px; color:var(--muted); white-space:nowrap}
+  .ln[data-pc="taste"]{--pc:var(--pc-taste)} .ln[data-pc="identity"]{--pc:var(--pc-identity)} .ln[data-pc="crews"]{--pc:var(--pc-crews)}
+  .ln[data-pc="venues"]{--pc:var(--pc-venues)} .ln[data-pc="bookings"]{--pc:var(--pc-bookings)} .ln[data-pc="revenue"]{--pc:var(--pc-revenue)} .ln[data-pc="marketing"]{--pc:var(--pc-marketing)}
+  .lnarrow{align-self:center; color:var(--faint); font-family:var(--mono); font-size:12px; padding:0 4px}
+  .lnnote{flex-basis:100%; font-size:10.5px; color:var(--muted); margin-top:8px; padding-top:8px; border-top:1px dashed var(--line-soft)}
+  .lnnote b{color:var(--ink)}
   @media (prefers-reduced-motion:reduce){*{animation:none !important; transition:none !important}}
 </style>
 
@@ -226,10 +271,33 @@
     <div class="prog"><i id="prog"></i></div>
   </div>
 
+  <h2 class="sec">The seven data sets <span style="font-size:10px; letter-spacing:0; text-transform:none; color:var(--faint)">same sets, same colours as Outcomes</span></h2>
+  <div class="pillars" aria-label="Data pillars">
+    <a class="pl" data-pc="taste" href="#c-aff"><span class="top2"><span class="g"></span><span><span class="nm">Taste graph</span><div class="hubtag">guest</div></span></span><div class="sig">evidence → affinity, mutes veto</div></a>
+    <a class="pl" data-pc="identity" href="#c-ident"><span class="top2"><span class="g"></span><span><span class="nm">Identity &amp; consent</span><div class="hubtag">guest</div></span></span><div class="sig">one uid · verified links · merges</div></a>
+    <a class="pl" data-pc="crews" href="#c-crew"><span class="top2"><span class="g"></span><span><span class="nm">Crews</span><div class="hubtag">guest</div></span></span><div class="sig">blend + realised crew history</div></a>
+    <a class="pl" data-pc="venues" href="#c-demand"><span class="top2"><span class="g"></span><span><span class="nm">Venues &amp; inventory</span><div class="hubtag">ops</div></span></span><div class="sig">rooms · tables · demand index</div></a>
+    <a class="pl" data-pc="bookings" href="#c-flow"><span class="top2"><span class="g"></span><span><span class="nm">Bookings</span><div class="hubtag">ops</div></span></span><div class="sig">held → confirmed → seated → closed</div></a>
+    <a class="pl" data-pc="revenue" href="#c-minspend"><span class="top2"><span class="g"></span><span><span class="nm">Revenue &amp; spend</span><div class="hubtag">ops</div></span></span><div class="sig">deposits · split-pay · tabs · take</div></a>
+    <a class="pl" data-pc="marketing" href="#c-attr"><span class="top2"><span class="g"></span><span><span class="nm">Marketing &amp; attribution</span><div class="hubtag">mkt</div></span></span><div class="sig">campaigns · promoters · winback</div></a>
+  </div>
+  <div class="lineage" aria-label="How the data sets feed each other">
+    <span class="ln" data-pc="taste"><span class="n">Connectors</span><span class="w">Spotify · quiz · IG</span></span><span class="lnarrow">→</span>
+    <span class="ln" data-pc="taste"><span class="n">Evidence log</span><span class="w">append-only</span></span><span class="lnarrow">→</span>
+    <span class="ln" data-pc="taste"><span class="n">Guest affinity</span><span class="w">decay · mutes</span></span><span class="lnarrow">→</span>
+    <span class="ln" data-pc="crews"><span class="n">Crew blend</span><span class="w">consensus + history</span></span><span class="lnarrow">→</span>
+    <span class="ln" data-pc="venues"><span class="n">Demand &amp; recs</span><span class="w">taste-ranked tables</span></span><span class="lnarrow">→</span>
+    <span class="ln" data-pc="bookings"><span class="n">Booking</span><span class="w">idempotent hold→confirm</span></span><span class="lnarrow">→</span>
+    <span class="ln" data-pc="revenue"><span class="n">Deposit · split-pay</span><span class="w">Stripe</span></span><span class="lnarrow">→</span>
+    <span class="ln" data-pc="revenue"><span class="n">Tab / POS</span><span class="w">Square · Lightspeed</span></span><span class="lnarrow">→</span>
+    <span class="ln" data-pc="marketing"><span class="n">Loyalty · winback</span><span class="w">Klaviyo</span></span>
+    <span class="lnnote"><b>One graph underneath.</b> Every set joins on <b>guest</b>, <b>booking</b> and <b>venue</b> — spend closes the loop back into taste as new evidence. Same colour = same data set, on every card below and on the Outcomes page.</span>
+  </div>
+
   <h2 class="sec">Taste graph · the write path</h2>
   <div class="grid3 tg">
     <div class="card" id="c-ev">
-      <h3><span class="idx">01</span> Evidence log <span class="writes" style="margin-left:auto">▲ <b id="wcount">0</b> writes</span></h3>
+      <h3><span class="idx">01</span> Evidence log <span class="plchip" data-pc="taste">taste</span> <span class="writes" style="margin-left:auto">▲ <b id="wcount">0</b> writes</span></h3>
       <p class="cap">append-only · the ONLY write into the graph</p>
       <div class="flowlbl"><span>connector → <b>POST /v1/evidence</b></span><span>append-only</span></div>
       <div class="evlog"><table><thead><tr><th>subject</th><th>sig</th><th>prov</th><th>w</th></tr></thead><tbody id="evBody">
@@ -237,13 +305,13 @@
       </tbody></table></div>
     </div>
     <div class="card" id="c-aff">
-      <h3><span class="idx">02</span> Recompute → affinity</h3>
+      <h3><span class="idx">02</span> Recompute → affinity <span class="plchip" data-pc="taste">taste</span></h3>
       <p class="cap">derived · mutes override · time-decay</p>
       <div class="flowlbl"><span>recompute worker</span><span><b>guest_affinity</b></span></div>
       <div class="bars" id="tasteBars"><div style="color:var(--faint); font-size:12px">— no affinity yet —</div></div>
     </div>
     <div class="card" id="c-crew">
-      <h3><span class="idx">03</span> Crew blend</h3>
+      <h3><span class="idx">03</span> Crew blend <span class="plchip" data-pc="crews">crews</span></h3>
       <p class="cap">blend(crewId) → crew_affinity · consensus boost</p>
       <div class="blend"><div class="big" id="blendBig">—</div><div class="txt">Crew taste isn't the average — shared picks get a <b>consensus boost</b>. Top: <b id="blendTop">—</b>.</div></div>
       <div class="bars" id="crewBars" style="margin-top:12px"></div>
@@ -253,12 +321,12 @@
   <h2 class="sec">The night · booking → pay → spend</h2>
   <div class="grid3">
     <div class="card" id="c-flow" style="grid-column:span 2">
-      <h3><span class="idx">04</span> Booking flow</h3>
+      <h3><span class="idx">04</span> Booking flow <span class="plchip" data-pc="bookings">bookings</span> <span class="plchip" data-pc="revenue">revenue</span></h3>
       <p class="cap">ops:bookings · ops:payments · ops:tab</p>
       <div class="flow" id="flow"></div>
     </div>
     <div class="card" id="c-venue">
-      <h3><span class="idx">05</span> Venue intelligence</h3>
+      <h3><span class="idx">05</span> Venue intelligence <span class="plchip" data-pc="venues">venues</span> <span class="plchip" data-pc="marketing">marketing</span></h3>
       <p class="cap">mkt:audiences · mkt:reporting</p>
       <div class="op"><div class="q" id="opQ">Run the night to surface an opportunity.</div>
         <div class="act"><button class="mini gold">Reach them</button><button class="mini">Save audience</button></div></div>
@@ -273,30 +341,30 @@
 
   <h2 class="sec">Intelligence · guest &amp; revenue <span style="font-size:10px; letter-spacing:0; text-transform:none; color:var(--faint)">mkt:reporting:read</span></h2>
   <div class="grid3">
-    <div class="card">
-      <h3>Taste demand index</h3>
+    <div class="card" id="c-demand">
+      <h3>Taste demand index <span class="plchip" data-pc="taste">taste</span> <span class="plchip" data-pc="venues">venues</span></h3>
       <p class="cap">GET /v1/insights/demand</p>
       <div class="bars" id="i-demand"><div class="i-empty">loading…</div></div>
     </div>
-    <div class="card">
-      <h3>Identity coverage</h3>
+    <div class="card" id="c-ident">
+      <h3>Identity coverage <span class="plchip" data-pc="identity">identity</span></h3>
       <p class="cap">GET /v1/insights/identity-coverage</p>
       <div class="i-tiles" id="i-ident"><div class="i-empty">loading…</div></div>
     </div>
-    <div class="card">
-      <h3>Silent whales · at-risk</h3>
+    <div class="card" id="c-atrisk">
+      <h3>Silent whales · at-risk <span class="plchip" data-pc="revenue">revenue</span> <span class="plchip" data-pc="marketing">marketing</span></h3>
       <p class="cap">GET /v1/insights/at-risk</p>
       <div id="i-atrisk"><div class="i-empty">loading…</div></div>
     </div>
   </div>
   <div class="grid3" style="margin-top:16px">
-    <div class="card" style="grid-column:span 2">
-      <h3>Crew super-connectors</h3>
+    <div class="card" id="c-conn" style="grid-column:span 2">
+      <h3>Crew super-connectors <span class="plchip" data-pc="crews">crews</span> <span class="plchip" data-pc="identity">identity</span></h3>
       <p class="cap">GET /v1/insights/connectors</p>
       <div id="i-connectors"><div class="i-empty">loading…</div></div>
     </div>
-    <div class="card">
-      <h3>Attribution → LTV</h3>
+    <div class="card" id="c-attr">
+      <h3>Attribution → LTV <span class="plchip" data-pc="marketing">marketing</span> <span class="plchip" data-pc="revenue">revenue</span></h3>
       <p class="cap">GET /v1/insights/attribution-ltv</p>
       <div id="i-attr"><div class="i-empty">loading…</div></div>
     </div>
@@ -304,13 +372,13 @@
 
   <h2 class="sec">Intelligence · ops</h2>
   <div class="grid3">
-    <div class="card" style="grid-column:span 2">
-      <h3>Min-spend realization</h3>
+    <div class="card" id="c-minspend" style="grid-column:span 2">
+      <h3>Min-spend realization <span class="plchip" data-pc="revenue">revenue</span> <span class="plchip" data-pc="bookings">bookings</span></h3>
       <p class="cap">GET /v1/insights/minspend-realization</p>
       <div id="i-minspend"><div class="i-empty">loading…</div></div>
     </div>
     <div class="card">
-      <h3>No-show risk <span class="idx" id="i-noshow-date">—</span></h3>
+      <h3>No-show risk <span class="plchip" data-pc="bookings">bookings</span> <span class="idx" id="i-noshow-date">—</span></h3>
       <p class="cap">GET /v1/insights/no-show-risk</p>
       <div id="i-noshow"><div class="i-empty">loading…</div></div>
     </div>
@@ -318,7 +386,7 @@
   <div class="grid3" style="margin-top:16px">
     <div class="card" style="grid-column:span 2">
       <div style="display:flex; align-items:center; gap:10px">
-        <h3 style="margin:0">Door list · VIP</h3>
+        <h3 style="margin:0">Door list · VIP <span class="plchip" data-pc="identity">identity</span> <span class="plchip" data-pc="bookings">bookings</span></h3>
         <button id="wiBtn" class="wibtn" style="margin-left:auto" onclick="toggleWalkIn()">＋ Walk-in</button>
       </div>
       <p class="cap">GET /v1/insights/doorlist · POST /v1/door/walk-in</p>
