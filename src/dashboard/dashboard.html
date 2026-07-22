@@ -44,6 +44,18 @@
   .surfacenav a:hover{color:#22D3EE; background:rgba(34,211,238,.08)}
   .surfacenav a.on{color:#04050A; background:#22D3EE}
   .surfacenav a:focus-visible{outline:2px solid #22D3EE; outline-offset:2px}
+  .wibtn{appearance:none; cursor:pointer; font-family:var(--mono); font-size:11px; letter-spacing:.06em; color:#22D3EE; background:rgba(34,211,238,.10); border:1px solid rgba(34,211,238,.35); border-radius:7px; padding:6px 11px}
+  .wibtn:hover{background:rgba(34,211,238,.18)}
+  .wiform{margin:10px 0 4px; padding:12px; border:1px solid rgba(255,255,255,.10); border-radius:9px; background:rgba(255,255,255,.03)}
+  .wirow{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px}
+  .wiin{flex:1; min-width:110px; background:#111524; border:1px solid rgba(255,255,255,.12); border-radius:7px; color:#F5F7FF; font-size:13px; padding:8px 10px; font-family:var(--sans)}
+  .wiin:focus-visible{outline:2px solid #22D3EE; outline-offset:1px}
+  .wiparty{flex:0 0 66px; min-width:66px}
+  .wiconsent{display:flex; gap:7px; align-items:center; font-size:12px; color:#B8C0D4; margin-bottom:8px; cursor:pointer}
+  .wiseat{appearance:none; cursor:pointer; border:0; border-radius:7px; background:#22D3EE; color:#04050A; font-weight:640; font-size:13px; padding:8px 14px; font-family:var(--sans)}
+  .wiseat:hover{filter:brightness(1.06)}
+  .wimsg{font-family:var(--mono); font-size:11.5px; color:#34D399}
+  .wimsg.err{color:#FBBF24}
   .top{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:4px 2px 16px}
   .brand{display:flex; align-items:baseline; gap:10px}
   .brand h1{font-size:23px; margin:0; letter-spacing:-.01em; font-weight:680}
@@ -305,8 +317,23 @@
   </div>
   <div class="grid3" style="margin-top:16px">
     <div class="card" style="grid-column:span 2">
-      <h3>Door list · VIP</h3>
-      <p class="cap">GET /v1/insights/doorlist</p>
+      <div style="display:flex; align-items:center; gap:10px">
+        <h3 style="margin:0">Door list · VIP</h3>
+        <button id="wiBtn" class="wibtn" style="margin-left:auto" onclick="toggleWalkIn()">＋ Walk-in</button>
+      </div>
+      <p class="cap">GET /v1/insights/doorlist · POST /v1/door/walk-in</p>
+      <div id="wiForm" class="wiform" hidden>
+        <div class="wirow">
+          <input id="wiName" class="wiin" placeholder="Name (optional)" autocomplete="off">
+          <input id="wiPhone" class="wiin" placeholder="Phone (optional)" autocomplete="off">
+          <input id="wiParty" class="wiin wiparty" type="number" min="1" value="2" aria-label="Party size">
+        </div>
+        <label class="wiconsent"><input id="wiConsent" type="checkbox" checked> guest opted in at the door</label>
+        <div class="wirow">
+          <button class="wiseat" onclick="submitWalkIn()">Seat walk-in</button>
+          <span id="wiMsg" class="wimsg"></span>
+        </div>
+      </div>
       <div class="i-cards" id="i-doorlist"><div class="i-empty">loading…</div></div>
     </div>
     <div class="card">
@@ -752,6 +779,35 @@
   }
 
   $("#run").addEventListener("click",drive);
+
+  // ---- door walk-in capture (POST /v1/door/walk-in) ----
+  function toggleWalkIn(){ var f=$("#wiForm"); f.hidden=!f.hidden; if(!f.hidden) $("#wiName").focus(); }
+  function resetWalkIn(){ $("#wiName").value=""; $("#wiPhone").value=""; }
+  async function submitWalkIn(){
+    var msg=$("#wiMsg"); msg.className="wimsg"; msg.textContent="seating…";
+    var party=Math.max(1, parseInt($("#wiParty").value,10)||1);
+    var body={ venueId:VEN, partySize:party,
+      displayName:($("#wiName").value||"").trim()||undefined,
+      phone:($("#wiPhone").value||"").trim()||undefined,
+      consent:$("#wiConsent").checked };
+    if(mode!=="live"){
+      await sleep(180);
+      var denr=!!(body.phone && body.consent);
+      msg.textContent="● demo · seated party of "+party+" · "+(denr?"enriched":"provisional");
+      resetWalkIn(); return;
+    }
+    var r=await apiCall("POST","/v1/door/walk-in",A,body);
+    if(r&&r.ok){
+      var enr=r.json&&r.json.enriched;
+      msg.className="wimsg"; msg.textContent="● seated party of "+party+" · "+(enr?"enriched":"provisional");
+      resetWalkIn(); loadDoorlist();
+    } else {
+      msg.className="wimsg err";
+      msg.textContent="✕ "+((r&&r.json&&(r.json.message||r.json.error))||("HTTP "+(r&&r.status)));
+    }
+  }
+  window.toggleWalkIn=toggleWalkIn; window.submitWalkIn=submitWalkIn;
+
   renderFlow(-1); renderExplorer();
   detect().then(function(){ loadTotals(); loadIntel(); });
 })();

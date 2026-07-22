@@ -189,7 +189,29 @@
   .act .top .h{font-weight:620; font-size:13px} .act .top .imp{margin-left:auto}
   .act .s{font-size:12px; color:var(--muted); margin-top:4px}
   .act .lk{margin-top:8px; display:flex; gap:12px; align-items:center; font-size:12px; flex-wrap:wrap}
-  .act .lk .go{font-weight:640}
+  .act .lk .go{font-weight:640; cursor:pointer}
+  .act .lk .go:hover{text-decoration:underline}
+
+  /* drill overlay */
+  .drillscrim{position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:80; padding:24px}
+  .drillscrim.on{display:flex}
+  .drill{background:var(--panel); border:1px solid var(--line); border-radius:14px; max-width:660px; width:100%; max-height:86vh; overflow:auto; box-shadow:var(--shadow); padding:22px 24px}
+  .drill .dh{display:flex; align-items:flex-start; gap:12px; border-bottom:1px solid var(--line); padding-bottom:14px; margin-bottom:16px}
+  .drill .dh h3{margin:0; font-size:17px}
+  .drill .dh .sub{font-size:12px; color:var(--muted); margin-top:4px}
+  .drill .x{margin-left:auto; cursor:pointer; border:1px solid var(--line); background:var(--raise); border-radius:8px; min-width:30px; height:30px; font-size:15px; color:var(--muted); line-height:1}
+  .drill .kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; margin:4px 0 6px}
+  .drill .kpi{border:1px solid var(--line); border-radius:10px; padding:11px 12px; background:var(--raise)}
+  .drill .kpi .k{font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted)}
+  .drill .kpi .v{font-size:22px; font-weight:300; margin-top:3px}
+  .drill h4{font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:18px 0 9px}
+  .drill .vbar{display:flex; flex-direction:column; gap:8px}
+  .drill .vbar .row{display:grid; grid-template-columns:130px 1fr 52px; gap:10px; align-items:center; font-size:12px}
+  .drill .vbar .tk{height:8px; border-radius:5px; background:var(--sunk); overflow:hidden}
+  .drill .vbar .tk i{display:block; height:100%; background:var(--brand)}
+  .drill .vbar .n{font-family:var(--mono); text-align:right; color:var(--muted)}
+  .drill .src{font-family:var(--mono); font-size:10.5px; color:var(--faint); margin-top:16px; border-top:1px solid var(--line); padding-top:12px}
+  .drill .force{margin-top:2px}
   .tagpair{font-family:var(--mono); font-size:10.5px; color:var(--muted)}
 
   .trendbox{border:1px solid var(--line); border-radius:var(--r-sm); padding:12px; background:var(--raise)}
@@ -627,8 +649,8 @@
 
       // actions
       '<div class="dsec"><h3>Action guidance · next best steps</h3>'+
-        o.actions.map(function(a){var ic={High:"crit",Med:"warn",Low:"info"}[a.imp]||"info";return '<div class="act"><div class="top"><span class="h">'+esc(a.h)+'</span><span class="imp pill '+ic+'">'+a.imp+' impact</span></div>'+
-          '<div class="s">'+esc(a.s)+'</div><div class="lk"><a class="go" href="#" onclick="return false">'+esc(a.lk)+' ↗</a><span class="tagpair">effort · '+a.eff+'</span></div></div>'}).join("")+'</div>'+
+        o.actions.map(function(a,ai){var ic={High:"crit",Med:"warn",Low:"info"}[a.imp]||"info";return '<div class="act"><div class="top"><span class="h">'+esc(a.h)+'</span><span class="imp pill '+ic+'">'+a.imp+' impact</span></div>'+
+          '<div class="s">'+esc(a.s)+'</div><div class="lk"><a class="go" href="#" onclick="openDrill('+ai+');return false;">'+esc(a.lk)+' ↗</a><span class="tagpair">effort · '+a.eff+'</span></div></div>'}).join("")+'</div>'+
 
       // trend
       '<div class="dsec"><h3>Relative success over time <span class="hint">last 8 periods</span></h3>'+
@@ -646,6 +668,90 @@
     $("#f-status").value=STATE.status; $("#f-priority").value=STATE.priority; $("#f-horizon").value=STATE.horizon;
     renderPillars(); renderSummary(); renderList(list); renderDetail(list);
   }
+  // ---- action drill overlay ----
+  var DRILL=null;
+  function ensureDrill(){
+    if(DRILL) return DRILL;
+    DRILL=document.createElement("div");
+    DRILL.className="drillscrim";
+    DRILL.addEventListener("click",function(e){ if(e.target===DRILL) closeDrill(); });
+    document.body.appendChild(DRILL);
+    return DRILL;
+  }
+  function closeDrill(){ if(DRILL) DRILL.classList.remove("on"); }
+  window.closeDrill=closeDrill;
+  document.addEventListener("keydown",function(e){ if(e.key==="Escape") closeDrill(); });
+
+  // Fallback coverage-gap shape, used when the live insight endpoint isn't reachable.
+  var DEMO_COVERAGE={coveragePct:68,gapPct:32,unenriched:41,total:128,walkInsCaptured:0,provisionalBacklog:53,
+    byVenue:[{venueId:"Delilah",total:86,unenriched:22,coveragePct:74},{venueId:"The Nice Guy",total:42,unenriched:19,coveragePct:55}],
+    trend:[{week:"2026-W26",coveragePct:59},{week:"2026-W27",coveragePct:62},{week:"2026-W28",coveragePct:64},{week:"2026-W29",coveragePct:66},{week:"2026-W30",coveragePct:68}]};
+
+  async function fetchCoverage(){
+    var A="00000000-0000-0000-0000-00000000a115", VEN="00000000-0000-0000-0000-0000000de111";
+    try{
+      var r=await fetch("/v1/insights/coverage-gap",
+        {headers:{"X-Tenant-Id":A,"X-Scopes":"mkt:reporting:read"},cache:"no-store"});
+      if(!r.ok) throw 0;
+      var j=await r.json();
+      if(j&&typeof j.coveragePct!=="undefined") return {live:true,d:j};
+    }catch(e){}
+    return {live:false,d:DEMO_COVERAGE};
+  }
+
+  function covBars(rows,label){
+    if(!rows||!rows.length) return "";
+    return '<h4>'+label+'</h4><div class="vbar">'+rows.map(function(v){
+      var cov=(v.coveragePct==null?0:v.coveragePct);
+      var lbl=v.week?esc(v.week):(v.venueId&&v.venueId.length>12?("venue ·"+v.venueId.slice(-4)):esc(v.venueId||"—"));
+      return '<div class="row"><span>'+lbl+'</span><span class="tk"><i style="width:'+cov+'%"></i></span><span class="n">'+cov+'%</span></div>';
+    }).join("")+'</div>';
+  }
+  function coverageHTML(res){
+    var d=res.d;
+    return '<div class="kpis">'+
+        '<div class="kpi"><div class="k">Coverage</div><div class="v">'+(d.coveragePct==null?"—":d.coveragePct+"%")+'</div></div>'+
+        '<div class="kpi"><div class="k">Un-enriched</div><div class="v">'+(d.unenriched||0)+' / '+(d.total||0)+'</div></div>'+
+        '<div class="kpi"><div class="k">Walk-ins captured</div><div class="v">'+(d.walkInsCaptured||0)+'</div></div>'+
+        '<div class="kpi"><div class="k">Provisional backlog</div><div class="v">'+(d.provisionalBacklog||0)+'</div></div>'+
+      '</div>'+
+      covBars(d.byVenue,"Coverage by venue")+
+      covBars(d.trend,"Weekly coverage trend")+
+      '<div class="src">'+(res.live?"live · ":"sample · ")+'GET /v1/insights/coverage-gap</div>';
+  }
+
+  function genericDrillHTML(o,a){
+    var drivers=(o.drivers||[]).map(function(dv){var pos=dv.c>=0;
+      return '<div class="force" style="display:flex;gap:10px;align-items:flex-start;margin-top:8px">'+
+        '<div class="ico" style="width:26px;height:26px;border-radius:7px;display:grid;place-items:center;flex:none;background:'+(pos?"var(--good-wash)":"var(--crit-wash)")+';color:'+(pos?"var(--good)":"var(--crit)")+'">'+(pos?"↑":"↓")+'</div>'+
+        '<div><div style="font-weight:600;font-size:13px">'+esc(dv.n)+'</div><div style="font-size:12px;color:var(--muted)">'+esc(dv.s)+'</div></div>'+
+        '<div style="margin-left:auto;font-family:var(--mono);font-size:12px;color:'+(pos?"var(--good)":"var(--crit)")+'">'+sign(dv.c)+' pts</div></div>';
+    }).join("");
+    return '<h4>Why this matters — '+esc(o.name)+' drivers</h4>'+drivers+
+      '<div class="src">analysis model for “'+esc(a.lk)+'” is on the roadmap · drivers shown are live score contributions</div>';
+  }
+
+  async function openDrill(idx){
+    var o=DATA.filter(function(x){return x.id===STATE.sel})[0]; if(!o) return;
+    var a=o.actions[idx]; if(!a) return;
+    var scrim=ensureDrill();
+    var ic={High:"crit",Med:"warn",Low:"info"}[a.imp]||"info";
+    var head='<div class="dh"><div><h3>'+esc(a.lk)+'</h3>'+
+      '<div class="sub">'+esc(a.h)+' · <span class="pill '+ic+'" style="padding:1px 7px;border-radius:20px">'+a.imp+' impact</span> · effort · '+esc(a.eff)+'</div></div>'+
+      '<button class="x" onclick="closeDrill()" aria-label="Close">✕</button></div>';
+    scrim.innerHTML='<div class="drill" role="dialog" aria-modal="true">'+head+
+      '<div class="s" style="font-size:13px;color:var(--muted);margin-bottom:2px">'+esc(a.s)+'</div>'+
+      '<div id="drillBody"><div style="padding:18px 0;color:var(--muted);font-size:13px">loading…</div></div></div>';
+    scrim.classList.add("on");
+    var body=scrim.querySelector("#drillBody");
+    if(a.lk==="Coverage gap analysis"){
+      var res=await fetchCoverage(); body.innerHTML=coverageHTML(res);
+    } else {
+      body.innerHTML=genericDrillHTML(o,a);
+    }
+  }
+  window.openDrill=openDrill;
+
   setupFilters(); render();
 })();
 </script>
