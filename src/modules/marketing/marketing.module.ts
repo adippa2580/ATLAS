@@ -4,6 +4,7 @@ import { DiscoveryModule } from './discovery/discovery.module';
 import { LifecycleModule } from './lifecycle/lifecycle.module';
 import { AttributionModule } from './attribution/attribution.module';
 import { PromotersModule } from './promoters/promoters.module';
+import { RecommendationsModule } from './recommendations/recommendations.module';
 import { WinbackModule } from './winback/winback.module';
 import { ReportingModule } from './reporting/reporting.module';
 import { EntitiesModule } from './entities/entities.module';
@@ -23,6 +24,7 @@ import { TasteSegmentsModule } from './audiences/taste-segments.module';
     LifecycleModule,
     AttributionModule,
     PromotersModule,
+    RecommendationsModule,
     WinbackModule,
     ReportingModule,
     EntitiesModule,
@@ -36,6 +38,7 @@ import { TasteSegmentsModule } from './audiences/taste-segments.module';
     LifecycleModule,
     AttributionModule,
     PromotersModule,
+    RecommendationsModule,
     WinbackModule,
     ReportingModule,
     EntitiesModule,

@@ -36,11 +36,33 @@ async function main(): Promise<void> {
     ],
   });
 
+  // Entities are grounded: events carry a date + genres in metadata so the
+  // recommendations layer can name the thing, count the matched audience, and
+  // offer real actions (GM review rule: no date, no recommendation).
+  const nextDow = (dow: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + ((dow - d.getDay() + 7) % 7 || 7));
+    d.setHours(22, 0, 0, 0);
+    return d.toISOString();
+  };
   await prisma.entity.createMany({
     data: [
       { kind: 'artist', name: 'Keinemusik' },
       { kind: 'artist', name: 'Black Coffee' },
-      { kind: 'event', name: 'Afro House Fridays' },
+      {
+        kind: 'event',
+        name: 'Afro House Fridays',
+        metadata: { date: nextDow(5), genres: ['afro house'], city: 'Miami' },
+      },
+      {
+        kind: 'event',
+        name: 'Sundown Festival — After Parties',
+        metadata: {
+          date: nextDow(6),
+          genres: ['afro house', 'amapiano'],
+          city: 'Miami',
+        },
+      },
     ],
   });
 

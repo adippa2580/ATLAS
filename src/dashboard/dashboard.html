@@ -243,6 +243,16 @@
   .lnarrow{align-self:center; color:var(--faint); font-family:var(--mono); font-size:12px; padding:0 4px}
   .lnnote{flex-basis:100%; font-size:10.5px; color:var(--muted); margin-top:8px; padding-top:8px; border-top:1px dashed var(--line-soft)}
   .lnnote b{color:var(--ink)}
+  /* do-next — grounded recommendations with act buttons */
+  .rec{border:1px solid var(--line); border-radius:var(--r-sm); background:var(--raise); padding:11px 12px; margin-bottom:9px}
+  .rec .rh{display:flex; align-items:baseline; gap:9px; flex-wrap:wrap}
+  .rec .rn{font-weight:640; font-size:13px}
+  .rec .rd{font-family:var(--mono); font-size:10.5px; color:var(--muted)}
+  .rec .ri{font-size:12px; color:var(--ink2); margin-top:4px}
+  .rec .ri b{color:var(--ink)}
+  .rec .ra{display:flex; gap:7px; flex-wrap:wrap; margin-top:9px}
+  .rec .receipt{font-family:var(--mono); font-size:10.5px; color:var(--good); margin-top:8px}
+  .rec .receipt.err{color:var(--warn)}
   @media (prefers-reduced-motion:reduce){*{animation:none !important; transition:none !important}}
 </style>
 
@@ -292,6 +302,15 @@
     <span class="ln" data-pc="revenue"><span class="n">Tab / POS</span><span class="w">Square · Lightspeed</span></span><span class="lnarrow">→</span>
     <span class="ln" data-pc="marketing"><span class="n">Loyalty · winback</span><span class="w">Klaviyo</span></span>
     <span class="lnnote"><b>One graph underneath.</b> Every set joins on <b>guest</b>, <b>booking</b> and <b>venue</b> — spend closes the loop back into taste as new evidence. Same colour = same data set, on every card below and on the Outcomes page.</span>
+  </div>
+
+  <h2 class="sec">Do next · grounded by the graph <span style="font-size:10px; letter-spacing:0; text-transform:none; color:var(--faint)">GET /v1/recommendations · every card names the thing, the date, and who we can reach</span></h2>
+  <div class="grid3">
+    <div class="card" id="c-recs" style="grid-column:span 3">
+      <h3>Recommendations <span class="plchip" data-pc="taste">taste</span> <span class="plchip" data-pc="venues">venues</span> <span class="plchip" data-pc="marketing">marketing</span></h3>
+      <p class="cap">entity catalog × taste graph × consent — undated events are reported, never narrated</p>
+      <div id="recs"><div class="i-empty">loading…</div></div>
+    </div>
   </div>
 
   <h2 class="sec">Taste graph · the write path</h2>
@@ -714,6 +733,51 @@
     });
   }
   // live fetch → data | null (fail/empty) | undefined (demo mode: use sample)
+  function demoRecs(){
+    function next(dow){var d=new Date(); d.setDate(d.getDate()+(((dow-d.getDay())%7+7)%7||7)); return d.toISOString().slice(0,10);}
+    return {recommendations:[
+      {id:"demo1",kind:"event_demand",headline:"Sundown Festival — After Parties · "+next(6),insight:"34 consented guests match via taste graph (afro house / amapiano) — 12 are repeat guests here",matched:34,repeatMatched:12,
+        actions:[{action:"promote_matched",label:"Promote to 34 matched guests"},{action:"late_night_drop",label:"Release after-party slots"},{action:"mint_link",label:"Mint attributed promo link"}]},
+      {id:"demo2",kind:"event_demand",headline:"Afro House Fridays · "+next(5),insight:"21 consented guests match via taste graph (afro house) — 9 are repeat guests here",matched:21,repeatMatched:9,
+        actions:[{action:"promote_matched",label:"Promote to 21 matched guests"},{action:"mint_link",label:"Mint attributed promo link"}]},
+      {id:"demo3",kind:"late_night_fill",headline:"Late-night fill opportunity",insight:"No after-party inventory released — 4 late slots available to drop at standard minimums",matched:0,repeatMatched:0,
+        actions:[{action:"late_night_drop",label:"Release late-night slots"}]}
+    ],ungrounded:[]};
+  }
+  async function loadRecs(){var h=document.querySelector("#recs"); try{
+    var d=await iget("/v1/recommendations",A); if(d===undefined)d=demoRecs();
+    if(!d||!Array.isArray(d.recommendations)||!d.recommendations.length){h.innerHTML='<div class="i-empty">no grounded recommendations in window — add dated events to the catalog</div>'; return;}
+    h.innerHTML="";
+    d.recommendations.forEach(function(r){
+      var el=document.createElement("div"); el.className="rec";
+      var chips = r.kind==="event_demand" ? '<span class="plchip" data-pc="taste">taste</span> <span class="plchip" data-pc="marketing">marketing</span>' : '<span class="plchip" data-pc="venues">venues</span> <span class="plchip" data-pc="revenue">revenue</span>';
+      el.innerHTML='<div class="rh"><span class="rn">'+r.headline+'</span> '+chips+(r.matched?'<span class="rd">'+r.matched+' matched · '+r.repeatMatched+' repeat</span>':'')+'</div>'+
+        '<div class="ri">'+r.insight+'</div><div class="ra"></div><div class="receipt" hidden></div>';
+      var ra=el.querySelector(".ra"), receipt=el.querySelector(".receipt");
+      (r.actions||[]).forEach(function(a){
+        var b=document.createElement("button"); b.className="mini"+(a.action==="promote_matched"?" gold":""); b.textContent=a.label;
+        b.onclick=async function(){
+          b.disabled=true; receipt.hidden=false; receipt.classList.remove("err"); receipt.textContent="acting…";
+          try{
+            if(mode!=="live"){ await sleep(500);
+              receipt.textContent = a.action==="promote_matched" ? "✓ audience created · campaign to "+r.matched+" guests queued (klaviyo · demo)" :
+                a.action==="late_night_drop" ? "✓ 4 late slots released · Late Drop 1–4 (demo)" : "✓ promo link minted · atlas.link/"+Math.random().toString(36).slice(2,10)+" (demo)";
+              return; }
+            var eventId = r.id && r.id.indexOf("event:")===0 ? r.id.slice(6) : undefined;
+            var res=await apiCall("POST","/v1/recommendations/act",A,{action:a.action,eventId:eventId});
+            if(res&&res.ok){var j=res.json||{};
+              receipt.textContent = a.action==="promote_matched" ? "✓ audience "+(j.audienceId||"")+" · delivered to "+(j.delivery&&j.delivery.delivered)+" guests" :
+                a.action==="late_night_drop" ? "✓ "+((j.created&&j.created.length)||0)+" slots released" : "✓ link minted · code "+(j.code||"");
+            } else { receipt.classList.add("err"); receipt.textContent="✕ "+((res&&res.json&&res.json.message)||"failed"); }
+          } finally { b.disabled=false; }
+        };
+        ra.appendChild(b);
+      });
+      h.appendChild(el);
+    });
+    if(d.ungrounded&&d.ungrounded.length){var u=document.createElement("div"); u.className="i-empty"; u.textContent="ungrounded (needs a date in catalog): "+d.ungrounded.join(", "); h.appendChild(u);}
+  }catch(e){h.innerHTML='<div class="i-empty">recommendations unavailable</div>'}}
+
   async function iget(path,tenant){
     if(mode!=="live") return undefined;
     var r=await apiCall("GET",path,tenant||A);
@@ -815,6 +879,7 @@
 
   function loadIntel(){
     $("#i-noshow-date").textContent=IDATE;
+    loadRecs();
     loadDemand(); loadIdent(); loadAtRisk(); loadConnectors(); loadAttr();
     loadMinspend(); loadNoShow(); loadDoorlist(); loadMix(); loadBook(); loadRoi();
   }
