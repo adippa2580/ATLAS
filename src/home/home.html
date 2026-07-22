@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Atlas — Platform Home</title>
+<title>ATLAS · Venue Console</title>
 <style>
   :root{
     --ground:#04050A; --s1:#0B0E17; --s2:#111524;
@@ -19,16 +19,40 @@
     -webkit-font-smoothing:antialiased; min-height:100vh;
   }
   a{color:inherit; text-decoration:none}
-  .wrap{max-width:1000px; margin:0 auto; padding:64px 40px 96px}
+  a:focus-visible,button:focus-visible{outline:2px solid var(--cyan); outline-offset:2px}
+  .wrap{max-width:1040px; margin:0 auto; padding:52px 40px 96px}
 
-  header{border-bottom:1px solid rgba(255,255,255,.10); padding-bottom:28px; margin-bottom:40px}
-  .brand{display:flex; align-items:baseline; gap:14px}
-  .brand h1{margin:0; font-size:34px; font-weight:200; letter-spacing:.02em; color:var(--hi)}
-  .brand .sub{font-family:var(--mono); font-size:11px; letter-spacing:.24em; text-transform:uppercase; color:var(--violet)}
-  .lede{margin:16px 0 0; max-width:640px; font-size:14px; line-height:1.7}
-  .code{font-family:var(--mono); font-size:12px; color:var(--cyan)}
+  /* Header */
+  header{border-bottom:1px solid rgba(255,255,255,.10); padding-bottom:30px; margin-bottom:34px}
+  .eyebrow{font-family:var(--mono); font-size:11px; letter-spacing:.22em; text-transform:uppercase;
+    color:var(--lo); display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap}
+  .eyebrow .sep{color:rgba(255,255,255,.16)}
+  .status{display:inline-flex; align-items:center; gap:7px; color:var(--mid)}
+  .status .glyph{font-size:12px; line-height:1}
+  .status.live .glyph{color:var(--mint)}
+  .status.demo .glyph{color:var(--amber)}
+  h1{margin:0; font-size:38px; font-weight:200; letter-spacing:.01em; color:var(--hi); line-height:1.1}
+  h1 .loc{color:var(--lo); font-weight:200}
+  .lede{margin:14px 0 0; max-width:660px; font-size:14px; line-height:1.7; color:var(--mid)}
 
-  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px}
+  /* KPI row */
+  .kpis{display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin:0 0 40px}
+  .kpi{background:var(--s1); border:1px solid rgba(255,255,255,.08); border-radius:12px;
+    padding:16px 16px 18px; position:relative; overflow:hidden}
+  .kpi::before{content:""; position:absolute; left:0; top:0; bottom:0; width:2px; background:var(--accent,var(--lo)); opacity:.7}
+  .kpi .k-label{font-family:var(--mono); font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--lo); margin-bottom:12px; line-height:1.3}
+  .kpi .k-value{font-size:26px; font-weight:200; color:var(--hi); letter-spacing:.01em; line-height:1}
+  .kpi .k-sub{font-family:var(--mono); font-size:10px; color:var(--mid); margin-top:8px; letter-spacing:.04em; display:flex; align-items:center; gap:6px}
+  .kpi .k-sub .g{color:var(--accent,var(--lo)); font-size:11px}
+  .k-book{--accent:var(--violet)}
+  .k-floor{--accent:var(--cyan)}
+  .k-rev{--accent:var(--mint)}
+  .k-idy{--accent:var(--electric)}
+  .k-risk{--accent:var(--amber)}
+
+  /* Jobs section */
+  .section-label{font-family:var(--mono); font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--lo); margin:0 0 16px}
+  .grid{display:grid; grid-template-columns:repeat(2,1fr); gap:16px}
   .card{
     display:block; position:relative; background:var(--s1); border:1px solid rgba(255,255,255,.08);
     border-radius:12px; padding:22px 24px 24px; overflow:hidden;
@@ -38,75 +62,282 @@
   .card:hover{background:var(--s2); border-color:color-mix(in srgb, var(--accent,#fff) 45%, transparent); transform:translateY(-1px)}
   .card:focus-visible{outline:2px solid var(--cyan); outline-offset:2px}
   .card .tag{font-family:var(--mono); font-size:9.5px; letter-spacing:.2em; text-transform:uppercase; color:var(--lo); margin-bottom:12px}
-  .card .name{font-size:19px; font-weight:400; color:var(--hi); margin-bottom:8px; display:flex; align-items:center; gap:9px}
+  .card .name{font-size:20px; font-weight:400; color:var(--hi); margin-bottom:8px; display:flex; align-items:center; gap:9px}
   .card .dot{width:8px; height:8px; border-radius:50%; background:var(--accent,var(--lo))}
   .card .desc{font-size:12.5px; line-height:1.6; color:var(--mid)}
-  .card .path{font-family:var(--mono); font-size:11px; color:var(--lo); margin-top:14px; letter-spacing:.04em}
+  .card .path{font-family:var(--mono); font-size:11px; color:var(--lo); margin-top:16px; letter-spacing:.04em}
   .card:hover .path{color:var(--accent,var(--mid))}
+  .c-run{--accent:var(--violet)}
+  .c-und{--accent:var(--electric)}
+  .c-grow{--accent:var(--cyan)}
+  .c-set{--accent:var(--amber)}
 
-  .c-ops{--accent:var(--violet)}
-  .c-out{--accent:var(--electric)}
-  .c-del{--accent:var(--cyan)}
-  .c-docs{--accent:var(--amber)}
-  .c-health{--accent:var(--mint)}
+  .foot{margin-top:48px; font-family:var(--mono); font-size:10.5px; color:var(--lo); line-height:2;
+    border-top:1px solid rgba(255,255,255,.08); padding-top:18px; letter-spacing:.04em}
 
-  .util{margin-top:34px; display:flex; gap:22px; flex-wrap:wrap; font-family:var(--mono); font-size:11px; letter-spacing:.06em; color:var(--lo)}
-  .util a{color:var(--lo); border-bottom:1px solid transparent; padding-bottom:2px}
-  .util a:hover{color:var(--mint); border-color:var(--mint)}
-
-  .foot{margin-top:48px; font-family:var(--mono); font-size:10.5px; color:var(--lo); line-height:2; border-top:1px solid rgba(255,255,255,.08); padding-top:18px}
-
-  @media (max-width:560px){ .wrap{padding:44px 20px 72px} .brand h1{font-size:27px} }
+  @media (max-width:860px){ .kpis{grid-template-columns:repeat(2,1fr)} }
+  @media (max-width:640px){ .grid{grid-template-columns:1fr} }
+  @media (max-width:560px){ .wrap{padding:36px 20px 72px} h1{font-size:29px} .kpis{grid-template-columns:1fr} }
   @media (prefers-reduced-motion:reduce){*{transition:none !important}}
 </style>
 </head>
 <body>
-<main class="wrap" aria-label="Atlas platform home">
+<!-- ===== ATLAS operator shell (canonical) — paste verbatim as the FIRST child of <body>.
+     Self-contained: explicit Atlas v3.1 colors (no page vars), own scoped .opnav-* classes,
+     own IIFE. It auto-marks the active link from location.pathname, and persists the selected
+     venue to localStorage('atlas.venue') + dispatches a 'atlas:venue' event other scripts can listen to.
+     On a page, give <body> top spacing is unnecessary — the bar is sticky, not fixed. ===== -->
+<style>
+  .opnav{position:sticky;top:0;z-index:70;display:flex;align-items:center;gap:14px;
+    padding:10px 18px;background:rgba(11,14,23,.86);backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.10);
+    font-family:Menlo,"SF Mono",Monaco,Consolas,monospace}
+  .opnav-brand{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-weight:600;
+    letter-spacing:.02em;color:#F5F7FF;font-size:15px;text-decoration:none;white-space:nowrap}
+  .opnav-brand span{color:#A78BFA;font-weight:400}
+  .opnav-venue select{background:#111524;color:#F5F7FF;border:1px solid rgba(255,255,255,.14);
+    border-radius:7px;font-family:Menlo,monospace;font-size:11px;padding:5px 8px;cursor:pointer}
+  .opnav-venue select:focus-visible{outline:2px solid #22D3EE;outline-offset:1px}
+  .opnav-links{display:flex;gap:2px;flex-wrap:wrap}
+  .opnav-links a{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#6B7280;
+    text-decoration:none;padding:7px 11px;border-radius:7px;transition:color .12s ease,background .12s ease}
+  .opnav-links a:hover{color:#22D3EE;background:rgba(34,211,238,.08)}
+  .opnav-links a.on{color:#04050A;background:#22D3EE}
+  .opnav-links a:focus-visible{outline:2px solid #22D3EE;outline-offset:2px}
+  .opnav-spacer{flex:1}
+  .opnav-studio{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#6B7280;
+    text-decoration:none;border:1px solid rgba(255,255,255,.14);padding:6px 11px;border-radius:7px;white-space:nowrap}
+  .opnav-studio:hover{color:#A78BFA;border-color:rgba(167,139,250,.5)}
+  @media (max-width:720px){.opnav{flex-wrap:wrap;gap:8px} .opnav-spacer{display:none}}
+</style>
+<nav class="opnav" aria-label="Venue console">
+  <a class="opnav-brand" href="/">ATLAS<span>·</span></a>
+  <div class="opnav-venue">
+    <select id="opnavVenue" aria-label="Venue">
+      <option value="delilah">Delilah · Los Angeles</option>
+      <option value="niceguy">The Nice Guy · Los Angeles</option>
+    </select>
+  </div>
+  <div class="opnav-links">
+    <a href="/" data-nav="home">Home</a>
+    <a href="/dashboard" data-nav="run">Run</a>
+    <a href="/outcomes" data-nav="understand">Understand</a>
+    <a href="/deliverables/promoter-view.html" data-nav="grow">Grow</a>
+    <a href="/deliverables/tenant-onboarding.html" data-nav="setup">Set&nbsp;up</a>
+  </div>
+  <div class="opnav-spacer"></div>
+  <a class="opnav-studio" href="/studio" title="Internal — design system, deck & consumer surfaces">Studio</a>
+</nav>
+<script>
+(function(){
+  var p = location.pathname.replace(/\/+$/,'') || '/';
+  var map = {'/':'home','/dashboard':'run','/outcomes':'understand',
+    '/deliverables/promoter-view.html':'grow','/deliverables/tenant-onboarding.html':'setup'};
+  var active = map[p] || (p.indexOf('/deliverables')===0 ? 'grow' : '');
+  var links = document.querySelectorAll('.opnav-links a');
+  for (var i=0;i<links.length;i++){
+    if (links[i].getAttribute('data-nav')===active){ links[i].classList.add('on'); links[i].setAttribute('aria-current','page'); }
+  }
+  var sel = document.getElementById('opnavVenue');
+  if (sel){
+    try { var saved = localStorage.getItem('atlas.venue'); if (saved) sel.value = saved; } catch(e){}
+    sel.addEventListener('change', function(){
+      try { localStorage.setItem('atlas.venue', sel.value); } catch(e){}
+      document.dispatchEvent(new CustomEvent('atlas:venue',{detail:{venue:sel.value}}));
+    });
+  }
+})();
+</script>
+<!-- ===== end ATLAS operator shell ===== -->
+
+<main class="wrap" aria-label="Venue console home">
 
   <header>
-    <div class="brand"><h1>ATLAS</h1><span class="sub">Nightlife OS · Platform Home</span></div>
-    <p class="lede">One place to reach every Atlas surface — the live operator console, the outcomes-intelligence view, and the design deliverables. Backend contract: <span class="code">adippa2580/ATLAS</span>.</p>
+    <div class="eyebrow">
+      <span id="dateLabel">—</span>
+      <span class="sep">·</span>
+      <span class="status demo" id="statusPill"><span class="glyph" aria-hidden="true">◇</span><span id="statusText">demo</span></span>
+    </div>
+    <h1>Tonight at <span id="venueName">Delilah</span> <span class="loc" id="venueLoc">· Los Angeles</span></h1>
+    <p class="lede">The floor at a glance, and every job for the night in one place — run service, understand the room, grow the guest list, and get set up.</p>
   </header>
 
-  <nav class="grid" aria-label="Surfaces">
-    <a class="card c-ops" href="/dashboard">
-      <div class="tag">OPERATOR&nbsp;&nbsp;·&nbsp;&nbsp;LIVE</div>
-      <div class="name"><span class="dot"></span>Ops Console</div>
-      <div class="desc">Run the night: floor &amp; host stand, bookings board, door check-in, and closeout — driven by the live primitive APIs.</div>
-      <div class="path">/dashboard →</div>
+  <section class="kpis" aria-label="Tonight snapshot">
+    <div class="kpi k-book">
+      <div class="k-label">Bookings tonight</div>
+      <div class="k-value" id="kBookings">—</div>
+      <div class="k-sub"><span class="g" aria-hidden="true">▲</span><span id="kBookingsSub">covers on the book</span></div>
+    </div>
+    <div class="kpi k-floor">
+      <div class="k-label">On the floor</div>
+      <div class="k-value" id="kFloor">—</div>
+      <div class="k-sub"><span class="g" aria-hidden="true">●</span><span id="kFloorSub">seated now</span></div>
+    </div>
+    <div class="kpi k-rev">
+      <div class="k-label">Revenue pace</div>
+      <div class="k-value" id="kRevenue">—</div>
+      <div class="k-sub"><span class="g" aria-hidden="true">→</span><span id="kRevenueSub">tracked to date</span></div>
+    </div>
+    <div class="kpi k-idy">
+      <div class="k-label">Identity coverage</div>
+      <div class="k-value" id="kCoverage">—</div>
+      <div class="k-sub"><span class="g" aria-hidden="true">◐</span><span id="kCoverageSub">guests resolved</span></div>
+    </div>
+    <div class="kpi k-risk">
+      <div class="k-label">No-show risk</div>
+      <div class="k-value" id="kRisk">—</div>
+      <div class="k-sub"><span class="g" aria-hidden="true">△</span><span id="kRiskSub">flagged tonight</span></div>
+    </div>
+  </section>
+
+  <p class="section-label">Jobs for the night</p>
+  <nav class="grid" aria-label="Jobs">
+    <a class="card c-run" href="/dashboard">
+      <div class="tag">RUN&nbsp;&nbsp;·&nbsp;&nbsp;LIVE</div>
+      <div class="name"><span class="dot"></span>Run the night</div>
+      <div class="desc">Floor &amp; host stand, bookings board, door check-in and closeout — the live operator console.</div>
+      <div class="path">→ /dashboard</div>
     </a>
 
-    <a class="card c-out" href="/outcomes">
-      <div class="tag">INTELLIGENCE&nbsp;&nbsp;·&nbsp;&nbsp;LIVE</div>
-      <div class="name"><span class="dot"></span>Outcomes Intelligence</div>
-      <div class="desc">Hospitality outcomes derived across the seven data pillars — scorecard, act-now queue, drill-downs and insights.</div>
-      <div class="path">/outcomes →</div>
+    <a class="card c-und" href="/outcomes">
+      <div class="tag">UNDERSTAND&nbsp;&nbsp;·&nbsp;&nbsp;LIVE</div>
+      <div class="name"><span class="dot"></span>Understand the room</div>
+      <div class="desc">Outcomes across the seven pillars, an act-now queue, and the insights behind the numbers.</div>
+      <div class="path">→ /outcomes</div>
     </a>
 
-    <a class="card c-del" href="/deliverables">
-      <div class="tag">DESIGN&nbsp;&nbsp;·&nbsp;&nbsp;9 DELIVERABLES</div>
-      <div class="name"><span class="dot"></span>Design Deliverables</div>
-      <div class="desc">The Atlas operator surfaces (v3.1 midnight system) and A-List consumer surfaces (platinum/dark), recreated as browsable pages.</div>
-      <div class="path">/deliverables →</div>
+    <a class="card c-grow" href="/deliverables/promoter-view.html">
+      <div class="tag">GROW&nbsp;&nbsp;·&nbsp;&nbsp;MARKETING</div>
+      <div class="name"><span class="dot"></span>Grow the room</div>
+      <div class="desc">Promoters &amp; mint links, offers, win-back campaigns and taste-segments to fill the floor.</div>
+      <div class="path">→ /deliverables/promoter-view.html</div>
     </a>
 
-    <a class="card c-docs" href="/docs">
-      <div class="tag">CONTRACT&nbsp;&nbsp;·&nbsp;&nbsp;OPENAPI</div>
-      <div class="name"><span class="dot"></span>API Docs</div>
-      <div class="desc">The public tenant contract — primitives across the Guest, Ops and Marketing hubs — rendered as interactive Swagger.</div>
-      <div class="path">/docs →</div>
+    <a class="card c-set" href="/deliverables/tenant-onboarding.html">
+      <div class="tag">SET&nbsp;UP&nbsp;&nbsp;·&nbsp;&nbsp;ADMIN</div>
+      <div class="name"><span class="dot"></span>Get set up</div>
+      <div class="desc">Onboarding, connectors, grants and the data contract — get the venue wired end to end.</div>
+      <div class="path">→ /deliverables/tenant-onboarding.html</div>
     </a>
   </nav>
 
-  <div class="util">
-    <a href="/health">● health</a>
-    <a href="/deliverables/atlas-tokens.html">v3.1 tokens</a>
-    <a href="/deliverables/component-library.html">component library</a>
-    <a href="/deliverables/sales-deck.html">sales deck</a>
-  </div>
-
-  <div class="foot">ATLAS&nbsp;&nbsp;·&nbsp;&nbsp;NIGHTLIFE OS&nbsp;&nbsp;·&nbsp;&nbsp;OPERATOR + PLATFORM&nbsp;&nbsp;·&nbsp;&nbsp;RED-FREE · DARK-ONLY</div>
+  <div class="foot" id="foot">ATLAS&nbsp;&nbsp;·&nbsp;&nbsp;VENUE CONSOLE&nbsp;&nbsp;·&nbsp;&nbsp;DELILAH · LOS ANGELES&nbsp;&nbsp;·&nbsp;&nbsp;RED-FREE · DARK-ONLY</div>
 
 </main>
+
+<script>
+(function(){
+  var A = "00000000-0000-0000-0000-00000000a115";
+  var HEADERS = {"X-Tenant-Id":A, "X-Scopes":"* mkt:reporting:read"};
+
+  var VENUES = {
+    delilah: {name:"Delilah", loc:"· Los Angeles", footer:"DELILAH · LOS ANGELES"},
+    niceguy: {name:"The Nice Guy", loc:"· Los Angeles", footer:"THE NICE GUY · LOS ANGELES"}
+  };
+
+  // ---- date eyebrow ----
+  try{
+    var d = new Date();
+    var fmt = d.toLocaleDateString('en-US',{weekday:'long', month:'long', day:'numeric', year:'numeric'});
+    document.getElementById('dateLabel').textContent = fmt.toUpperCase();
+  }catch(e){ document.getElementById('dateLabel').textContent = "TONIGHT"; }
+
+  // ---- venue name sync ----
+  function applyVenue(key){
+    var v = VENUES[key] || VENUES.delilah;
+    document.getElementById('venueName').textContent = v.name;
+    document.getElementById('venueLoc').textContent = v.loc;
+    document.title = "ATLAS · Venue Console — " + v.name;
+    document.getElementById('foot').innerHTML =
+      "ATLAS&nbsp;&nbsp;·&nbsp;&nbsp;VENUE CONSOLE&nbsp;&nbsp;·&nbsp;&nbsp;" + v.footer +
+      "&nbsp;&nbsp;·&nbsp;&nbsp;RED-FREE · DARK-ONLY";
+  }
+  var initial = 'delilah';
+  try{ var saved = localStorage.getItem('atlas.venue'); if (saved && VENUES[saved]) initial = saved; }catch(e){}
+  applyVenue(initial);
+  document.addEventListener('atlas:venue', function(ev){
+    if (ev && ev.detail && ev.detail.venue) applyVenue(ev.detail.venue);
+  });
+
+  // ---- helpers ----
+  function money(cents){
+    var n = Math.round((Number(cents)||0)) / 100;
+    return "$" + n.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2});
+  }
+  function pct(x){ return Math.round(Number(x)||0) + "%"; }
+  function setStatus(live){
+    var pill = document.getElementById('statusPill');
+    var txt = document.getElementById('statusText');
+    var g = pill.querySelector('.glyph');
+    if (live){ pill.className = "status live"; g.textContent = "●"; txt.textContent = "live"; }
+    else { pill.className = "status demo"; g.textContent = "◇"; txt.textContent = "demo"; }
+  }
+
+  // ---- demo fallback ----
+  var demo = {
+    bookings: 42,
+    seated: 168,
+    revenueCents: 4875000,
+    coveragePct: 74,
+    risk: 6
+  };
+
+  function render(vals){
+    document.getElementById('kBookings').textContent = vals.bookings;
+    document.getElementById('kFloor').textContent = vals.seated;
+    document.getElementById('kRevenue').textContent = money(vals.revenueCents);
+    document.getElementById('kCoverage').textContent = pct(vals.coveragePct);
+    document.getElementById('kRisk').textContent = vals.risk;
+  }
+
+  function num(v, fallback){ return (v===null||v===undefined||isNaN(Number(v))) ? fallback : Number(v); }
+
+  async function load(){
+    var live = false;
+    var vals = {
+      bookings: demo.bookings, seated: demo.seated,
+      revenueCents: demo.revenueCents, coveragePct: demo.coveragePct, risk: demo.risk
+    };
+
+    // health
+    try{
+      var h = await fetch('/health', {headers:HEADERS});
+      if (h.ok){ var hj = await h.json(); if (hj && hj.status === "ok") live = true; }
+    }catch(e){}
+
+    // stats — bookings + revenue
+    try{
+      var s = await fetch('/v1/stats', {headers:HEADERS});
+      if (s.ok){
+        var sj = await s.json();
+        var d = sj.data || sj.totals || sj;
+        vals.bookings   = num(d.bookings_tonight != null ? d.bookings_tonight : (d.bookings != null ? d.bookings : d.reservations), vals.bookings);
+        vals.seated     = num(d.seated != null ? d.seated : (d.on_floor != null ? d.on_floor : d.covers), vals.seated);
+        vals.revenueCents = num(d.revenue_cents != null ? d.revenue_cents : (d.revenue != null ? d.revenue : d.gross_cents), vals.revenueCents);
+        if (d.no_show_risk != null) vals.risk = num(d.no_show_risk, vals.risk);
+      } else { live = false; }
+    }catch(e){ live = false; }
+
+    // coverage gap — identity coverage + provisional backlog (risk proxy)
+    try{
+      var c = await fetch('/v1/insights/coverage-gap', {headers:HEADERS});
+      if (c.ok){
+        var cj = await c.json();
+        var cd = cj.data || cj;
+        vals.coveragePct = num(cd.coveragePct != null ? cd.coveragePct : cd.coverage_pct, vals.coveragePct);
+        var backlog = (cd.provisionalBacklog != null ? cd.provisionalBacklog : cd.provisional_backlog);
+        if (backlog != null) vals.risk = num(backlog, vals.risk);
+      } else { live = false; }
+    }catch(e){ live = false; }
+
+    setStatus(live);
+    render(vals);
+  }
+
+  render(demo);          // paint demo immediately
+  setStatus(false);
+  load();                // then attempt live
+})();
+</script>
 </body>
 </html>

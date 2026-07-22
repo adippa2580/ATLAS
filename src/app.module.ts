@@ -22,6 +22,7 @@ import { MarketingModule } from './modules/marketing/marketing.module';
 import { McpModule } from './modules/mcp/mcp.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { HomeModule } from './home/home.module';
+import { StudioModule } from './studio/studio.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { OutcomesModule } from './outcomes/outcomes.module';
 import { DeliverablesModule } from './deliverables/deliverables.module';
@@ -53,6 +54,8 @@ import { ProjectionModule } from './modules/guest/projection/projection.module';
     McpModule,
     // Platform home / menu at the site root, linking every surface.
     HomeModule,
+    // Internal design-system / sales / consumer hub, off the venue home.
+    StudioModule,
     DashboardModule,
     OutcomesModule,
     // Static design deliverables (Atlas v3.1 + A-List surfaces) at /deliverables.

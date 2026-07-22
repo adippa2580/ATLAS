@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ATLAS · Studio</title>
+<style>
+  :root{
+    --ground:#04050A; --card:#0B0E17; --border:rgba(255,255,255,.08);
+    --hi:#F5F7FF; --mid:#B8C0D4; --lo:#6B7280;
+    --violet:#A78BFA; --cyan:#22D3EE; --electric:#60A5FA;
+    --amber:#FBBF24; --mint:#34D399; --platinum:#E5E4E2;
+    --mono:Menlo,"SF Mono",Monaco,Consolas,monospace;
+    --sans:"Helvetica Neue",Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--ground);color:var(--hi);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;line-height:1.5}
+  a{color:inherit}
+  a:focus-visible,select:focus-visible,.card:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+
+  .wrap{max-width:1080px;margin:0 auto;padding:44px 22px 72px}
+
+  .head{margin-bottom:40px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--lo);margin:0 0 14px}
+  h1{font-size:38px;font-weight:600;letter-spacing:-.01em;margin:0 0 12px;color:var(--hi)}
+  .note{color:var(--mid);font-size:14px;max-width:60ch;margin:0}
+  .note strong{color:var(--hi);font-weight:600}
+
+  .section{margin-top:38px;padding-left:20px;border-left:2px solid var(--rail,var(--lo));position:relative}
+  .section-head{display:flex;align-items:baseline;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+  .section-title{font-family:var(--mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--rail,var(--mid));margin:0;font-weight:600}
+  .section-sub{font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--lo)}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(258px,1fr));gap:14px}
+
+  .card{display:flex;flex-direction:column;gap:8px;background:var(--card);
+    border:1px solid var(--border);border-radius:12px;padding:16px 17px;text-decoration:none;
+    transition:border-color .14s ease,transform .14s ease,background .14s ease}
+  .card:hover{border-color:var(--rail,rgba(255,255,255,.24));transform:translateY(-2px);
+    background:#0D1120}
+  .card-tag{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--rail,var(--lo))}
+  .card-name{font-size:15px;font-weight:600;color:var(--hi);letter-spacing:-.005em}
+  .card-desc{font-size:12.5px;color:var(--mid);line-height:1.45}
+  .card-path{font-family:var(--mono);font-size:11px;color:var(--lo);margin-top:2px;
+    word-break:break-all}
+
+  .foot{margin-top:52px;padding-top:22px;border-top:1px solid var(--border);
+    font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--lo)}
+
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none !important}
+    .card:hover{transform:none}
+  }
+</style>
+</head>
+<body>
+<!-- ===== ATLAS operator shell (canonical) — paste verbatim as the FIRST child of <body>.
+     Self-contained: explicit Atlas v3.1 colors (no page vars), own scoped .opnav-* classes,
+     own IIFE. It auto-marks the active link from location.pathname, and persists the selected
+     venue to localStorage('atlas.venue') + dispatches a 'atlas:venue' event other scripts can listen to.
+     On a page, give <body> top spacing is unnecessary — the bar is sticky, not fixed. ===== -->
+<style>
+  .opnav{position:sticky;top:0;z-index:70;display:flex;align-items:center;gap:14px;
+    padding:10px 18px;background:rgba(11,14,23,.86);backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.10);
+    font-family:Menlo,"SF Mono",Monaco,Consolas,monospace}
+  .opnav-brand{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-weight:600;
+    letter-spacing:.02em;color:#F5F7FF;font-size:15px;text-decoration:none;white-space:nowrap}
+  .opnav-brand span{color:#A78BFA;font-weight:400}
+  .opnav-venue select{background:#111524;color:#F5F7FF;border:1px solid rgba(255,255,255,.14);
+    border-radius:7px;font-family:Menlo,monospace;font-size:11px;padding:5px 8px;cursor:pointer}
+  .opnav-venue select:focus-visible{outline:2px solid #22D3EE;outline-offset:1px}
+  .opnav-links{display:flex;gap:2px;flex-wrap:wrap}
+  .opnav-links a{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#6B7280;
+    text-decoration:none;padding:7px 11px;border-radius:7px;transition:color .12s ease,background .12s ease}
+  .opnav-links a:hover{color:#22D3EE;background:rgba(34,211,238,.08)}
+  .opnav-links a.on{color:#04050A;background:#22D3EE}
+  .opnav-links a:focus-visible{outline:2px solid #22D3EE;outline-offset:2px}
+  .opnav-spacer{flex:1}
+  .opnav-studio{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#6B7280;
+    text-decoration:none;border:1px solid rgba(255,255,255,.14);padding:6px 11px;border-radius:7px;white-space:nowrap}
+  .opnav-studio:hover{color:#A78BFA;border-color:rgba(167,139,250,.5)}
+  @media (max-width:720px){.opnav{flex-wrap:wrap;gap:8px} .opnav-spacer{display:none}}
+</style>
+<nav class="opnav" aria-label="Venue console">
+  <a class="opnav-brand" href="/">ATLAS<span>·</span></a>
+  <div class="opnav-venue">
+    <select id="opnavVenue" aria-label="Venue">
+      <option value="delilah">Delilah · Los Angeles</option>
+      <option value="niceguy">The Nice Guy · Los Angeles</option>
+    </select>
+  </div>
+  <div class="opnav-links">
+    <a href="/" data-nav="home">Home</a>
+    <a href="/dashboard" data-nav="run">Run</a>
+    <a href="/outcomes" data-nav="understand">Understand</a>
+    <a href="/deliverables/promoter-view.html" data-nav="grow">Grow</a>
+    <a href="/deliverables/tenant-onboarding.html" data-nav="setup">Set&nbsp;up</a>
+  </div>
+  <div class="opnav-spacer"></div>
+  <a class="opnav-studio" href="/studio" title="Internal — design system, deck & consumer surfaces">Studio</a>
+</nav>
+<script>
+(function(){
+  var p = location.pathname.replace(/\/+$/,'') || '/';
+  var map = {'/':'home','/dashboard':'run','/outcomes':'understand',
+    '/deliverables/promoter-view.html':'grow','/deliverables/tenant-onboarding.html':'setup'};
+  var active = map[p] || (p.indexOf('/deliverables')===0 ? 'grow' : '');
+  var links = document.querySelectorAll('.opnav-links a');
+  for (var i=0;i<links.length;i++){
+    if (links[i].getAttribute('data-nav')===active){ links[i].classList.add('on'); links[i].setAttribute('aria-current','page'); }
+  }
+  var sel = document.getElementById('opnavVenue');
+  if (sel){
+    try { var saved = localStorage.getItem('atlas.venue'); if (saved) sel.value = saved; } catch(e){}
+    sel.addEventListener('change', function(){
+      try { localStorage.setItem('atlas.venue', sel.value); } catch(e){}
+      document.dispatchEvent(new CustomEvent('atlas:venue',{detail:{venue:sel.value}}));
+    });
+  }
+})();
+</script>
+<!-- ===== end ATLAS operator shell ===== -->
+
+<main class="wrap">
+  <header class="head">
+    <p class="eyebrow">ATLAS · INTERNAL · DESIGN SYSTEM &amp; COLLATERAL</p>
+    <h1>Studio</h1>
+    <p class="note">Internal hub for the <strong>ATLAS team</strong> — design system, sales
+      collateral, developer references and consumer surfaces. Not a venue-customer area.</p>
+  </header>
+
+  <section class="section" style="--rail:var(--violet)" aria-labelledby="s-design">
+    <div class="section-head">
+      <h2 class="section-title" id="s-design">Design System</h2>
+      <span class="section-sub">Atlas v3.1 tokens &amp; components</span>
+    </div>
+    <div class="grid">
+      <a class="card" href="/deliverables/atlas-tokens.html">
+        <span class="card-tag">Tokens</span>
+        <span class="card-name">v3.1 product tokens</span>
+        <span class="card-desc">Color, type and spacing scales for the operator product.</span>
+        <span class="card-path">/deliverables/atlas-tokens.html</span>
+      </a>
+      <a class="card" href="/deliverables/component-library.html">
+        <span class="card-tag">Components</span>
+        <span class="card-name">Component library</span>
+        <span class="card-desc">Reusable UI primitives and interface patterns.</span>
+        <span class="card-path">/deliverables/component-library.html</span>
+      </a>
+    </div>
+  </section>
+
+  <section class="section" style="--rail:var(--cyan)" aria-labelledby="s-ops">
+    <div class="section-head">
+      <h2 class="section-title" id="s-ops">Operator Surface Previews</h2>
+      <span class="section-sub">Design-stage venue screens</span>
+    </div>
+    <div class="grid">
+      <a class="card" href="/deliverables/ops-console.html">
+        <span class="card-tag">Console</span>
+        <span class="card-name">Ops console (design)</span>
+        <span class="card-desc">Design pass of the live operations console.</span>
+        <span class="card-path">/deliverables/ops-console.html</span>
+      </a>
+      <a class="card" href="/deliverables/outcomes-pass.html">
+        <span class="card-tag">Outcomes</span>
+        <span class="card-name">Outcomes pass</span>
+        <span class="card-desc">Post-night results and performance review surface.</span>
+        <span class="card-path">/deliverables/outcomes-pass.html</span>
+      </a>
+      <a class="card" href="/deliverables/promoter-view.html">
+        <span class="card-tag">Promoter</span>
+        <span class="card-name">Promoter view</span>
+        <span class="card-desc">Growth-facing view for promoters and hosts.</span>
+        <span class="card-path">/deliverables/promoter-view.html</span>
+      </a>
+      <a class="card" href="/deliverables/tenant-onboarding.html">
+        <span class="card-tag">Onboarding</span>
+        <span class="card-name">Tenant onboarding</span>
+        <span class="card-desc">Setup flow for bringing a new venue online.</span>
+        <span class="card-path">/deliverables/tenant-onboarding.html</span>
+      </a>
+      <a class="card" href="/deliverables/intelligence-demo.html">
+        <span class="card-tag">Intelligence</span>
+        <span class="card-name">Intelligence demo</span>
+        <span class="card-desc">Demonstration of the ATLAS intelligence layer.</span>
+        <span class="card-path">/deliverables/intelligence-demo.html</span>
+      </a>
+    </div>
+  </section>
+
+  <section class="section" style="--rail:var(--amber)" aria-labelledby="s-sales">
+    <div class="section-head">
+      <h2 class="section-title" id="s-sales">Sales</h2>
+      <span class="section-sub">Go-to-market collateral</span>
+    </div>
+    <div class="grid">
+      <a class="card" href="/deliverables/sales-deck.html">
+        <span class="card-tag">Deck</span>
+        <span class="card-name">Sales demo deck</span>
+        <span class="card-desc">Pitch deck for prospect and partner demos.</span>
+        <span class="card-path">/deliverables/sales-deck.html</span>
+      </a>
+    </div>
+  </section>
+
+  <section class="section" style="--rail:var(--platinum)" aria-labelledby="s-alist">
+    <div class="section-head">
+      <h2 class="section-title" id="s-alist">A-List · Consumer</h2>
+      <span class="section-sub">consumer app — not a venue surface</span>
+    </div>
+    <div class="grid">
+      <a class="card" href="/deliverables/alist-tokens.html">
+        <span class="card-tag">Tokens</span>
+        <span class="card-name">A-List v2 tokens</span>
+        <span class="card-desc">Design tokens for the consumer A-List app.</span>
+        <span class="card-path">/deliverables/alist-tokens.html</span>
+      </a>
+      <a class="card" href="/deliverables/venue-link.html">
+        <span class="card-tag">Flow</span>
+        <span class="card-name">Venue-link flow</span>
+        <span class="card-desc">Linking a member to a venue from the app.</span>
+        <span class="card-path">/deliverables/venue-link.html</span>
+      </a>
+      <a class="card" href="/deliverables/crew-rerank.html">
+        <span class="card-tag">Motion</span>
+        <span class="card-name">Crew re-rank motion</span>
+        <span class="card-desc">Motion study for crew re-ranking interactions.</span>
+        <span class="card-path">/deliverables/crew-rerank.html</span>
+      </a>
+      <a class="card" href="/deliverables/wallet-pass.html">
+        <span class="card-tag">Pass</span>
+        <span class="card-name">Wallet pass</span>
+        <span class="card-desc">Wallet pass design for member entry.</span>
+        <span class="card-path">/deliverables/wallet-pass.html</span>
+      </a>
+    </div>
+  </section>
+
+  <section class="section" style="--rail:var(--lo)" aria-labelledby="s-dev">
+    <div class="section-head">
+      <h2 class="section-title" id="s-dev">Developer</h2>
+      <span class="section-sub">APIs, health &amp; indexes</span>
+    </div>
+    <div class="grid">
+      <a class="card" href="/docs">
+        <span class="card-tag">API</span>
+        <span class="card-name">API docs (Swagger)</span>
+        <span class="card-desc">Interactive OpenAPI reference for the backend.</span>
+        <span class="card-path">/docs</span>
+      </a>
+      <a class="card" href="/health">
+        <span class="card-tag">Status</span>
+        <span class="card-name">Health</span>
+        <span class="card-desc">Service health and liveness endpoint.</span>
+        <span class="card-path">/health</span>
+      </a>
+      <a class="card" href="/deliverables">
+        <span class="card-tag">Index</span>
+        <span class="card-name">All deliverables index</span>
+        <span class="card-desc">Full listing of every served deliverable.</span>
+        <span class="card-path">/deliverables</span>
+      </a>
+    </div>
+  </section>
+
+  <p class="foot">ATLAS · INTERNAL · not for venue customers</p>
+</main>
+</body>
+</html>

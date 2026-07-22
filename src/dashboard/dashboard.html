@@ -1,3 +1,4 @@
+<script>document.documentElement.setAttribute('data-theme','dark');</script>
 <title>ATLAS — Nightlife Operations Console</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
@@ -52,11 +53,6 @@
     margin:30px 2px 12px; display:flex; align-items:center; gap:10px}
   h2.sec::after{content:""; flex:1; height:1px; background:var(--line-soft)}
 
-  .surfacenav{display:flex; gap:4px; flex-wrap:wrap; align-items:center; padding:6px 0 12px; margin-bottom:6px; border-bottom:1px solid var(--line)}
-  .surfacenav a{font-family:var(--mono); font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); padding:7px 12px; border-radius:7px; text-decoration:none; transition:color .12s ease, background .12s ease}
-  .surfacenav a:hover{color:var(--brand-ink); background:var(--brand-wash)}
-  .surfacenav a.on{color:var(--ground); background:var(--brand)}
-  .surfacenav a:focus-visible{outline:2px solid var(--brand); outline-offset:2px}
   .wibtn{appearance:none; cursor:pointer; font-family:var(--mono); font-size:11px; letter-spacing:.06em; color:var(--brand-ink); background:var(--brand-wash); border:1px solid color-mix(in srgb,var(--brand) 45%,transparent); border-radius:7px; padding:6px 11px}
   .wibtn:hover{filter:brightness(1.08)}
   .wiform{margin:10px 0 4px; padding:12px; border:1px solid var(--line); border-radius:9px; background:var(--raise)}
@@ -256,14 +252,70 @@
   @media (prefers-reduced-motion:reduce){*{animation:none !important; transition:none !important}}
 </style>
 
+<!-- ===== ATLAS operator shell (canonical) ===== -->
+<style>
+  .opnav{position:sticky;top:0;z-index:70;display:flex;align-items:center;gap:14px;
+    padding:10px 18px;background:rgba(11,14,23,.86);backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.10);
+    font-family:Menlo,"SF Mono",Monaco,Consolas,monospace}
+  .opnav-brand{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-weight:600;
+    letter-spacing:.02em;color:#F5F7FF;font-size:15px;text-decoration:none;white-space:nowrap}
+  .opnav-brand span{color:#A78BFA;font-weight:400}
+  .opnav-venue select{background:#111524;color:#F5F7FF;border:1px solid rgba(255,255,255,.14);
+    border-radius:7px;font-family:Menlo,monospace;font-size:11px;padding:5px 8px;cursor:pointer}
+  .opnav-venue select:focus-visible{outline:2px solid #22D3EE;outline-offset:1px}
+  .opnav-links{display:flex;gap:2px;flex-wrap:wrap}
+  .opnav-links a{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#6B7280;
+    text-decoration:none;padding:7px 11px;border-radius:7px;transition:color .12s ease,background .12s ease}
+  .opnav-links a:hover{color:#22D3EE;background:rgba(34,211,238,.08)}
+  .opnav-links a.on{color:#04050A;background:#22D3EE}
+  .opnav-links a:focus-visible{outline:2px solid #22D3EE;outline-offset:2px}
+  .opnav-spacer{flex:1}
+  .opnav-studio{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#6B7280;
+    text-decoration:none;border:1px solid rgba(255,255,255,.14);padding:6px 11px;border-radius:7px;white-space:nowrap}
+  .opnav-studio:hover{color:#A78BFA;border-color:rgba(167,139,250,.5)}
+  @media (max-width:720px){.opnav{flex-wrap:wrap;gap:8px} .opnav-spacer{display:none}}
+</style>
+<nav class="opnav" aria-label="Venue console">
+  <a class="opnav-brand" href="/">ATLAS<span>·</span></a>
+  <div class="opnav-venue">
+    <select id="opnavVenue" aria-label="Venue">
+      <option value="delilah">Delilah · Los Angeles</option>
+      <option value="niceguy">The Nice Guy · Los Angeles</option>
+    </select>
+  </div>
+  <div class="opnav-links">
+    <a href="/" data-nav="home">Home</a>
+    <a href="/dashboard" data-nav="run">Run</a>
+    <a href="/outcomes" data-nav="understand">Understand</a>
+    <a href="/deliverables/promoter-view.html" data-nav="grow">Grow</a>
+    <a href="/deliverables/tenant-onboarding.html" data-nav="setup">Set&nbsp;up</a>
+  </div>
+  <div class="opnav-spacer"></div>
+  <a class="opnav-studio" href="/studio" title="Internal — design system, deck & consumer surfaces">Studio</a>
+</nav>
+<script>
+(function(){
+  var p = location.pathname.replace(/\/+$/,'') || '/';
+  var map = {'/':'home','/dashboard':'run','/outcomes':'understand',
+    '/deliverables/promoter-view.html':'grow','/deliverables/tenant-onboarding.html':'setup'};
+  var active = map[p] || (p.indexOf('/deliverables')===0 ? 'grow' : '');
+  var links = document.querySelectorAll('.opnav-links a');
+  for (var i=0;i<links.length;i++){
+    if (links[i].getAttribute('data-nav')===active){ links[i].classList.add('on'); links[i].setAttribute('aria-current','page'); }
+  }
+  var sel = document.getElementById('opnavVenue');
+  if (sel){
+    try { var saved = localStorage.getItem('atlas.venue'); if (saved) sel.value = saved; } catch(e){}
+    sel.addEventListener('change', function(){
+      try { localStorage.setItem('atlas.venue', sel.value); } catch(e){}
+      document.dispatchEvent(new CustomEvent('atlas:venue',{detail:{venue:sel.value}}));
+    });
+  }
+})();
+</script>
+<!-- ===== end ATLAS operator shell ===== -->
 <div class="wrap">
-  <nav class="surfacenav" aria-label="Atlas surfaces">
-    <a href="/">Home</a>
-    <a class="on" href="/dashboard" aria-current="page">Ops Console</a>
-    <a href="/outcomes">Outcomes</a>
-    <a href="/deliverables">Deliverables</a>
-    <a href="/docs">API Docs</a>
-  </nav>
   <div class="top">
     <div class="brand"><h1>ATLAS</h1><span class="sub">Nightlife OS · Console</span></div>
     <div class="spacer"></div>
