@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A-List Venue Link</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --canvas:#060606;
+    --ink:#000;
+    --serif:"Cormorant Garamond",Georgia,"Times New Roman",serif;
+    --inter:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --red:#d4183d;
+    /* platinum */
+    --platinum:linear-gradient(135deg,#8e8e93 0%,#e5e4e2 34%,#f5f5f7 60%,#8e8e93 100%);
+    --w100:rgba(255,255,255,1);
+    --w70:rgba(255,255,255,.70);
+    --w50:rgba(255,255,255,.50);
+    --w40:rgba(255,255,255,.40);
+    --w30:rgba(255,255,255,.30);
+    --w25:rgba(255,255,255,.25);
+    --w20:rgba(255,255,255,.20);
+    --card:rgba(255,255,255,.05);
+    --line:rgba(255,255,255,.10);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:
+      radial-gradient(1100px 700px at 15% -10%, rgba(255,255,255,.035), transparent 60%),
+      radial-gradient(900px 600px at 92% 8%, rgba(255,255,255,.025), transparent 55%),
+      var(--canvas);
+    color:var(--w70);
+    font-family:var(--inter); font-weight:400;
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+    min-height:100vh;
+  }
+  a{color:inherit;text-decoration:none}
+  :focus-visible{outline:2px solid #f5f5f7;outline-offset:2px;border-radius:6px}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+
+  /* back link, kept clear of frames */
+  .backlink{
+    position:fixed;top:20px;left:24px;z-index:50;
+    font-family:var(--inter);font-size:10px;font-weight:500;letter-spacing:.22em;
+    text-transform:uppercase;color:var(--w40);
+    padding:8px 12px;border-radius:999px;
+    background:rgba(6,6,6,.6);backdrop-filter:blur(8px);
+    transition:color .16s ease;
+  }
+  .backlink:hover{color:var(--w70)}
+
+  /* page shell */
+  .page-head{
+    max-width:1240px;margin:0 auto;padding:74px 40px 8px;
+  }
+  .page-kicker{
+    font-family:var(--inter);font-size:9px;font-weight:700;letter-spacing:.4em;
+    text-transform:uppercase;color:var(--w25);margin-bottom:16px;
+  }
+  .page-title{
+    font-family:var(--serif);font-weight:500;font-size:44px;line-height:1.02;
+    color:#f5f5f7;letter-spacing:.01em;margin:0 0 12px;
+  }
+  .page-sub{
+    font-size:13px;line-height:1.6;color:var(--w40);max-width:560px;margin:0;
+  }
+
+  /* frame row */
+  .rail{
+    display:flex;flex-wrap:wrap;gap:40px 34px;
+    align-items:flex-start;justify-content:center;
+    max-width:1400px;margin:0 auto;padding:44px 40px 90px;
+  }
+  .col{display:flex;flex-direction:column;gap:28px;align-items:center}
+
+  .frame-wrap{display:flex;flex-direction:column;gap:14px;align-items:flex-start}
+  .frame-label{
+    font-family:var(--inter);font-size:9px;font-weight:700;letter-spacing:.34em;
+    text-transform:uppercase;color:var(--w30);padding-left:4px;
+  }
+  .frame-label b{color:var(--w70);font-weight:700}
+
+  /* the phone */
+  .phone{
+    width:390px;border-radius:34px;background:var(--ink);
+    border:1px solid rgba(255,255,255,.09);
+    box-shadow:0 40px 90px -30px rgba(0,0,0,.9),0 0 0 1px rgba(0,0,0,.6);
+    overflow:hidden;position:relative;
+  }
+  .phone.short{align-self:flex-start}
+  .statusbar{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:12px 22px 6px;font-family:var(--inter);
+    font-size:11px;font-weight:600;color:var(--w50);letter-spacing:.02em;
+  }
+  .statusbar .dots{display:flex;gap:3px;align-items:center}
+  .statusbar .dots i{width:4px;height:4px;border-radius:50%;background:var(--w40);display:block}
+  .statusbar .batt{width:16px;height:8px;border:1px solid var(--w40);border-radius:2px;position:relative}
+  .statusbar .batt::after{content:"";position:absolute;inset:1.5px;right:5px;background:var(--w40);border-radius:1px}
+  .screen{padding:6px 20px 20px}
+
+  /* marble hero wash */
+  .marble{
+    position:relative;margin:-6px -20px 0;padding:34px 24px 30px;
+    background:
+      radial-gradient(120% 90% at 20% 0%, rgba(245,245,247,.10), transparent 55%),
+      radial-gradient(90% 80% at 85% 15%, rgba(190,180,200,.08), transparent 60%),
+      radial-gradient(140% 120% at 60% 120%, rgba(255,255,255,.04), transparent 50%),
+      linear-gradient(180deg,#111012 0%,#0a0a0b 100%);
+    border-bottom:1px solid var(--line);
+    overflow:hidden;
+  }
+  .marble::before{
+    content:"";position:absolute;inset:0;opacity:.5;pointer-events:none;
+    background:
+      linear-gradient(122deg,transparent 38%,rgba(255,255,255,.05) 41%,transparent 44%),
+      linear-gradient(58deg,transparent 60%,rgba(255,255,255,.035) 63%,transparent 66%);
+  }
+  .kicker{
+    position:relative;font-family:var(--inter);font-size:9px;font-weight:700;
+    letter-spacing:.32em;text-transform:uppercase;color:var(--w40);margin-bottom:14px;
+  }
+  .venue{
+    position:relative;font-family:var(--serif);font-weight:500;font-size:38px;
+    line-height:1;color:#f6f6f8;letter-spacing:.01em;margin:0;
+  }
+  .venue-sub{
+    position:relative;font-size:11px;color:var(--w40);margin-top:10px;letter-spacing:.02em;
+  }
+
+  /* chrome label */
+  .chrome{
+    font-family:var(--inter);font-size:9px;font-weight:700;letter-spacing:.28em;
+    text-transform:uppercase;color:var(--w40);
+  }
+
+  /* date pills */
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .section{margin-top:22px}
+  .section > .chrome{margin-bottom:12px;display:block}
+  .pill{
+    display:inline-flex;align-items:center;gap:6px;justify-content:center;
+    padding:9px 15px;border-radius:999px;border:1px solid var(--line);
+    background:var(--card);font-size:12px;font-weight:500;color:var(--w70);
+    transition:border-color .14s ease,background .14s ease,color .14s ease,transform .06s ease;
+    min-height:38px;
+  }
+  .pill:active{transform:scale(.96)}
+  .pill.on{background:#f5f5f7;color:#0a0a0a;border-color:#f5f5f7;font-weight:600}
+  .pill.date{flex-direction:column;gap:2px;padding:8px 14px;line-height:1.1;min-width:58px}
+  .pill.date .d{font-size:15px;font-weight:600}
+  .pill.date .m{font-size:8px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;opacity:.6}
+
+  .helper{font-size:11px;color:var(--w40);margin-top:10px;letter-spacing:.01em}
+  .helper .em{color:var(--w70)}
+
+  /* table cards */
+  .tcard{
+    border:1px solid var(--line);background:var(--card);border-radius:10px;
+    padding:16px 16px 15px;margin-top:10px;
+    transition:border-color .14s ease,background .14s ease;
+  }
+  .tcard:hover{border-color:var(--w20)}
+  .tcard .tname{font-family:var(--serif);font-weight:500;font-size:22px;color:#f4f4f6;line-height:1.05}
+  .tcard .cap{font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--w40);margin-top:4px}
+  .tcard .money{font-size:12px;color:var(--w70);margin-top:11px;letter-spacing:.01em}
+  .tcard .money b{color:#f4f4f6;font-weight:600}
+  .tcard .foot{display:flex;align-items:center;justify-content:space-between;margin-top:14px;gap:12px}
+  .tcard.soldout{background:rgba(255,255,255,.02);border-color:rgba(255,255,255,.07)}
+  .tcard.soldout .tname{color:var(--w40)}
+  .soldtag{font-size:9px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--w30);margin-top:4px}
+
+  /* CTAs */
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    min-height:44px;padding:0 20px;border-radius:999px;
+    font-family:var(--inter);font-size:13px;font-weight:600;letter-spacing:.02em;
+    transition:transform .06s ease,background .14s ease,border-color .14s ease,opacity .14s ease;
+    white-space:nowrap;
+  }
+  .btn:active{transform:scale(.95)}
+  .btn-white{background:#f5f5f7;color:#0a0a0a}
+  .btn-white:hover{background:#fff}
+  .btn-ghost{background:transparent;color:var(--w50);border:1px solid var(--w20)}
+  .btn-ghost:hover{color:var(--w70);border-color:var(--w30)}
+  .btn-sec{background:rgba(255,255,255,.06);color:var(--w70);border:1px solid var(--w20)}
+  .btn-sec:hover{background:rgba(255,255,255,.10)}
+  .btn.full{width:100%}
+  .btn.sm{min-height:38px;font-size:12px;padding:0 15px}
+
+  /* powered by footer */
+  .powered{
+    text-align:center;font-family:var(--inter);font-size:8px;font-weight:700;
+    letter-spacing:.4em;text-transform:uppercase;color:var(--w20);
+    padding:20px 0 4px;margin-top:22px;border-top:1px solid rgba(255,255,255,.06);
+  }
+
+  /* hold pill */
+  .held{
+    display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:999px;
+    border:1px solid var(--w20);background:rgba(255,255,255,.04);
+    font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--w70);
+  }
+  .held .dot{width:6px;height:6px;border-radius:50%;background:#f5f5f7;animation:pulse 1.6s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+  /* summary card */
+  .summary{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:16px;margin-top:16px}
+  .summary .line{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;color:var(--w70)}
+  .summary .line + .line{margin-top:9px}
+  .summary .line .lbl{color:var(--w50)}
+  .summary .depline{display:flex;justify-content:space-between;align-items:baseline;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+  .summary .depline .dl{font-size:14px;font-weight:700;color:#f4f4f6;letter-spacing:.01em}
+  .summary .depline .dv{font-family:var(--inter);font-size:16px;font-weight:700;color:#f4f4f6}
+  .summary .fine{font-size:11px;color:var(--w40);margin-top:9px;line-height:1.5}
+
+  /* apple pay pill */
+  .applepay{
+    width:100%;min-height:50px;border-radius:999px;background:#f5f5f7;color:#0a0a0a;
+    display:flex;align-items:center;justify-content:center;gap:8px;margin-top:16px;
+    font-size:16px;font-weight:600;transition:transform .06s ease,background .14s ease;
+  }
+  .applepay:active{transform:scale(.97)}
+  .applepay .mark{font-family:var(--inter);font-weight:700;font-size:15px}
+  .applepay .mark .a{font-size:17px;font-weight:800}
+
+  /* divider */
+  .divider{display:flex;align-items:center;gap:12px;margin:18px 0 4px;color:var(--w30);font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase}
+  .divider::before,.divider::after{content:"";height:1px;flex:1;background:var(--line)}
+
+  /* inputs */
+  .inp{
+    width:100%;min-height:46px;border-radius:999px;border:1px solid var(--line);
+    background:rgba(255,255,255,.04);color:#f4f4f6;
+    padding:0 18px;font-family:var(--inter);font-size:15px;margin-top:10px;
+    transition:border-color .14s ease,background .14s ease;
+  }
+  .inp::placeholder{color:var(--w30)}
+  .inp:hover{border-color:var(--w20)}
+  .inp:focus{outline:none;border-color:var(--w40);background:rgba(255,255,255,.06)}
+  .inp-opt{position:relative}
+  .opt-tag{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:8px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--w25);pointer-events:none}
+
+  /* failure red card */
+  .redcard{
+    border:1px solid rgba(212,24,61,.55);border-radius:10px;padding:16px;margin-top:16px;
+    background:linear-gradient(180deg,rgba(212,24,61,.12),rgba(212,24,61,.04));
+  }
+  .redcard .rt{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#ff5a78;letter-spacing:.01em}
+  .redcard .rt .x{width:16px;height:16px;border-radius:50%;border:1.5px solid #ff5a78;display:inline-flex;align-items:center;justify-content:center;font-size:10px;line-height:1}
+  .redcard .rmsg{font-size:12px;color:var(--w70);margin-top:9px;line-height:1.5}
+  .redcard .rhold{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#ff8a9f;margin-top:10px}
+
+  /* confirmation */
+  .conf-hero{position:relative;text-align:center;padding:20px 10px 6px}
+  .youre-in{
+    font-family:var(--serif);font-weight:500;font-size:52px;line-height:1;
+    background:var(--platinum);-webkit-background-clip:text;background-clip:text;
+    color:transparent;letter-spacing:.01em;
+  }
+  .conf-sub{font-size:12px;color:var(--w50);margin-top:12px;letter-spacing:.02em}
+
+  /* platinum border card */
+  .plat{position:relative;border-radius:12px;padding:1px;margin-top:20px;background:var(--platinum)}
+  .plat-in{border-radius:11px;background:#0b0b0c;padding:18px}
+  .plat-name{font-family:var(--serif);font-weight:500;font-size:26px;color:#f6f6f8;line-height:1.05}
+  .plat-grid{display:flex;gap:0;margin-top:16px;border-top:1px solid var(--line);padding-top:14px}
+  .plat-grid .cell{flex:1}
+  .plat-grid .cell + .cell{border-left:1px solid var(--line);padding-left:14px}
+  .plat-grid .ck{font-size:8px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--w30)}
+  .plat-grid .cv{font-size:13px;color:#f0f0f2;margin-top:5px;font-weight:500}
+
+  /* app pitch */
+  .pitch{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:16px;margin-top:14px}
+  .pitch .pt{font-family:var(--serif);font-weight:500;font-size:19px;color:#f2f2f4;line-height:1.15}
+  .pitch .pd{font-size:11px;color:var(--w40);margin-top:6px;line-height:1.5}
+  .pitch .prow{display:flex;gap:9px;margin-top:14px}
+  .pitch .stands{font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--w30);margin-top:12px;text-align:center}
+
+  /* sms mock */
+  .sms{margin-top:6px}
+  .sms .bubble{
+    max-width:78%;background:rgba(255,255,255,.07);border:1px solid var(--line);
+    border-radius:16px 16px 16px 4px;padding:12px 14px;font-size:13px;color:#eee;line-height:1.45;
+  }
+  .sms .from{font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--w30);margin:0 0 7px 4px}
+  .sms .bubble .link{color:#8fb8ff;text-decoration:underline;text-underline-offset:2px}
+
+  .v4-hero{font-family:var(--serif);font-weight:500;font-size:30px;line-height:1.1;color:#f5f5f7;margin-top:26px;letter-spacing:.01em}
+
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none !important;animation:none !important}
+  }
+  @media (max-width:520px){
+    .page-head{padding:70px 22px 8px}
+    .page-title{font-size:34px}
+    .rail{padding:36px 14px 70px;gap:34px 20px}
+    .phone{width:100%;max-width:390px}
+    .backlink{top:14px;left:14px}
+  }
+</style>
+</head>
+<body>
+
+<a class="backlink" href="/deliverables">&larr; Deliverables</a>
+
+<div class="page-head">
+  <div class="page-kicker">A-List &nbsp;·&nbsp; Consumer &nbsp;·&nbsp; Venue Link Flow</div>
+  <h1 class="page-title">from a shared link to a reserved booth</h1>
+  <p class="page-sub">no account, no wall &mdash; browse, hold, pay a deposit, and walk in. four frames of the mobile web flow, plus the two failure states worth designing for.</p>
+</div>
+
+<main class="rail" aria-label="Venue link flow frames">
+
+  <!-- ============ V1 TABLE MAP ============ -->
+  <div class="frame-wrap">
+    <div class="frame-label"><b>V1</b> &nbsp; Table Map</div>
+    <section class="phone" aria-label="V1 table map">
+      <div class="statusbar"><span>9:41</span><span class="dots"><i></i><i></i><i></i></span><span class="batt"></span></div>
+      <div class="screen">
+
+        <div class="marble">
+          <div class="kicker">Saturday Jul 25 &nbsp;·&nbsp; Live Set 11PM</div>
+          <h2 class="venue">Meridian Room</h2>
+          <div class="venue-sub">downtown &nbsp;·&nbsp; 21+ &nbsp;·&nbsp; tables only tonight</div>
+        </div>
+
+        <div class="section">
+          <span class="chrome">When</span>
+          <div class="row">
+            <button class="pill date on"><span class="d">25</span><span class="m">Jul</span></button>
+            <button class="pill date"><span class="d">26</span><span class="m">Jul</span></button>
+            <button class="pill date"><span class="d">01</span><span class="m">Aug</span></button>
+            <button class="pill date"><span class="d">02</span><span class="m">Aug</span></button>
+          </div>
+        </div>
+
+        <div class="section">
+          <span class="chrome">How many</span>
+          <div class="row">
+            <button class="pill">4</button>
+            <button class="pill on">6</button>
+            <button class="pill">8</button>
+          </div>
+          <div class="helper"><span class="em">2 tables</span> fit 6 tonight</div>
+        </div>
+
+        <div class="section">
+          <div class="tcard">
+            <div class="tname">The Terrace</div>
+            <div class="cap">up to 6 &nbsp;·&nbsp; open air</div>
+            <div class="money"><b data-cents="200000"></b> minimum &nbsp;·&nbsp; <b data-cents="30000"></b> deposit today</div>
+            <div class="foot">
+              <span class="helper" style="margin:0">counts toward your tab</span>
+              <a class="btn btn-white sm" href="#v2">Reserve</a>
+            </div>
+          </div>
+
+          <div class="tcard">
+            <div class="tname">Garden Booth</div>
+            <div class="cap">up to 6 &nbsp;·&nbsp; banquette</div>
+            <div class="money"><b data-cents="250000"></b> minimum &nbsp;·&nbsp; <b data-cents="40000"></b> deposit today</div>
+            <div class="foot">
+              <span class="helper" style="margin:0">near the floor</span>
+              <a class="btn btn-white sm" href="#v2">Reserve</a>
+            </div>
+          </div>
+
+          <div class="tcard soldout">
+            <div class="tname">The Mezzanine</div>
+            <div class="soldtag">Sold out</div>
+            <div class="money" style="color:var(--w40)">releases open at 9pm day-of</div>
+            <div class="foot">
+              <span></span>
+              <button class="btn btn-ghost sm">Join release list</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="powered">Powered by A-List</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ V2 CHECKOUT ============ -->
+  <div class="frame-wrap">
+    <div class="frame-label"><b>V2</b> &nbsp; Checkout &nbsp;&mdash;&nbsp; no wall</div>
+    <section class="phone" id="v2" aria-label="V2 checkout">
+      <div class="statusbar"><span>9:41</span><span class="dots"><i></i><i></i><i></i></span><span class="batt"></span></div>
+      <div class="screen" style="padding-top:16px">
+
+        <div class="chrome" style="margin-bottom:12px">Meridian Room &nbsp;·&nbsp; The Terrace</div>
+        <div class="held"><span class="dot"></span> Held &nbsp;·&nbsp; 9:41</div>
+
+        <div class="summary">
+          <div class="line"><span class="lbl">Table</span><span>The Terrace &middot; up to 6</span></div>
+          <div class="line"><span class="lbl">Night</span><span>Sat Jul 25 &middot; 11PM</span></div>
+          <div class="depline">
+            <span class="dl">Deposit today</span>
+            <span class="dv" data-cents="30000"></span>
+          </div>
+          <div class="fine">counts toward your minimum &nbsp;·&nbsp; refundable to 6pm day-of</div>
+        </div>
+
+        <button class="applepay" aria-label="Pay with Apple Pay"><span class="mark"><span class="a">Pay</span></span></button>
+
+        <div class="divider">or pay with card</div>
+
+        <input class="inp" type="text" placeholder="Full name" autocomplete="name">
+        <input class="inp" type="tel" placeholder="Phone" autocomplete="tel">
+        <div class="inp-opt">
+          <input class="inp" type="email" placeholder="Email" autocomplete="email">
+          <span class="opt-tag">Optional</span>
+        </div>
+        <input class="inp" type="text" placeholder="Card number" inputmode="numeric" autocomplete="cc-number">
+
+        <button class="btn btn-sec full" style="margin-top:16px">Pay <span data-cents="30000" style="margin:0 .3em"></span> deposit</button>
+
+        <div class="powered">Powered by A-List</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ V2-F FAILURE STATES ============ -->
+  <div class="col">
+    <div class="frame-wrap">
+      <div class="frame-label"><b>V2-F</b> &nbsp; Declined &nbsp;&mdash;&nbsp; recover in place</div>
+      <section class="phone short" aria-label="V2 failure declined">
+        <div class="statusbar"><span>9:41</span><span class="dots"><i></i><i></i><i></i></span><span class="batt"></span></div>
+        <div class="screen" style="padding-top:16px">
+          <div class="chrome" style="margin-bottom:12px">Meridian Room &nbsp;·&nbsp; The Terrace</div>
+          <div class="held"><span class="dot"></span> Held &nbsp;·&nbsp; 9:41</div>
+
+          <div class="redcard">
+            <div class="rt"><span class="x">&times;</span> card declined</div>
+            <div class="rmsg">your bank turned it down. nothing was charged &mdash; try again or use a different card.</div>
+            <div class="rhold">table still held for 4:32</div>
+          </div>
+
+          <button class="btn btn-white full" style="margin-top:14px">Try again</button>
+          <button class="btn btn-ghost full" style="margin-top:9px">Use a different card</button>
+
+          <div class="powered">Powered by A-List</div>
+        </div>
+      </section>
+    </div>
+
+    <div class="frame-wrap">
+      <div class="frame-label"><b>V2-F</b> &nbsp; 409 Conflict &nbsp;&mdash;&nbsp; instant swap</div>
+      <section class="phone short" aria-label="V2 failure conflict">
+        <div class="statusbar"><span>9:41</span><span class="dots"><i></i><i></i><i></i></span><span class="batt"></span></div>
+        <div class="screen" style="padding-top:16px">
+          <div class="chrome" style="margin-bottom:12px">Meridian Room</div>
+
+          <div style="margin-top:6px">
+            <div style="font-family:var(--serif);font-weight:500;font-size:26px;color:#f4f4f6;line-height:1.08">that booth just went.</div>
+            <div class="helper" style="margin-top:8px">you weren&rsquo;t charged. here&rsquo;s what&rsquo;s still open for 6 &mdash; same night, same room.</div>
+          </div>
+
+          <div class="tcard" style="margin-top:16px">
+            <div class="tname">Garden Booth</div>
+            <div class="cap">up to 6 &nbsp;·&nbsp; banquette</div>
+            <div class="money"><b data-cents="250000"></b> minimum &nbsp;·&nbsp; <b data-cents="40000"></b> deposit</div>
+            <div class="foot"><span></span><button class="btn btn-white sm">Take this one</button></div>
+          </div>
+
+          <div class="tcard">
+            <div class="tname">Window 12</div>
+            <div class="cap">up to 6 &nbsp;·&nbsp; streetside</div>
+            <div class="money"><b data-cents="180000"></b> minimum &nbsp;·&nbsp; <b data-cents="30000"></b> deposit</div>
+            <div class="foot"><span></span><button class="btn btn-white sm">Take this one</button></div>
+          </div>
+
+          <div class="powered">Powered by A-List</div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- ============ V3 CONFIRMATION ============ -->
+  <div class="frame-wrap">
+    <div class="frame-label"><b>V3</b> &nbsp; Confirmation &nbsp;&mdash;&nbsp; app pitch after</div>
+    <section class="phone" aria-label="V3 confirmation">
+      <div class="statusbar"><span>9:42</span><span class="dots"><i></i><i></i><i></i></span><span class="batt"></span></div>
+      <div class="screen" style="padding:6px 20px 20px">
+
+        <div class="marble" style="padding-bottom:34px">
+          <div class="conf-hero">
+            <div class="youre-in">You&rsquo;re in.</div>
+            <div class="conf-sub">Sat Jul 25 &nbsp;·&nbsp; a text with your table is on the way</div>
+          </div>
+        </div>
+
+        <div class="plat">
+          <div class="plat-in">
+            <div class="plat-name">Meridian Room</div>
+            <div class="helper" style="margin-top:5px">The Terrace &nbsp;·&nbsp; up to 6</div>
+            <div class="plat-grid">
+              <div class="cell"><div class="ck">Doors</div><div class="cv">11:00 PM</div></div>
+              <div class="cell"><div class="ck">Party</div><div class="cv">6</div></div>
+              <div class="cell"><div class="ck">Deposit</div><div class="cv" data-cents="30000"></div></div>
+            </div>
+            <button class="btn btn-white full" style="margin-top:16px">Add to Apple Wallet</button>
+          </div>
+        </div>
+
+        <div class="pitch">
+          <div class="pt">the night gets smarter with the app.</div>
+          <div class="pd">your table, your split, the running tab &mdash; live on your phone. plus the rooms we think you&rsquo;ll want next.</div>
+          <div class="prow">
+            <button class="btn btn-sec" style="flex:1">Get the app</button>
+            <button class="btn btn-ghost" style="flex:1">No thanks</button>
+          </div>
+          <div class="stands">Either way &mdash; your booking stands</div>
+        </div>
+
+        <div class="powered">Powered by A-List</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ V4 POST-VISIT ============ -->
+  <div class="frame-wrap">
+    <div class="frame-label"><b>V4</b> &nbsp; Post-visit &nbsp;&mdash;&nbsp; credit waiting</div>
+    <section class="phone" aria-label="V4 post-visit">
+      <div class="statusbar"><span>1:12</span><span class="dots"><i></i><i></i><i></i></span><span class="batt"></span></div>
+      <div class="screen" style="padding-top:16px">
+
+        <div class="sms">
+          <div class="from">A-List &nbsp;·&nbsp; Text Message</div>
+          <div class="bubble">last night was one for the books. we saved you something &mdash; <span class="link">tap to see</span></div>
+        </div>
+
+        <div class="v4-hero">$25 is waiting for<br>your next night.</div>
+        <div class="helper" style="margin-top:10px">no strings. it&rsquo;s already yours &mdash; pick the room and it comes off the top.</div>
+
+        <div class="plat" style="margin-top:20px">
+          <div class="plat-in">
+            <div class="plat-name" style="font-size:22px">history comes with you</div>
+            <div class="helper" style="margin-top:7px">we already know how you like to be seated, who you roll with, and what you drink. the app just remembers so the door doesn&rsquo;t have to ask.</div>
+            <div class="plat-grid" style="margin-top:14px;padding-top:12px">
+              <div class="cell"><div class="ck">Credit</div><div class="cv" data-cents="2500"></div></div>
+              <div class="cell"><div class="ck">Nights</div><div class="cv">1 seated</div></div>
+              <div class="cell"><div class="ck">Room</div><div class="cv">Meridian</div></div>
+            </div>
+            <button class="btn btn-white full" style="margin-top:16px">Claim <span data-cents="2500" style="margin:0 .3em"></span> credit</button>
+          </div>
+        </div>
+
+        <div class="helper" style="text-align:center;margin-top:12px;font-size:10px;letter-spacing:.06em">credit holds 90 days &nbsp;·&nbsp; no card required</div>
+
+        <div class="powered">Powered by A-List</div>
+      </div>
+    </section>
+  </div>
+
+</main>
+
+<script>
+  // money always from integer cents
+  function fmt(cents){
+    var neg = cents < 0; cents = Math.abs(cents|0);
+    var s = (cents/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+    return (neg?'(':'') + '$' + s + (neg?')':'');
+  }
+  document.querySelectorAll('[data-cents]').forEach(function(el){
+    el.textContent = fmt(parseInt(el.getAttribute('data-cents'),10));
+  });
+
+  // idempotency: one pay intent key per hold; retries reuse it, never double-charge
+  (function(){
+    var key = null;
+    function idemKey(){
+      if(!key){
+        key = 'pi_' + Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+      }
+      return key; // stable across declined-retry within the same held session
+    }
+    document.querySelectorAll('.applepay, .btn').forEach(function(b){
+      if(/pay|try again|take this one/i.test(b.textContent)){
+        b.addEventListener('click', function(e){
+          e.preventDefault();
+          b.setAttribute('data-idempotency-key', idemKey());
+        });
+      }
+    });
+  })();
+</script>
+
+</body>
+</html>

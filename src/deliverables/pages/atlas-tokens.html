@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atlas v3.1 Tokens</title>
+<style>
+  :root{
+    /* Surfaces */
+    --s0:#04050A; --s1:#0B0E17; --s2:#111524;
+    /* Text */
+    --hi:#F5F7FF; --mid:#B8C0D4; --lo:#6B7280;
+    /* Accents */
+    --violet:#A78BFA; --cyan:#22D3EE; --electric:#60A5FA; --amber:#FBBF24;
+    /* Hub wayfinding */
+    --hub-guest:#34D399; --hub-ops:#A78BFA; --hub-marketing:#FBBF24;
+    /* Categorical data-viz (order fixed) */
+    --pc-taste:#c55285; --pc-identity:#933e92; --pc-crews:#6f52b9;
+    --pc-venues:#129db0; --pc-bookings:#618aeb; --pc-revenue:#b48706;
+    --pc-marketing:#ac4b06;
+    /* Hairlines */
+    --hair-chrome:rgba(255,255,255,.12);
+    --hair-card:rgba(255,255,255,.08);
+    --hair-row:rgba(255,255,255,.05);
+    /* Type */
+    --display:"Helvetica Neue",Helvetica,Arial,sans-serif;
+    --mono:Menlo,Monaco,monospace;
+    /* Motion */
+    --t-hover:120ms; --t-panel:200ms; --t-status:160ms;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  html,body{margin:0}
+  body{
+    background:var(--s0); color:var(--mid);
+    font-family:var(--display); font-weight:300;
+    -webkit-font-smoothing:antialiased;
+    padding:64px 0 120px; line-height:1.5;
+  }
+  a{color:inherit; text-decoration:none}
+  :focus-visible{outline:2px solid var(--cyan); outline-offset:2px}
+
+  /* fixed back-link */
+  .backlink{
+    position:fixed; top:0; left:0; right:0; z-index:50;
+    display:block; padding:16px 24px;
+    font-family:var(--mono); font-size:11px; letter-spacing:.22em;
+    text-transform:uppercase; color:var(--lo);
+    background:rgba(4,5,10,.72); backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--hair-chrome);
+    transition:color var(--t-hover) ease-out;
+  }
+  .backlink:hover{color:var(--mid)}
+
+  .shell{display:flex; gap:40px; max-width:1180px; margin:0 auto; padding:0 40px}
+
+  /* left index rail */
+  .rail{
+    position:sticky; top:96px; align-self:flex-start;
+    width:132px; flex:0 0 132px;
+    display:flex; flex-direction:column; gap:2px;
+    padding-top:6px;
+  }
+  .rail a{
+    font-family:var(--mono); font-size:10px; letter-spacing:.18em;
+    text-transform:uppercase; color:var(--lo);
+    padding:5px 0 5px 10px; border-left:1px solid var(--hair-card);
+    transition:color var(--t-hover) ease-out, border-color var(--t-hover) ease-out;
+  }
+  .rail a:hover{color:var(--mid); border-left-color:var(--cyan)}
+  .rail .rail-idx{color:var(--lo); opacity:.6}
+
+  main{flex:1 1 auto; min-width:0; max-width:860px}
+
+  /* page header */
+  header.ph{padding:16px 0 28px; border-bottom:1px solid var(--hair-chrome); margin-bottom:44px}
+  .kicker{font-family:var(--mono); font-size:11px; letter-spacing:.28em; text-transform:uppercase; color:var(--lo); margin-bottom:16px}
+  h1{margin:0; font-weight:200; font-size:44px; letter-spacing:-.01em; color:var(--hi)}
+  .lede{margin:16px 0 0; max-width:640px; font-size:14px; line-height:1.7; color:var(--mid)}
+
+  /* section scaffolding */
+  section{padding:40px 0; border-top:1px solid var(--hair-card)}
+  section:first-of-type{border-top:0}
+  .sec-head{display:flex; align-items:baseline; gap:16px; margin-bottom:24px}
+  .sec-num{font-family:var(--mono); font-size:12px; letter-spacing:.2em; color:var(--lo)}
+  h2{margin:0; font-weight:300; font-size:22px; color:var(--hi); letter-spacing:-.005em}
+  .sec-note{margin:0 0 24px; font-size:13px; line-height:1.7; color:var(--mid); max-width:600px}
+
+  /* mono value token */
+  .mono{font-family:var(--mono); font-variant-numeric:tabular-nums}
+  .val{font-family:var(--mono); font-size:11px; letter-spacing:.04em; color:var(--mid)}
+  .lbl{font-family:var(--mono); font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:var(--lo)}
+
+  /* generic card */
+  .card{background:var(--s1); border:1px solid var(--hair-card); border-radius:11px; padding:20px}
+
+  /* ---- 01 Surfaces ---- */
+  .surf-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px}
+  .surf{border-radius:11px; border:1px solid var(--hair-card); padding:0; overflow:hidden}
+  .surf .chip{height:120px; border-bottom:1px solid var(--hair-card)}
+  .surf .meta{padding:14px}
+  .surf .nm{font-family:var(--mono); font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--mid); margin-bottom:6px}
+  .surf .hx{font-family:var(--mono); font-size:12px; color:var(--hi)}
+  .surf .use{font-size:11px; color:var(--lo); margin-top:6px; line-height:1.5}
+
+  /* ---- 02 Text ramp ---- */
+  .ramp-card{background:var(--s1); border:1px solid var(--hair-card); border-radius:11px; padding:26px}
+  .ramp-row{display:flex; align-items:baseline; justify-content:space-between; gap:20px; padding:14px 0; border-bottom:1px solid var(--hair-row)}
+  .ramp-row:last-child{border-bottom:0}
+  .ramp-row .sample{font-size:19px; font-weight:300}
+  .r-hi{color:var(--hi)} .r-mid{color:var(--mid)} .r-lo{color:var(--lo)}
+  .ramp-row .spec{text-align:right; white-space:nowrap}
+
+  /* ---- 03 Accents ---- */
+  .acc-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:14px}
+  .acc{border-radius:10px; border:1px solid var(--hair-card); overflow:hidden; background:var(--s1)}
+  .acc .band{height:76px}
+  .acc .m{padding:12px 14px}
+  .acc .nm{font-family:var(--mono); font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--mid); margin-bottom:5px}
+  .acc .hx{font-family:var(--mono); font-size:12px; color:var(--hi)}
+  .acc .use{font-size:10.5px; color:var(--lo); margin-top:5px; line-height:1.45}
+
+  /* ---- 04 Hub ---- */
+  .hub-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px}
+  .hub{background:var(--s1); border:1px solid var(--hair-card); border-radius:11px; padding:16px 18px}
+  .hub.left-rule{border-left-width:3px; border-left-style:solid}
+  .hub .role{font-family:var(--mono); font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--hi); margin-bottom:4px}
+  .hub .hx{font-family:var(--mono); font-size:11px; color:var(--mid)}
+  .hub .use{font-size:11px; color:var(--lo); margin-top:10px; line-height:1.5}
+  .attr-chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:20px}
+  .attr-chip{display:inline-flex; align-items:center; border-left:2px solid; padding:5px 10px 5px 9px; background:var(--s2); border-radius:0 5px 5px 0; font-family:var(--mono); font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--mid)}
+
+  /* ---- 05 Status ---- */
+  .status-wrap{display:flex; flex-direction:column; gap:18px}
+  .status-row{display:flex; flex-wrap:wrap; align-items:center; gap:12px}
+  .chip{display:inline-flex; align-items:center; gap:7px; padding:5px 11px; border-radius:999px; font-family:var(--mono); font-size:10.5px; letter-spacing:.18em; text-transform:uppercase; white-space:nowrap}
+  .chip .dot{width:8px; height:8px; border-radius:50%; flex:0 0 8px}
+  .chip .dot.hollow{background:transparent; border:1.5px solid currentColor}
+  .chip-held{color:var(--mid); border:1px dashed var(--mid); background:transparent}
+  .chip-confirmed{color:var(--cyan); border:1px solid rgba(34,211,238,.35); background:rgba(34,211,238,.08)}
+  .chip-seated{color:var(--hub-guest); border:1px solid rgba(52,211,153,.35); background:rgba(52,211,153,.08)}
+  .chip-closed{color:var(--lo); border:1px solid var(--hair-card); background:var(--s2)}
+  .chip-cancelled{color:var(--lo); border:1px solid var(--hair-card); background:var(--s2); text-decoration:line-through}
+  /* alarm weights, amber only */
+  .chip-alarm-outline{color:var(--amber); border:1px solid rgba(251,191,36,.55); background:transparent}
+  .chip-alarm-fill{color:var(--amber); border:1px solid rgba(251,191,36,.30); background:rgba(251,191,36,.12)}
+  .chip-alarm-solid{color:#1A1205; background:var(--amber); border:1px solid var(--amber); font-weight:400}
+  .pulse-dot{width:9px; height:9px; border-radius:50%; border:1.5px solid var(--mid); background:transparent; animation:pending 1.6s ease-in-out infinite}
+  .status-label{font-family:var(--mono); font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--lo); min-width:132px}
+  .never-red{margin-top:6px; font-family:var(--mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--amber); display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border:1px solid rgba(251,191,36,.30); background:rgba(251,191,36,.08); border-radius:6px}
+  /* split-pay dots */
+  .split-dots{display:flex; align-items:center; gap:8px}
+  .split-dots .d{width:10px; height:10px; border-radius:50%}
+  .d.locked{background:var(--hub-guest)}
+  .d.pending{background:transparent; border:1.5px solid var(--lo)}
+  .d.failed{background:var(--amber)}
+
+  @keyframes pending{0%,100%{opacity:1}50%{opacity:.35}}
+
+  /* ---- 06 Data-viz ---- */
+  .viz-block{display:grid; grid-template-columns:1fr 1fr; gap:20px}
+  .bars-single{display:flex; align-items:flex-end; gap:8px; height:120px; padding:14px; background:var(--s1); border:1px solid var(--hair-card); border-radius:11px}
+  .bars-single .bar{flex:1; background:var(--electric); border-radius:3px 3px 0 0}
+  .pc-ramp{display:flex; flex-direction:column; gap:0; background:var(--s1); border:1px solid var(--hair-card); border-radius:11px; overflow:hidden}
+  .pc-row{display:grid; grid-template-columns:14px 1fr auto; align-items:center; gap:12px; padding:9px 14px; border-bottom:1px solid var(--hair-row)}
+  .pc-row:last-child{border-bottom:0}
+  .pc-sw{width:14px; height:14px; border-radius:3px}
+  .pc-nm{font-family:var(--mono); font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--mid)}
+  .pc-hx{font-family:var(--mono); font-size:11px; color:var(--lo)}
+
+  /* ---- 07 Geometry ---- */
+  .geo-block{display:flex; flex-direction:column; gap:24px}
+  .geo-sub{font-family:var(--mono); font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:var(--lo); margin-bottom:12px}
+  .spacing-row{display:flex; align-items:flex-end; gap:16px; flex-wrap:wrap}
+  .sp{display:flex; flex-direction:column; align-items:center; gap:8px}
+  .sp .box{background:var(--electric); opacity:.85}
+  .sp .n{font-family:var(--mono); font-size:10px; color:var(--mid)}
+  .radii-row{display:flex; gap:16px; flex-wrap:wrap}
+  .rad{width:96px; height:72px; background:var(--s1); border:1px solid var(--hair-card); display:flex; align-items:flex-end; justify-content:center; padding:8px}
+  .rad span{font-family:var(--mono); font-size:10px; color:var(--mid)}
+  .hair-row{display:flex; flex-direction:column; gap:10px; max-width:420px}
+  .hairbar{display:flex; align-items:center; gap:14px}
+  .hairbar .line{flex:1; height:0}
+  .hairbar .cap{font-family:var(--mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--lo); white-space:nowrap; width:210px}
+
+  /* ---- 08 Motion ---- */
+  .motion-list{display:flex; flex-direction:column; gap:0; background:var(--s1); border:1px solid var(--hair-card); border-radius:11px; overflow:hidden; margin-bottom:20px}
+  .motion-row{display:grid; grid-template-columns:1fr auto; gap:16px; padding:11px 16px; border-bottom:1px solid var(--hair-row)}
+  .motion-row:last-child{border-bottom:0}
+  .motion-row .k{font-size:13px; color:var(--mid)}
+  .motion-row .v{font-family:var(--mono); font-size:11px; color:var(--hi); white-space:nowrap}
+  .motion-demos{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+  .mdemo{background:var(--s1); border:1px solid var(--hair-card); border-radius:11px; padding:20px; display:flex; flex-direction:column; align-items:flex-start; gap:14px}
+  .mdemo .cap{font-family:var(--mono); font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--lo)}
+  .btn{font-family:var(--mono); font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--cyan); background:rgba(34,211,238,.08); border:1px solid rgba(34,211,238,.35); border-radius:7px; padding:8px 14px; cursor:pointer; transition:background var(--t-hover) ease-out, transform var(--t-hover) ease-out}
+  .btn:hover{background:rgba(34,211,238,.14)}
+  .btn:active{transform:scale(.97)}
+  /* status-change demo chip: 160ms color-only */
+  #mchip{transition:color var(--t-status) linear, background-color var(--t-status) linear, border-color var(--t-status) linear}
+
+  /* ---- 09 Density ---- */
+  .dens-block{display:flex; flex-direction:column; gap:20px}
+  .dens-group .cap{font-family:var(--mono); font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--lo); margin-bottom:8px}
+  .dtable{background:var(--s1); border:1px solid var(--hair-card); border-radius:11px; overflow:hidden}
+  .drow{display:grid; grid-template-columns:1fr 90px 90px; align-items:center; gap:16px; padding:0 18px; border-bottom:1px solid var(--hair-row); color:var(--mid)}
+  .drow:last-child{border-bottom:0}
+  .drow .id{color:var(--hi)}
+  .drow .m{font-family:var(--mono); font-size:11px; color:var(--lo); text-align:right}
+  .drow.night{height:56px; font-size:15px}
+  .drow.standard{height:40px; font-size:14px}
+  .drow.compact{height:30px; font-size:13px}
+
+  /* ---- 10 Money ---- */
+  .money-block{display:grid; grid-template-columns:1fr 1fr; gap:20px}
+  .money-table{background:var(--s1); border:1px solid var(--hair-card); border-radius:11px; overflow:hidden}
+  .mrow{display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:12px 16px; border-bottom:1px solid var(--hair-row); align-items:center}
+  .mrow:last-child{border-bottom:0}
+  .mrow .cents{font-family:var(--mono); font-size:11px; color:var(--lo)}
+  .mrow .amt{font-family:var(--mono); font-size:14px; color:var(--hi); text-align:right; font-variant-numeric:tabular-nums}
+  .mrow .amt.neg{color:var(--amber)}
+  .money-live{background:var(--s1); border:1px solid var(--hair-card); border-radius:11px; padding:20px; display:flex; flex-direction:column; gap:14px}
+  .money-live input{background:var(--s2); border:1px solid var(--hair-card); border-radius:7px; padding:10px 12px; color:var(--hi); font-family:var(--mono); font-size:13px; width:100%}
+  .money-live .out{font-family:var(--mono); font-size:26px; color:var(--hi); font-variant-numeric:tabular-nums}
+  .money-live .out.neg{color:var(--amber)}
+  .flag-note{margin-top:20px; display:flex; align-items:flex-start; gap:12px; padding:14px 16px; background:var(--s1); border:1px solid var(--hair-card); border-left:3px solid var(--hub-marketing); border-radius:0 8px 8px 0}
+  .flag-note .flag{color:var(--amber); font-size:15px; line-height:1}
+  .flag-note .txt{font-size:12.5px; color:var(--mid); line-height:1.6}
+  .flag-note .txt b{color:var(--hi); font-weight:400}
+
+  code.inl{font-family:var(--mono); font-size:.92em; color:var(--cyan)}
+
+  @media (max-width:960px){
+    .rail{display:none}
+    .shell{padding:0 24px}
+  }
+  @media (max-width:720px){
+    .surf-grid,.acc-grid,.hub-grid,.viz-block,.money-block,.motion-demos{grid-template-columns:1fr}
+    .acc-grid{grid-template-columns:1fr 1fr}
+    h1{font-size:34px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none !important; transition:none !important; scroll-behavior:auto !important}
+  }
+</style>
+</head>
+<body>
+<a class="backlink" href="/deliverables">&larr; DELIVERABLES</a>
+
+<div class="shell">
+  <nav class="rail" aria-label="Section index">
+    <a href="#s01"><span class="rail-idx">01</span> Surfaces</a>
+    <a href="#s02"><span class="rail-idx">02</span> Text</a>
+    <a href="#s03"><span class="rail-idx">03</span> Accents</a>
+    <a href="#s04"><span class="rail-idx">04</span> Hub</a>
+    <a href="#s05"><span class="rail-idx">05</span> Status</a>
+    <a href="#s06"><span class="rail-idx">06</span> Data-viz</a>
+    <a href="#s07"><span class="rail-idx">07</span> Geometry</a>
+    <a href="#s08"><span class="rail-idx">08</span> Motion</a>
+    <a href="#s09"><span class="rail-idx">09</span> Density</a>
+    <a href="#s10"><span class="rail-idx">10</span> Money</a>
+  </nav>
+
+  <main>
+    <header class="ph">
+      <div class="kicker">ATLAS&nbsp;&nbsp;·&nbsp;&nbsp;v3.1 SYSTEM&nbsp;&nbsp;·&nbsp;&nbsp;NORMATIVE TOKENS</div>
+      <h1>Atlas v3.1 Tokens</h1>
+      <p class="lede">The operator system: midnight, red-free, dark-only. Every value below is live-rendered and stated inline in Menlo. This page is the single source of truth &mdash; ground is SURFACE-0 <span class="val">#04050A</span>.</p>
+    </header>
+
+    <!-- 01 SURFACES -->
+    <section id="s01">
+      <div class="sec-head"><span class="sec-num">01</span><h2>Surfaces</h2></div>
+      <p class="sec-note">Three grounds. SURFACE-0 is canvas; SURFACE-1 is cards and tables; SURFACE-2 is inputs and nested wells. Never invent a fourth.</p>
+      <div class="surf-grid">
+        <div class="surf">
+          <div class="chip" style="background:#04050A"></div>
+          <div class="meta"><div class="nm">SURFACE-0</div><div class="hx">#04050A</div><div class="use">Canvas &middot; page ground</div></div>
+        </div>
+        <div class="surf">
+          <div class="chip" style="background:#0B0E17"></div>
+          <div class="meta"><div class="nm">SURFACE-1</div><div class="hx">#0B0E17</div><div class="use">Cards &middot; tables</div></div>
+        </div>
+        <div class="surf">
+          <div class="chip" style="background:#111524"></div>
+          <div class="meta"><div class="nm">SURFACE-2</div><div class="hx">#111524</div><div class="use">Inputs &middot; wells</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 02 TEXT -->
+    <section id="s02">
+      <div class="sec-head"><span class="sec-num">02</span><h2>Text ramp</h2></div>
+      <p class="sec-note">Three weights of emphasis on SURFACE-1. Display is Helvetica Neue Light (200/300); row text is Regular (400). Mono labels/data are Menlo.</p>
+      <div class="ramp-card">
+        <div class="ramp-row">
+          <span class="sample r-hi">Beaulieu, table nine &mdash; seated 9:41</span>
+          <span class="spec"><span class="lbl">HI</span> &nbsp; <span class="val">#F5F7FF</span></span>
+        </div>
+        <div class="ramp-row">
+          <span class="sample r-mid">Party of 6 &middot; $1,500.00 minimum &middot; deposit held</span>
+          <span class="spec"><span class="lbl">MID</span> &nbsp; <span class="val">#B8C0D4</span></span>
+        </div>
+        <div class="ramp-row">
+          <span class="sample r-lo">Attribution &middot; ops rail &middot; secondary meta</span>
+          <span class="spec"><span class="lbl">LO</span> &nbsp; <span class="val">#6B7280</span></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 03 ACCENTS -->
+    <section id="s03">
+      <div class="sec-head"><span class="sec-num">03</span><h2>Accents</h2></div>
+      <p class="sec-note">Four accents, each with one job. Cyan is the primary interactive + focus color; violet is ops chrome; electric drives single-series data; amber is the only alarm color.</p>
+      <div class="acc-grid">
+        <div class="acc"><div class="band" style="background:#A78BFA"></div><div class="m"><div class="nm">VIOLET</div><div class="hx">#A78BFA</div><div class="use">Ops chrome &middot; active rail</div></div></div>
+        <div class="acc"><div class="band" style="background:#22D3EE"></div><div class="m"><div class="nm">CYAN</div><div class="hx">#22D3EE</div><div class="use">Primary action &middot; focus</div></div></div>
+        <div class="acc"><div class="band" style="background:#60A5FA"></div><div class="m"><div class="nm">ELECTRIC</div><div class="hx">#60A5FA</div><div class="use">Single-series data</div></div></div>
+        <div class="acc"><div class="band" style="background:#FBBF24"></div><div class="m"><div class="nm">AMBER</div><div class="hx">#FBBF24</div><div class="use">Alarms &middot; negative money</div></div></div>
+      </div>
+    </section>
+
+    <!-- 04 HUB -->
+    <section id="s04">
+      <div class="sec-head"><span class="sec-num">04</span><h2>Hub wayfinding</h2></div>
+      <p class="sec-note">Semantic hub colors appear only as rails, left-rules, and attribution chips &mdash; never as fills, text, or status. They answer &ldquo;which hub does this belong to.&rdquo;</p>
+      <div class="hub-grid">
+        <div class="hub left-rule" style="border-left-color:#34D399"><div class="role" style="color:#34D399">Guest</div><div class="hx">#34D399</div><div class="use">Host stand, arrivals, entitlements</div></div>
+        <div class="hub left-rule" style="border-left-color:#A78BFA"><div class="role" style="color:#A78BFA">Ops</div><div class="hx">#A78BFA</div><div class="use">Floor, bookings, closeout console</div></div>
+        <div class="hub left-rule" style="border-left-color:#FBBF24"><div class="role" style="color:#FBBF24">Marketing</div><div class="hx">#FBBF24</div><div class="use">Promoters, attribution, links</div></div>
+      </div>
+      <div class="attr-chips">
+        <span class="attr-chip" style="border-left-color:#34D399">GUEST&nbsp;&nbsp;·&nbsp;&nbsp;WALK-IN</span>
+        <span class="attr-chip" style="border-left-color:#A78BFA">OPS&nbsp;&nbsp;·&nbsp;&nbsp;HOST HOLD</span>
+        <span class="attr-chip" style="border-left-color:#FBBF24">MARKETING&nbsp;&nbsp;·&nbsp;&nbsp;NOVA LINK</span>
+      </div>
+    </section>
+
+    <!-- 05 STATUS -->
+    <section id="s05">
+      <div class="sec-head"><span class="sec-num">05</span><h2>Status system <span class="lbl" style="color:var(--cyan)">&nbsp;RATIFIED</span></h2></div>
+      <p class="sec-note">The booking lifecycle, red-free. HELD is a dashed MID chip with a pulsing hollow dot. Alarms are AMBER ONLY, in three escalating weights &mdash; at most one solid alarm per view.</p>
+      <div class="status-wrap">
+        <div class="status-row">
+          <span class="status-label">HELD</span>
+          <span class="chip chip-held"><span class="pulse-dot"></span>HELD</span>
+        </div>
+        <div class="status-row">
+          <span class="status-label">CONFIRMED</span>
+          <span class="chip chip-confirmed"><span class="dot" style="background:#22D3EE"></span>CONFIRMED</span>
+        </div>
+        <div class="status-row">
+          <span class="status-label">SEATED / GOOD</span>
+          <span class="chip chip-seated"><span class="dot" style="background:#34D399"></span>SEATED</span>
+          <span class="chip chip-seated"><span class="dot" style="background:#34D399"></span>GOOD</span>
+        </div>
+        <div class="status-row">
+          <span class="status-label">CLOSED</span>
+          <span class="chip chip-closed"><span class="dot" style="background:#6B7280"></span>CLOSED</span>
+        </div>
+        <div class="status-row">
+          <span class="status-label">CANCELLED</span>
+          <span class="chip chip-cancelled">CANCELLED</span>
+        </div>
+        <div class="status-row" style="margin-top:8px">
+          <span class="status-label">ALARM &middot; 3 WEIGHTS</span>
+          <span class="chip chip-alarm-outline">&#9651;&nbsp;ATTENTION</span>
+          <span class="chip chip-alarm-fill">&#9650;&nbsp;FAILED</span>
+          <span class="chip chip-alarm-solid">&#8856;&nbsp;BLOCKING</span>
+        </div>
+        <div class="status-row" style="margin-top:8px">
+          <span class="status-label">SPLIT-PAY DOTS</span>
+          <span class="split-dots">
+            <span class="d locked"></span><span class="d locked"></span><span class="d pending"></span><span class="d pending"></span><span class="d failed"></span>
+          </span>
+          <span class="val" style="margin-left:6px">&#9679;&nbsp;locked &middot; &#9675;&nbsp;pending &middot; &#9650;&nbsp;failed</span>
+        </div>
+      </div>
+      <div style="margin-top:20px"><span class="never-red">&#8856;&nbsp;NEVER RED &mdash; EVEN FOR ERRORS. ALARMS ESCALATE THROUGH AMBER.</span></div>
+    </section>
+
+    <!-- 06 DATA-VIZ -->
+    <section id="s06">
+      <div class="sec-head"><span class="sec-num">06</span><h2>Data-viz</h2></div>
+      <p class="sec-note">Single-series is always ELECTRIC <span class="val">#60A5FA</span>. Multi-category uses the fixed 7-slot palette in the order below &mdash; slot assignment never changes across views.</p>
+      <div class="viz-block">
+        <div>
+          <div class="geo-sub">SINGLE-SERIES &middot; ELECTRIC</div>
+          <div class="bars-single" aria-hidden="true">
+            <div class="bar" style="height:42%"></div>
+            <div class="bar" style="height:63%"></div>
+            <div class="bar" style="height:38%"></div>
+            <div class="bar" style="height:81%"></div>
+            <div class="bar" style="height:55%"></div>
+            <div class="bar" style="height:72%"></div>
+            <div class="bar" style="height:48%"></div>
+          </div>
+        </div>
+        <div>
+          <div class="geo-sub">CATEGORICAL &middot; 7 SLOTS &middot; ORDER FIXED</div>
+          <div class="pc-ramp">
+            <div class="pc-row"><span class="pc-sw" style="background:#c55285"></span><span class="pc-nm">--pc-taste</span><span class="pc-hx">#c55285</span></div>
+            <div class="pc-row"><span class="pc-sw" style="background:#933e92"></span><span class="pc-nm">--pc-identity</span><span class="pc-hx">#933e92</span></div>
+            <div class="pc-row"><span class="pc-sw" style="background:#6f52b9"></span><span class="pc-nm">--pc-crews</span><span class="pc-hx">#6f52b9</span></div>
+            <div class="pc-row"><span class="pc-sw" style="background:#129db0"></span><span class="pc-nm">--pc-venues</span><span class="pc-hx">#129db0</span></div>
+            <div class="pc-row"><span class="pc-sw" style="background:#618aeb"></span><span class="pc-nm">--pc-bookings</span><span class="pc-hx">#618aeb</span></div>
+            <div class="pc-row"><span class="pc-sw" style="background:#b48706"></span><span class="pc-nm">--pc-revenue</span><span class="pc-hx">#b48706</span></div>
+            <div class="pc-row"><span class="pc-sw" style="background:#ac4b06"></span><span class="pc-nm">--pc-marketing</span><span class="pc-hx">#ac4b06</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 07 GEOMETRY -->
+    <section id="s07">
+      <div class="sec-head"><span class="sec-num">07</span><h2>Geometry</h2></div>
+      <p class="sec-note">Base-4 spacing. Controls round to 7&ndash;8px, cards to 10&ndash;12px, chips are full pills. Hairlines carry three weights by context.</p>
+      <div class="geo-block">
+        <div>
+          <div class="geo-sub">SPACING &middot; BASE-4</div>
+          <div class="spacing-row">
+            <div class="sp"><div class="box" style="width:4px;height:32px"></div><span class="n">4</span></div>
+            <div class="sp"><div class="box" style="width:8px;height:32px"></div><span class="n">8</span></div>
+            <div class="sp"><div class="box" style="width:12px;height:32px"></div><span class="n">12</span></div>
+            <div class="sp"><div class="box" style="width:16px;height:32px"></div><span class="n">16</span></div>
+            <div class="sp"><div class="box" style="width:24px;height:32px"></div><span class="n">24</span></div>
+            <div class="sp"><div class="box" style="width:32px;height:32px"></div><span class="n">32</span></div>
+            <div class="sp"><div class="box" style="width:48px;height:32px"></div><span class="n">48</span></div>
+          </div>
+        </div>
+        <div>
+          <div class="geo-sub">RADII</div>
+          <div class="radii-row">
+            <div class="rad" style="border-radius:7px"><span>control &middot; 7px</span></div>
+            <div class="rad" style="border-radius:11px"><span>card &middot; 11px</span></div>
+            <div class="rad" style="border-radius:999px; width:120px"><span>chip &middot; pill</span></div>
+          </div>
+        </div>
+        <div>
+          <div class="geo-sub">HAIRLINES</div>
+          <div class="hair-row">
+            <div class="hairbar"><span class="cap">CHROME &middot; rgba .12</span><span class="line" style="border-top:1px solid rgba(255,255,255,.12)"></span></div>
+            <div class="hairbar"><span class="cap">CARD &middot; rgba .08</span><span class="line" style="border-top:1px solid rgba(255,255,255,.08)"></span></div>
+            <div class="hairbar"><span class="cap">ROW &middot; rgba .05</span><span class="line" style="border-top:1px solid rgba(255,255,255,.05)"></span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 08 MOTION -->
+    <section id="s08">
+      <div class="sec-head"><span class="sec-num">08</span><h2>Motion</h2></div>
+      <p class="sec-note">Motion is restrained and never decorative. Status changes are color-only &mdash; nothing changes position. Reduced-motion collapses all of it.</p>
+      <div class="motion-list">
+        <div class="motion-row"><span class="k">Hover / press</span><span class="v">120ms ease-out</span></div>
+        <div class="motion-row"><span class="k">Panels &middot; enter / exit</span><span class="v">200ms</span></div>
+        <div class="motion-row"><span class="k">Status change &middot; color only</span><span class="v">160ms &middot; no reflow</span></div>
+        <div class="motion-row"><span class="k">Pending pulse</span><span class="v">1.6s &middot; opacity 1 &rarr; .35</span></div>
+      </div>
+      <div class="motion-demos">
+        <div class="mdemo">
+          <span class="cap">PENDING PULSE &middot; 1.6s</span>
+          <span class="chip chip-held"><span class="pulse-dot"></span>HELD</span>
+        </div>
+        <div class="mdemo">
+          <span class="cap">STATUS CHANGE &middot; 160ms COLOR-ONLY</span>
+          <span id="mchip" class="chip chip-held"><span id="mdot" class="dot hollow">&nbsp;</span><span id="mtxt">HELD</span></span>
+          <button class="btn" id="cycle" type="button">Advance status</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 09 DENSITY -->
+    <section id="s09">
+      <div class="sec-head"><span class="sec-num">09</span><h2>Density</h2></div>
+      <p class="sec-note">Three row heights by context. NIGHT is for host-stand and door &mdash; text &ge;15px, targets &ge;48px. STANDARD is the console default. COMPACT is for dense back-office ledgers.</p>
+      <div class="dens-block">
+        <div class="dens-group">
+          <div class="cap">NIGHT &middot; 56px &middot; text &ge;15px &middot; targets &ge;48px</div>
+          <div class="dtable">
+            <div class="drow night"><span class="id">T-09 &middot; Beaulieu</span><span class="m">PARTY 6</span><span class="m">$1,500.00</span></div>
+            <div class="drow night"><span class="id">T-04 &middot; Solène</span><span class="m">PARTY 4</span><span class="m">$900.00</span></div>
+          </div>
+        </div>
+        <div class="dens-group">
+          <div class="cap">STANDARD &middot; 40px &middot; console default</div>
+          <div class="dtable">
+            <div class="drow standard"><span class="id">T-09 &middot; Beaulieu</span><span class="m">PARTY 6</span><span class="m">$1,500.00</span></div>
+            <div class="drow standard"><span class="id">T-04 &middot; Solène</span><span class="m">PARTY 4</span><span class="m">$900.00</span></div>
+            <div class="drow standard"><span class="id">T-02 &middot; Marchetti</span><span class="m">PARTY 2</span><span class="m">$450.00</span></div>
+          </div>
+        </div>
+        <div class="dens-group">
+          <div class="cap">COMPACT &middot; 30px &middot; dense ledgers</div>
+          <div class="dtable">
+            <div class="drow compact"><span class="id">T-09 &middot; Beaulieu</span><span class="m">PARTY 6</span><span class="m">$1,500.00</span></div>
+            <div class="drow compact"><span class="id">T-04 &middot; Solène</span><span class="m">PARTY 4</span><span class="m">$900.00</span></div>
+            <div class="drow compact"><span class="id">T-02 &middot; Marchetti</span><span class="m">PARTY 2</span><span class="m">$450.00</span></div>
+            <div class="drow compact"><span class="id">T-11 &middot; Okonkwo</span><span class="m">PARTY 8</span><span class="m">$2,000.00</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10 MONEY -->
+    <section id="s10">
+      <div class="sec-head"><span class="sec-num">10</span><h2>Money &amp; flags</h2></div>
+      <p class="sec-note">All money is Menlo, tabular, formatted from integer cents &mdash; never from floats. Negative values render amber and parenthesised. <code class="inl">150000</code> &rarr; <code class="inl">$1,500.00</code>.</p>
+      <div class="money-block">
+        <div class="money-table">
+          <div class="mrow"><span class="cents">cents 150000</span><span class="amt" id="ex1">$1,500.00</span></div>
+          <div class="mrow"><span class="cents">cents 45000</span><span class="amt" id="ex2">$450.00</span></div>
+          <div class="mrow"><span class="cents">cents 99</span><span class="amt" id="ex3">$0.99</span></div>
+          <div class="mrow"><span class="cents">cents 0</span><span class="amt" id="ex4">$0.00</span></div>
+          <div class="mrow"><span class="cents">cents -3250</span><span class="amt neg" id="ex5">($32.50)</span></div>
+          <div class="mrow"><span class="cents">cents -150000</span><span class="amt neg" id="ex6">($1,500.00)</span></div>
+        </div>
+        <div class="money-live">
+          <span class="lbl">LIVE &middot; INTEGER CENTS &rarr; USD</span>
+          <input id="centsIn" class="mono" type="text" inputmode="numeric" value="150000" aria-label="integer cents">
+          <div class="out" id="centsOut">$1,500.00</div>
+          <span class="val" style="color:var(--lo)">Try a negative value &mdash; it turns amber, parenthesised.</span>
+        </div>
+      </div>
+      <div class="flag-note">
+        <span class="flag">&#9873;</span>
+        <span class="txt"><b>Take-rate is a &#9873; placeholder.</b> It surfaces in venue reporting only &mdash; never in marketing UI, never as venue-facing rate copy. Render the flag glyph where a rate would otherwise appear until the reporting contract lands.</span>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+(function(){
+  // --- 10 Money: format integer cents to USD, amber-parenthesised when negative ---
+  function fmtCents(raw){
+    var neg = raw < 0;
+    var v = Math.abs(raw);
+    var dollars = Math.floor(v / 100);
+    var cents = String(v % 100).padStart(2, '0');
+    var d = dollars.toLocaleString('en-US');
+    var s = '$' + d + '.' + cents;
+    return neg ? '(' + s + ')' : s;
+  }
+  var input = document.getElementById('centsIn');
+  var out = document.getElementById('centsOut');
+  function update(){
+    var t = (input.value || '').trim();
+    var n = parseInt(t.replace(/[^0-9-]/g, ''), 10);
+    if (isNaN(n)) { out.textContent = '$0.00'; out.classList.remove('neg'); return; }
+    out.textContent = fmtCents(n);
+    out.classList.toggle('neg', n < 0);
+  }
+  if (input) { input.addEventListener('input', update); update(); }
+
+  // --- 08 Motion: 160ms color-only status advance (no reflow) ---
+  var chip = document.getElementById('mchip');
+  var dot = document.getElementById('mdot');
+  var txt = document.getElementById('mtxt');
+  var btn = document.getElementById('cycle');
+  var states = [
+    {cls:'chip chip-held',      label:'HELD',      dotHollow:true,  dotColor:''},
+    {cls:'chip chip-confirmed', label:'CONFIRMED', dotHollow:false, dotColor:'#22D3EE'},
+    {cls:'chip chip-seated',    label:'SEATED',    dotHollow:false, dotColor:'#34D399'},
+    {cls:'chip chip-closed',    label:'CLOSED',    dotHollow:false, dotColor:'#6B7280'}
+  ];
+  var i = 0;
+  if (btn) {
+    btn.addEventListener('click', function(){
+      i = (i + 1) % states.length;
+      var st = states[i];
+      chip.className = st.cls;
+      txt.textContent = st.label;
+      if (st.dotHollow) {
+        dot.className = 'dot hollow';
+        dot.style.background = 'transparent';
+      } else {
+        dot.className = 'dot';
+        dot.style.background = st.dotColor;
+      }
+    });
+  }
+})();
+</script>
+</body>
+</html>

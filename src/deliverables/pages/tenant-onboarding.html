@@ -1,0 +1,805 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atlas Tenant Onboarding</title>
+<style>
+  :root{
+    --s0:#04050A; --s1:#0B0E17; --s2:#111524;
+    --hi:#F5F7FF; --mid:#B8C0D4; --lo:#6B7280;
+    --violet:#A78BFA; --cyan:#22D3EE; --electric:#60A5FA; --amber:#FBBF24;
+    --mint:#34D399;
+    --mono:Menlo,Monaco,"SF Mono",Consolas,monospace;
+    --sans:"Helvetica Neue",Helvetica,Arial,sans-serif;
+    --hair-chrome:rgba(255,255,255,.12);
+    --hair-card:rgba(255,255,255,.08);
+    --hair-row:rgba(255,255,255,.05);
+    --glass:rgba(255,255,255,.05);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--s0); color:var(--mid);
+    font-family:var(--sans); font-weight:300;
+    -webkit-font-smoothing:antialiased;
+    padding-top:52px;
+  }
+  a{color:inherit;text-decoration:none}
+  :focus-visible{outline:2px solid var(--cyan); outline-offset:2px}
+
+  /* back-link */
+  .backlink{
+    position:fixed; top:0; left:0; right:0; z-index:60;
+    height:40px; display:flex; align-items:center; gap:6px;
+    padding:0 24px;
+    font-family:var(--mono); font-size:11px; letter-spacing:.24em; color:var(--lo);
+    background:rgba(4,5,10,.82); backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--hair-chrome);
+    text-transform:uppercase;
+  }
+  .backlink:hover{color:var(--mid)}
+
+  /* header */
+  .wrap{max-width:1180px;margin:0 auto;padding:34px 32px 120px}
+  header.doc{border-bottom:1px solid var(--hair-chrome);padding-bottom:24px;margin-bottom:8px}
+  .kicker{font-family:var(--mono);font-size:10.5px;letter-spacing:.26em;color:var(--lo);text-transform:uppercase;margin-bottom:12px}
+  h1{margin:0;font-weight:200;font-size:34px;color:var(--hi);letter-spacing:-.01em}
+  .lede{margin:12px 0 0;max-width:660px;font-size:13.5px;line-height:1.7;color:var(--mid)}
+  .lede .c{font-family:var(--mono);font-size:12px;color:var(--cyan)}
+
+  /* step-nav */
+  .stepnav{
+    position:sticky; top:40px; z-index:50;
+    display:flex; flex-wrap:wrap; gap:8px;
+    padding:14px 0; margin:0 0 28px;
+    background:linear-gradient(180deg,var(--s0) 70%,rgba(4,5,10,0));
+  }
+  .step{
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--mid); background:var(--glass);
+    border:1px solid var(--hair-chrome); border-radius:8px;
+    padding:9px 14px; cursor:pointer; display:flex; align-items:center; gap:8px;
+    transition:background .12s ease,border-color .12s ease,color .12s ease;
+    -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
+  }
+  .step .n{color:var(--lo);font-size:9.5px}
+  .step:hover{border-color:rgba(34,211,238,.4)}
+  .step[aria-current="true"]{color:var(--hi);border-color:var(--cyan);background:rgba(34,211,238,.10)}
+  .step[aria-current="true"] .n{color:var(--cyan)}
+
+  /* screen block: framed + notes */
+  .screen{display:none; grid-template-columns:minmax(0,1fr) 296px; gap:26px; align-items:start}
+  .screen.active{display:grid}
+  @media (max-width:900px){ .screen.active{grid-template-columns:1fr} }
+
+  .screen-head{grid-column:1 / -1;margin:6px 0 4px}
+  .screen-head .wf{font-family:var(--mono);font-size:10px;letter-spacing:.24em;color:var(--violet);text-transform:uppercase}
+  .screen-head h2{margin:6px 0 0;font-weight:200;font-size:22px;color:var(--hi);letter-spacing:-.01em}
+
+  /* the framed device screen */
+  .frame{
+    border:1px solid var(--hair-card); border-radius:12px; background:var(--s1);
+    overflow:hidden; position:relative;
+  }
+  .frame::before{
+    content:"WIREFRAME"; position:absolute; top:10px; right:12px;
+    font-family:var(--mono); font-size:8.5px; letter-spacing:.28em; color:var(--lo);
+    opacity:.5;
+  }
+  .fbar{
+    display:flex;align-items:center;gap:7px;
+    padding:12px 16px;border-bottom:1px solid var(--hair-card);
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;color:var(--lo);text-transform:uppercase;
+  }
+  .fbar .dot{width:7px;height:7px;border-radius:50%;border:1px solid var(--hair-chrome)}
+  .fbody{padding:22px 20px}
+
+  /* NOTES column */
+  .notes{
+    border-left:2px solid var(--violet); padding:2px 0 2px 18px;
+    position:sticky; top:104px;
+  }
+  @media (max-width:900px){ .notes{position:static} }
+  .notes .nt{font-family:var(--mono);font-size:9.5px;letter-spacing:.24em;color:var(--violet);text-transform:uppercase;margin-bottom:14px}
+  .notes ul{list-style:none;margin:0;padding:0}
+  .notes li{position:relative;padding:0 0 15px 16px;font-size:12.5px;line-height:1.6;color:var(--mid)}
+  .notes li::before{content:"—";position:absolute;left:0;color:var(--lo)}
+  .notes li b{color:var(--hi);font-weight:400}
+  .notes li .m{font-family:var(--mono);font-size:11px;color:var(--cyan)}
+
+  /* mono label helper */
+  .mlab{font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;color:var(--lo);text-transform:uppercase}
+
+  /* ===== W0 CHECKLIST ===== */
+  .dayrow{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:6px}
+  .dayN{font-family:var(--mono);font-size:13px;letter-spacing:.14em;color:var(--hi);text-transform:uppercase}
+  .dayN span{color:var(--lo)}
+  .pace{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;display:flex;align-items:center;gap:7px}
+  .pace .glyph{font-size:11px}
+  .pace.ontrack{color:var(--mint)}
+  .pace.behind{color:var(--amber)}
+  .pbar{height:6px;border-radius:3px;background:var(--s2);overflow:hidden;margin:14px 0 4px}
+  .pbar>i{display:block;height:100%;background:var(--electric);border-radius:3px}
+  .pbar-legend{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--lo);text-transform:uppercase;margin-bottom:22px}
+
+  .gatehead{font-family:var(--mono);font-size:9.5px;letter-spacing:.22em;color:var(--mid);text-transform:uppercase;margin:0 0 12px;display:flex;align-items:center;gap:8px}
+  .gatehead .req{color:var(--amber)}
+  .gatehead .cnt{color:var(--lo)}
+
+  .ck{
+    display:flex;align-items:center;gap:14px;
+    padding:14px 14px;border:1px solid var(--hair-card);border-radius:9px;
+    background:var(--s1);margin-bottom:9px;
+  }
+  .ck .box{
+    width:20px;height:20px;flex:0 0 20px;border-radius:6px;border:1.5px solid var(--lo);
+    display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--s0);
+  }
+  .ck.done .box{background:var(--mint);border-color:var(--mint);color:#04170F}
+  .ck.done{border-color:rgba(52,211,153,.28)}
+  .ck.locked{opacity:.62}
+  .ck.locked .box{border-style:dashed;color:var(--lo)}
+  .ck .txt{flex:1;min-width:0}
+  .ck .ttl{font-size:14px;color:var(--hi);font-weight:400}
+  .ck.locked .ttl{color:var(--mid)}
+  .ck .sub{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--lo);text-transform:uppercase;margin-top:4px}
+  .ck .status{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;white-space:nowrap}
+  .ck .status.mint{color:var(--mint)}
+  .ck .status.cyan{color:var(--cyan)}
+  .ck .status.amber{color:var(--amber)}
+  .ck .status.lo{color:var(--lo)}
+  .divider{display:flex;align-items:center;gap:12px;margin:24px 0 16px}
+  .divider .line{flex:1;height:1px;background:var(--hair-card)}
+  .divider .lbl{font-family:var(--mono);font-size:9px;letter-spacing:.24em;color:var(--lo);text-transform:uppercase}
+
+  /* ===== W1 PROVISION FORM ===== */
+  .form{display:grid;grid-template-columns:1fr 1fr;gap:16px 18px}
+  .fld{display:flex;flex-direction:column;gap:7px}
+  .fld.wide{grid-column:1 / -1}
+  .fld label{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;color:var(--lo);text-transform:uppercase}
+  .fld label .rq{color:var(--amber);margin-left:4px}
+  .inp{
+    background:var(--s2);border:1px solid var(--hair-card);border-radius:8px;
+    padding:11px 12px;color:var(--hi);font-family:var(--sans);font-size:14px;font-weight:300;
+    width:100%;
+  }
+  .inp::placeholder{color:var(--lo)}
+  select.inp{appearance:none;font-family:var(--mono);font-size:12px;letter-spacing:.04em;cursor:pointer;
+    background-image:linear-gradient(45deg,transparent 50%,var(--lo) 50%),linear-gradient(135deg,var(--lo) 50%,transparent 50%);
+    background-position:calc(100% - 16px) 17px,calc(100% - 11px) 17px;background-size:5px 5px,5px 5px;background-repeat:no-repeat;}
+  .fld .hint{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;color:var(--lo)}
+  .money-preview{font-family:var(--mono);font-size:12px;color:var(--cyan)}
+  .formfoot{grid-column:1 / -1;display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:6px;padding-top:18px;border-top:1px solid var(--hair-card);flex-wrap:wrap}
+  .formfoot .note{font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--lo)}
+
+  .btn{
+    font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    border-radius:8px;padding:11px 18px;cursor:pointer;border:1px solid transparent;
+    transition:background .12s ease,border-color .12s ease,transform .05s ease;
+  }
+  .btn:active{transform:translateY(1px)}
+  .btn.cyan{background:rgba(34,211,238,.12);color:var(--cyan);border-color:rgba(34,211,238,.4)}
+  .btn.cyan:hover{background:rgba(34,211,238,.2)}
+  .btn.ghost{background:transparent;color:var(--mid);border-color:var(--hair-chrome)}
+  .btn.ghost:hover{border-color:var(--mid)}
+  .btn.mint{background:var(--mint);color:#04170F;border-color:var(--mint);font-weight:400}
+  .btn.mint:hover{background:#2ec08a}
+  .btn[disabled]{opacity:.4;cursor:not-allowed}
+  .btn[disabled]:active{transform:none}
+
+  /* ===== W2 CONNECTORS ===== */
+  .conn{
+    display:flex;align-items:center;gap:16px;
+    padding:16px 16px;border-radius:10px;margin-bottom:11px;background:var(--s1);
+    border:1.5px solid var(--hair-card);
+  }
+  .conn.live{border:1.5px solid var(--mint)}
+  .conn.stub{border:1.5px dashed var(--lo)}
+  .conn.expired{border:1.5px solid var(--amber);background:rgba(251,191,36,.05)}
+  .conn .ico{
+    width:38px;height:38px;flex:0 0 38px;border-radius:9px;background:var(--s2);
+    border:1px solid var(--hair-card);display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:13px;color:var(--mid);letter-spacing:.02em;
+  }
+  .conn .meta{flex:1;min-width:0}
+  .conn .cname{font-size:14px;color:var(--hi);font-weight:400}
+  .conn .cstate{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;margin-top:5px;display:flex;align-items:center;gap:8px}
+  .cstate.mint{color:var(--mint)}
+  .cstate.stub{color:var(--lo)}
+  .cstate.amber{color:var(--amber)}
+  .conn .stamp{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;color:var(--lo);white-space:nowrap;text-align:right}
+  .conn .stamp b{color:var(--mid);font-weight:400;display:block;margin-bottom:3px}
+
+  /* ===== W3 GRANTS ===== */
+  .gtable{width:100%;border-collapse:collapse;font-size:13px}
+  .gtable th{
+    font-family:var(--mono);font-size:9px;letter-spacing:.18em;color:var(--lo);text-transform:uppercase;
+    text-align:left;padding:0 12px 12px;font-weight:400;border-bottom:1px solid var(--hair-card);
+  }
+  .gtable th.c{text-align:center}
+  .gtable td{padding:14px 12px;border-bottom:1px solid var(--hair-row);vertical-align:middle}
+  .gtable td.c{text-align:center}
+  .gtable tr:last-child td{border-bottom:none}
+  .gtable .rsrc{color:var(--hi);font-weight:400}
+  .gtable .rsrc .d{font-family:var(--mono);font-size:10px;letter-spacing:.05em;color:var(--lo);display:block;margin-top:3px;text-transform:none}
+  .see{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;color:var(--mint);text-transform:uppercase}
+  .see .g{margin-right:5px}
+
+  /* DO toggle */
+  .tg{position:relative;display:inline-flex;align-items:center;cursor:pointer}
+  .tg input{position:absolute;opacity:0;width:0;height:0}
+  .tg .track{width:38px;height:20px;border-radius:11px;background:var(--s2);border:1px solid var(--hair-chrome);transition:background .16s ease,border-color .16s ease;position:relative}
+  .tg .track::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--lo);transition:transform .16s ease,background .16s ease}
+  .tg input:checked + .track{background:rgba(34,211,238,.18);border-color:var(--cyan)}
+  .tg input:checked + .track::after{transform:translateX(18px);background:var(--cyan)}
+  .tg input:focus-visible + .track{outline:2px solid var(--cyan);outline-offset:2px}
+  /* scope tooltip on hover only */
+  .scopewrap{position:relative;display:inline-block}
+  .scopewrap .tip{
+    position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);
+    background:var(--s2);border:1px solid var(--hair-chrome);border-radius:6px;
+    padding:6px 9px;font-family:var(--mono);font-size:10px;letter-spacing:.03em;color:var(--cyan);
+    white-space:nowrap;opacity:0;visibility:hidden;transition:opacity .12s ease;pointer-events:none;z-index:20;
+  }
+  .scopewrap .tip::after{content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--hair-chrome)}
+  .scopewrap:hover .tip,.scopewrap:focus-within .tip{opacity:1;visibility:visible}
+
+  .gfoot{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:20px;flex-wrap:wrap}
+  .gfoot .sel{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--lo);text-transform:uppercase}
+  .gfoot .sel b{color:var(--cyan);font-weight:400}
+
+  /* W3b confirm sheet */
+  .sheet{
+    margin-top:20px;border:1px solid rgba(34,211,238,.32);border-radius:12px;
+    background:linear-gradient(180deg,rgba(34,211,238,.06),transparent 60%),var(--s1);
+    padding:20px;display:none;
+  }
+  .sheet.open{display:block}
+  .sheet .sh{font-family:var(--mono);font-size:9.5px;letter-spacing:.22em;color:var(--cyan);text-transform:uppercase;margin-bottom:14px}
+  .worked{
+    border:1px solid var(--hair-card);border-radius:8px;background:var(--s2);
+    padding:16px;font-size:13px;line-height:1.7;color:var(--mid);
+  }
+  .worked .lead{color:var(--hi);font-weight:400;margin-bottom:8px;display:block}
+  .worked code{font-family:var(--mono);font-size:11.5px;color:var(--cyan);background:rgba(34,211,238,.08);padding:1px 5px;border-radius:4px}
+  .worked .allow{color:var(--mint)}
+  .worked .deny{color:var(--amber)}
+  .sheet .sheetfoot{display:flex;gap:10px;margin-top:16px}
+
+  /* ===== W4 DATA CONTRACT ===== */
+  .flows{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+  @media (max-width:640px){ .flows{grid-template-columns:1fr} }
+  .flowcol{border:1px solid var(--hair-card);border-radius:10px;background:var(--s1);padding:16px 14px}
+  .flowcol.never{border-color:rgba(251,191,36,.3);background:rgba(251,191,36,.04)}
+  .flowcol .fh{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:7px}
+  .flowcol.in .fh{color:var(--mint)}
+  .flowcol.out .fh{color:var(--electric)}
+  .flowcol.never .fh{color:var(--amber)}
+  .flowcol ul{list-style:none;margin:0;padding:0}
+  .flowcol li{font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--mid);padding:8px 0;border-bottom:1px solid var(--hair-row);display:flex;align-items:center;gap:8px}
+  .flowcol li:last-child{border-bottom:none}
+  .flowcol li .g{font-size:10px}
+  .flowcol.in li .g{color:var(--mint)}
+  .flowcol.out li .g{color:var(--electric)}
+  .flowcol.never li{color:var(--mid)}
+  .flowcol.never li .g{color:var(--amber)}
+  .flowcol.never li s{color:var(--lo)}
+
+  .prereq{margin-top:22px;border-top:1px solid var(--hair-card);padding-top:18px}
+  .prereq .ph{font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;color:var(--lo);text-transform:uppercase;margin-bottom:12px}
+  .prereq .pr{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:12.5px;color:var(--mid)}
+  .prereq .pr .g{font-family:var(--mono);font-size:12px;width:16px;text-align:center}
+  .prereq .pr.ok .g{color:var(--mint)}
+  .prereq .pr.no .g{color:var(--amber)}
+  .prereq .pr.no{color:var(--hi)}
+  .golive{margin-top:22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .golive .gate-note{font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--amber)}
+  .btn.golive-btn{font-size:13px;padding:14px 28px;letter-spacing:.18em}
+
+  .footline{margin-top:56px;border-top:1px solid var(--hair-card);padding-top:16px;font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--lo);text-transform:uppercase;line-height:2}
+
+  @media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
+</style>
+</head>
+<body>
+
+<a class="backlink" href="/deliverables">← DELIVERABLES</a>
+
+<main class="wrap">
+  <header class="doc">
+    <div class="kicker">ATLAS&nbsp;&nbsp;·&nbsp;&nbsp;P4 · TENANT ONBOARDING&nbsp;&nbsp;·&nbsp;&nbsp;LOFI WIREFRAMES · v3.1 STYLING</div>
+    <h1>Tenant Onboarding</h1>
+    <p class="lede">A 30-day path from provisioned venue to live tenant. Five wireframes — checklist, provision, connectors, grants, data contract — each paired with the design rationale that shapes it. Backend contract: <span class="c">adippa2580/ATLAS</span>.</p>
+  </header>
+
+  <nav class="stepnav" aria-label="Wireframe steps">
+    <button class="step" data-go="w0" aria-current="true"><span class="n">W0</span> Checklist Home</button>
+    <button class="step" data-go="w1"><span class="n">W1</span> Provision</button>
+    <button class="step" data-go="w2"><span class="n">W2</span> Connectors</button>
+    <button class="step" data-go="w3"><span class="n">W3</span> Grants</button>
+    <button class="step" data-go="w4"><span class="n">W4</span> Data Contract</button>
+  </nav>
+
+  <!-- ================= W0 CHECKLIST HOME ================= -->
+  <section class="screen active" id="w0">
+    <div class="screen-head">
+      <div class="wf">W0 · Checklist Home</div>
+      <h2>The gated 30-day checklist</h2>
+    </div>
+
+    <div class="frame">
+      <div class="fbar"><span class="dot"></span><span class="dot"></span><span class="dot"></span>&nbsp;&nbsp;MERIDIAN ROOM · ONBOARDING</div>
+      <div class="fbody">
+        <div class="dayrow">
+          <div class="dayN">DAY <span>08</span> OF 30</div>
+          <div class="pace ontrack"><span class="glyph">●</span> ON PACE · 3 OF 5 GATES</div>
+        </div>
+        <div class="pbar"><i style="width:26.6%"></i></div>
+        <div class="pbar-legend"><span>DAY 0 · PROVISIONED</span><span>DAY 30 · GO LIVE</span></div>
+
+        <div class="gatehead"><span class="req">⚑ REQUIRED GATES</span><span class="cnt">· must clear all to go live</span></div>
+
+        <div class="ck done">
+          <div class="box">●</div>
+          <div class="txt"><div class="ttl">Tenant provisioned</div><div class="sub">VENUE · TIMEZONE · CURRENCY SET</div></div>
+          <div class="status mint">● DONE</div>
+        </div>
+        <div class="ck done">
+          <div class="box">●</div>
+          <div class="txt"><div class="ttl">Payments connector live</div><div class="sub">SQUARE · CONNECTED DAY 3</div></div>
+          <div class="status mint">● DONE</div>
+        </div>
+        <div class="ck done">
+          <div class="box">●</div>
+          <div class="txt"><div class="ttl">Operator grants assigned</div><div class="sub">4 ROLES · SCOPES MAPPED</div></div>
+          <div class="status mint">● DONE</div>
+        </div>
+        <div class="ck">
+          <div class="box"></div>
+          <div class="txt"><div class="ttl">Connect remaining sources</div><div class="sub">2 STILL ON SEEDED DATA</div></div>
+          <div class="status cyan">◐ IN PROGRESS</div>
+        </div>
+        <div class="ck locked">
+          <div class="box">○</div>
+          <div class="txt"><div class="ttl">Review &amp; accept data contract</div><div class="sub">UNLOCKS WHEN CONNECTORS LIVE</div></div>
+          <div class="status lo">△ LOCKED</div>
+        </div>
+
+        <div class="divider"><span class="lbl">OPTIONAL · RECOMMENDED BEFORE NIGHT ONE</span><span class="line"></span></div>
+
+        <div class="ck done">
+          <div class="box">●</div>
+          <div class="txt"><div class="ttl">Import floor plan</div><div class="sub">18 TABLES MAPPED</div></div>
+          <div class="status mint">● DONE</div>
+        </div>
+        <div class="ck">
+          <div class="box"></div>
+          <div class="txt"><div class="ttl">Invite promoters</div><div class="sub">0 OF ~6 EXPECTED</div></div>
+          <div class="status lo">○ SKIPPED FOR NOW</div>
+        </div>
+        <div class="ck">
+          <div class="box"></div>
+          <div class="txt"><div class="ttl">Set closeout defaults</div><div class="sub">USING PLATFORM DEFAULTS</div></div>
+          <div class="status lo">○ OPTIONAL</div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="notes">
+      <div class="nt">NOTES · Rationale</div>
+      <ul>
+        <li><b>Day N of 30 is a horizon, not a deadline.</b> The pace indicator (<span class="m">● ON PACE</span> mint / <span class="m">◐ BEHIND</span> amber) reads gates-cleared against days-elapsed — never shows red.</li>
+        <li><b>Required gates sit above the line;</b> optional items below a literal divider. A tenant can go live without a single optional item.</li>
+        <li>Gates are <b>ordered and dependency-locked</b> — the data-contract gate stays <span class="m">△ LOCKED</span> until connectors are live, so the operator never accepts a contract for sources that aren't wired.</li>
+        <li>Status glyphs only: <span class="m">● ◐ △ ○</span>. Progress bar is single-series <span class="m">ELECTRIC</span>.</li>
+        <li>Optional-skipped reads <span class="m">○ SKIPPED FOR NOW</span> in <span class="m">LO</span> gray — a soft state, re-openable, never an alarm.</li>
+      </ul>
+    </aside>
+  </section>
+
+  <!-- ================= W1 PROVISION ================= -->
+  <section class="screen" id="w1">
+    <div class="screen-head">
+      <div class="wf">W1 · Provision</div>
+      <h2>Tenant provisioning form</h2>
+    </div>
+
+    <div class="frame">
+      <div class="fbar"><span class="dot"></span><span class="dot"></span><span class="dot"></span>&nbsp;&nbsp;GATE 01 · PROVISION TENANT</div>
+      <div class="fbody">
+        <div class="form">
+          <div class="fld wide">
+            <label>Venue name <span class="rq">*</span></label>
+            <input class="inp" type="text" value="Meridian Room" aria-label="Venue name">
+            <span class="hint">DISPLAYED ON VENUE-LINK, WALLET PASS, DOOR</span>
+          </div>
+          <div class="fld">
+            <label>Legal entity <span class="rq">*</span></label>
+            <input class="inp" type="text" placeholder="Registered business name" aria-label="Legal entity">
+          </div>
+          <div class="fld">
+            <label>Tenant slug <span class="rq">*</span></label>
+            <input class="inp" type="text" value="meridian-room" aria-label="Tenant slug">
+            <span class="hint">atlas.app/t/meridian-room</span>
+          </div>
+          <div class="fld">
+            <label>Timezone <span class="rq">*</span></label>
+            <select class="inp" aria-label="Timezone">
+              <option>AUSTRALIA/SYDNEY · UTC+10</option>
+              <option>AUSTRALIA/MELBOURNE · UTC+10</option>
+              <option>AMERICA/NEW_YORK · UTC−05</option>
+              <option>EUROPE/LONDON · UTC+00</option>
+            </select>
+            <span class="hint">DRIVES NIGHT BOUNDARY &amp; CLOSEOUT WINDOW</span>
+          </div>
+          <div class="fld">
+            <label>Currency <span class="rq">*</span></label>
+            <select class="inp" id="currencySel" aria-label="Currency">
+              <option value="AUD">AUD · A$</option>
+              <option value="USD">USD · $</option>
+              <option value="GBP">GBP · £</option>
+              <option value="EUR">EUR · €</option>
+            </select>
+            <span class="hint">STORED AS INTEGER CENTS · <span class="money-preview" id="moneyPrev">150000 CENTS = A$1,500.00</span></span>
+          </div>
+          <div class="fld">
+            <label>Default table minimum</label>
+            <input class="inp" type="text" value="150000" id="minCents" aria-label="Default table minimum in cents">
+            <span class="hint">CENTS · SHOWN AS <span class="money-preview" id="minPrev">A$1,500.00</span></span>
+          </div>
+          <div class="fld">
+            <label>Deposit % of minimum</label>
+            <input class="inp" type="text" value="20" aria-label="Deposit percent">
+            <span class="hint">COUNTS TOWARD MINIMUM · REFUNDABLE 6PM DAY-OF</span>
+          </div>
+          <div class="fld wide">
+            <label>Density profile</label>
+            <select class="inp" aria-label="Density profile">
+              <option>NIGHT · 56px rows · door + host stand</option>
+              <option>STANDARD · 40px rows · back office</option>
+              <option>COMPACT · 30px rows · analyst views</option>
+            </select>
+          </div>
+
+          <div class="formfoot">
+            <span class="note">⚑ TAKE-RATE NOT SET HERE · VENUE REPORTING ONLY, NEVER MARKETED</span>
+            <div>
+              <button class="btn ghost">SAVE DRAFT</button>
+              <button class="btn cyan">PROVISION TENANT</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="notes">
+      <div class="nt">NOTES · Rationale</div>
+      <ul>
+        <li><b>Required fields carry an amber <span class="m">*</span></b> — the alarm color's lightest weight, attention not blocking.</li>
+        <li><b>Money is captured and stored as integer cents.</b> The field takes cents; the live preview renders the formatted figure so the operator can sanity-check <span class="m">150000 CENTS = A$1,500.00</span>.</li>
+        <li>Currency selection <b>re-symbols every money preview on the page</b> — one source of truth for the tenant's display format.</li>
+        <li><b>Timezone is load-bearing:</b> it defines the night boundary the whole console pivots on. Called out in the hint, not buried.</li>
+        <li>Take-rate is deliberately <b>absent</b> from provisioning — <span class="m">⚑ placeholder</span>, venue reporting only. No rate marketing on an operator surface.</li>
+        <li>Inputs are <span class="m">SURFACE-2</span>; mono for structured values (timezone, currency, cents), sans for free text (venue name).</li>
+      </ul>
+    </aside>
+  </section>
+
+  <!-- ================= W2 CONNECTORS ================= -->
+  <section class="screen" id="w2">
+    <div class="screen-head">
+      <div class="wf">W2 · Connectors</div>
+      <h2>Connector states — live · stub · expired</h2>
+    </div>
+
+    <div class="frame">
+      <div class="fbar"><span class="dot"></span><span class="dot"></span><span class="dot"></span>&nbsp;&nbsp;GATE 02 · CONNECT SOURCES</div>
+      <div class="fbody">
+
+        <div class="conn live">
+          <div class="ico">SQ</div>
+          <div class="meta">
+            <div class="cname">Square · Payments &amp; tabs</div>
+            <div class="cstate mint">● LIVE · WEBHOOKS RECEIVING</div>
+          </div>
+          <div class="stamp"><b>SYNCED 2m AGO</b>142 events today</div>
+        </div>
+
+        <div class="conn live">
+          <div class="ico">SP</div>
+          <div class="meta">
+            <div class="cname">Spotify · Taste graph</div>
+            <div class="cstate mint">● LIVE · CONSENTED</div>
+          </div>
+          <div class="stamp"><b>SYNCED 1h AGO</b>consent on file</div>
+        </div>
+
+        <div class="conn stub">
+          <div class="ico">EB</div>
+          <div class="meta">
+            <div class="cname">Eventbrite · Demand signals</div>
+            <div class="cstate stub">△ STUB · SEEDED DATA</div>
+          </div>
+          <button class="btn cyan" style="padding:9px 16px">CONNECT</button>
+        </div>
+
+        <div class="conn stub">
+          <div class="ico">IG</div>
+          <div class="meta">
+            <div class="cname">Instagram · Marketing reach</div>
+            <div class="cstate stub">△ STUB · SEEDED DATA</div>
+          </div>
+          <button class="btn cyan" style="padding:9px 16px">CONNECT</button>
+        </div>
+
+        <div class="conn expired">
+          <div class="ico">GC</div>
+          <div class="meta">
+            <div class="cname">Google Calendar · Event feed</div>
+            <div class="cstate amber">◐ AUTH EXPIRED · TOKEN LAPSED</div>
+          </div>
+          <button class="btn" style="padding:9px 16px;background:rgba(251,191,36,.14);color:var(--amber);border:1px solid rgba(251,191,36,.5)">RECONNECT</button>
+        </div>
+
+      </div>
+    </div>
+
+    <aside class="notes">
+      <div class="nt">NOTES · Rationale</div>
+      <ul>
+        <li><b>Border style is the state — read it before any label.</b></li>
+        <li><b>Solid mint border = LIVE.</b> Carries a recency stamp (<span class="m">SYNCED 2m AGO</span>) so the operator trusts the data is fresh, not just connected once.</li>
+        <li><b>Dashed border = STUB · SEEDED DATA.</b> The surface works from day zero on demo data; a cyan <span class="m">CONNECT</span> action swaps seed for real. Cyan = the forward, opt-in action.</li>
+        <li><b>Amber solid = AUTH EXPIRED.</b> Alarm's tinted-fill weight — the token lapsed, action needed, but never red. <span class="m">RECONNECT</span> is the recovery path.</li>
+        <li>Seeded stubs mean a tenant is <b>never blocked by an unconnected source</b> — they go live on seed and upgrade in place.</li>
+        <li>No connector ever shows red — expired auth is amber, the strongest weight used here.</li>
+      </ul>
+    </aside>
+  </section>
+
+  <!-- ================= W3 GRANTS ================= -->
+  <section class="screen" id="w3">
+    <div class="screen-head">
+      <div class="wf">W3 · Grants</div>
+      <h2>Grant model — SEE is given, DO is granted</h2>
+    </div>
+
+    <div class="frame">
+      <div class="fbar"><span class="dot"></span><span class="dot"></span><span class="dot"></span>&nbsp;&nbsp;GATE 03 · ASSIGN GRANTS · ROLE: FLOOR MANAGER</div>
+      <div class="fbody">
+        <table class="gtable">
+          <thead>
+            <tr>
+              <th style="width:44%">RESOURCE</th>
+              <th class="c">SEE</th>
+              <th class="c">DO <span style="color:var(--lo)">· hover for scope</span></th>
+            </tr>
+          </thead>
+          <tbody id="grantBody">
+            <tr>
+              <td class="rsrc">Bookings<span class="d">held · confirmed · seated · closed</span></td>
+              <td class="c"><span class="see"><span class="g">●</span>ALWAYS</span></td>
+              <td class="c"><span class="scopewrap"><label class="tg"><input type="checkbox" class="doTog" checked aria-label="DO bookings"><span class="track"></span></label><span class="tip">bookings:write</span></span></td>
+            </tr>
+            <tr>
+              <td class="rsrc">Floor &amp; tables<span class="d">seat · block · move party</span></td>
+              <td class="c"><span class="see"><span class="g">●</span>ALWAYS</span></td>
+              <td class="c"><span class="scopewrap"><label class="tg"><input type="checkbox" class="doTog" checked aria-label="DO floor"><span class="track"></span></label><span class="tip">floor:manage</span></span></td>
+            </tr>
+            <tr>
+              <td class="rsrc">Payments &amp; tabs<span class="d">re-request · refund deposit</span></td>
+              <td class="c"><span class="see"><span class="g">●</span>ALWAYS</span></td>
+              <td class="c"><span class="scopewrap"><label class="tg"><input type="checkbox" class="doTog" aria-label="DO payments"><span class="track"></span></label><span class="tip">payments:write</span></span></td>
+            </tr>
+            <tr>
+              <td class="rsrc">Door &amp; check-in<span class="d">scan pass · check in guest</span></td>
+              <td class="c"><span class="see"><span class="g">●</span>ALWAYS</span></td>
+              <td class="c"><span class="scopewrap"><label class="tg"><input type="checkbox" class="doTog" checked aria-label="DO door"><span class="track"></span></label><span class="tip">door:checkin</span></span></td>
+            </tr>
+            <tr>
+              <td class="rsrc">Closeout &amp; reconcile<span class="d">run closeout · reconcile tab</span></td>
+              <td class="c"><span class="see"><span class="g">●</span>ALWAYS</span></td>
+              <td class="c"><span class="scopewrap"><label class="tg"><input type="checkbox" class="doTog" aria-label="DO closeout"><span class="track"></span></label><span class="tip">closeout:run</span></span></td>
+            </tr>
+            <tr>
+              <td class="rsrc">Grants &amp; tenant<span class="d">assign scopes · edit tenant</span></td>
+              <td class="c"><span class="see"><span class="g">●</span>ALWAYS</span></td>
+              <td class="c"><span class="scopewrap"><label class="tg"><input type="checkbox" class="doTog" aria-label="DO admin"><span class="track"></span></label><span class="tip">tenant:admin</span></span></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="gfoot">
+          <span class="sel"><b id="scopeCount">3</b> DO scopes granted · SEE is universal</span>
+          <button class="btn cyan" id="reviewGrant">REVIEW GRANT</button>
+        </div>
+
+        <!-- W3b confirm sheet -->
+        <div class="sheet" id="sheet">
+          <div class="sh">W3b · CONFIRM GRANT · WORKED EXAMPLE</div>
+          <div class="worked">
+            <span class="lead">This grant lets a Floor Manager, on the night:</span>
+            <span class="allow">● SEE</span> every booking, table, tab and door state for the venue — always, no toggle.<br>
+            <span class="allow">● DO</span> seat a party, block a table, confirm or cancel a held booking <code>bookings:write</code>, and check a guest in at the door <code>door:checkin</code>.<br>
+            <span class="deny">⊘ CANNOT</span> refund a deposit, re-request a failed split-pay share <code>payments:write</code>, run closeout <code>closeout:run</code>, or reassign anyone's grants <code>tenant:admin</code> — those toggles are off.
+            <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--hair-row);font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--lo)">
+              GRANTED SCOPES · <span style="color:var(--cyan)">bookings:write&nbsp;&nbsp;·&nbsp;&nbsp;floor:manage&nbsp;&nbsp;·&nbsp;&nbsp;door:checkin</span>
+            </div>
+          </div>
+          <div class="sheetfoot">
+            <button class="btn mint">CONFIRM &amp; ASSIGN</button>
+            <button class="btn ghost" id="cancelSheet">BACK</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="notes">
+      <div class="nt">NOTES · Rationale</div>
+      <ul>
+        <li><b>SEE is always-on, always mint.</b> Every operator sees the whole venue — visibility is never rationed. Rationing sight breaks the shared-truth model the console runs on.</li>
+        <li><b>DO is what's granted.</b> Each DO toggle maps <b>1:1 to exactly one scope string</b> — no bundles, no hidden implied permissions.</li>
+        <li><b>Scope strings show on hover only</b> (<span class="m">bookings:write</span>). The table stays human-readable; the raw scope is there for the admin who needs it, out of the way for the one who doesn't.</li>
+        <li><b>W3b confirms in plain language</b> with a worked example — what this person can and can't do <em>on the night</em>, not an abstract scope list. The <span class="m">⊘ CANNOT</span> lines matter as much as the grants.</li>
+        <li>Toggle on = cyan (the enabling action); off = neutral gray. Never red for an off permission.</li>
+      </ul>
+    </aside>
+  </section>
+
+  <!-- ================= W4 DATA CONTRACT ================= -->
+  <section class="screen" id="w4">
+    <div class="screen-head">
+      <div class="wf">W4 · Data Contract</div>
+      <h2>The data contract — and the gate to go live</h2>
+    </div>
+
+    <div class="frame">
+      <div class="fbar"><span class="dot"></span><span class="dot"></span><span class="dot"></span>&nbsp;&nbsp;GATE 05 · REVIEW DATA CONTRACT</div>
+      <div class="fbody">
+        <div class="flows">
+          <div class="flowcol in">
+            <div class="fh"><span class="g">↓</span> FLOWS IN</div>
+            <ul>
+              <li><span class="g">●</span> square · payments</li>
+              <li><span class="g">●</span> square · tab events</li>
+              <li><span class="g">●</span> spotify · taste (consented)</li>
+              <li><span class="g">●</span> eventbrite · demand</li>
+              <li><span class="g">●</span> door · check-in scans</li>
+            </ul>
+          </div>
+          <div class="flowcol out">
+            <div class="fh"><span class="g">▲</span> FLOWS OUT</div>
+            <ul>
+              <li><span class="g">●</span> venue-link · booking</li>
+              <li><span class="g">●</span> wallet pass · updates</li>
+              <li><span class="g">●</span> closeout · reconciliation</li>
+              <li><span class="g">●</span> promoter · settled receipts</li>
+              <li><span class="g">●</span> outcomes · pillar scores</li>
+            </ul>
+          </div>
+          <div class="flowcol never">
+            <div class="fh"><span class="g">⊘</span> NEVER FLOWS</div>
+            <ul>
+              <li><span class="g">⊘</span> guest PII to promoters</li>
+              <li><span class="g">⊘</span> raw card data (tokenized only)</li>
+              <li><span class="g">⊘</span> taste data without consent</li>
+              <li><span class="g">⊘</span> cross-tenant guest graph</li>
+              <li><span class="g">⊘</span> take-rate to guest surfaces</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="prereq">
+          <div class="ph">PREREQUISITES FOR GO-LIVE</div>
+          <div class="pr ok"><span class="g">●</span> Tenant provisioned · currency &amp; timezone set</div>
+          <div class="pr ok"><span class="g">●</span> Payments connector live · webhooks receiving</div>
+          <div class="pr ok"><span class="g">●</span> Grants assigned to all operators</div>
+          <div class="pr no"><span class="g">△</span> 2 connectors still on seeded data — connect or accept seed</div>
+          <div class="pr no"><span class="g">△</span> Data contract not yet accepted</div>
+        </div>
+
+        <div class="golive">
+          <button class="btn mint golive-btn" id="goliveBtn" disabled>⊘ GO LIVE</button>
+          <span class="gate-note" id="gateNote">⚑ GATED · 2 PREREQUISITES OUTSTANDING</span>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--mid);text-transform:uppercase">
+            <input type="checkbox" id="acceptContract" style="accent-color:var(--cyan);width:16px;height:16px"> ACCEPT DATA CONTRACT (DEMO)
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <aside class="notes">
+      <div class="nt">NOTES · Rationale</div>
+      <ul>
+        <li><b>Three lists, one glance.</b> FLOWS IN (mint), FLOWS OUT (electric), and — the one that builds trust — <b>NEVER FLOWS</b> (amber, tinted panel).</li>
+        <li><b>NEVER FLOWS is the point of this screen.</b> Stating the boundaries explicitly — no guest PII to promoters, no cross-tenant graph, no take-rate to guests — is what makes the contract worth accepting.</li>
+        <li><b>GO LIVE is gated, not hidden.</b> It renders disabled with a <span class="m">⊘</span> glyph and an amber gate-note naming exactly what's outstanding. The operator sees the finish line and the two steps left.</li>
+        <li>Prerequisites use the same status glyphs as W0 — <span class="m">●</span> cleared, <span class="m">△</span> outstanding — so the gate reads consistently with the checklist.</li>
+        <li>Accepting the contract (demo toggle) clears the last prereq and the button un-gates to a live mint <span class="m">GO LIVE</span> — the one moment mint means "commit".</li>
+      </ul>
+    </aside>
+  </section>
+
+  <div class="footline">
+    ATLAS TENANT ONBOARDING · P4 · 5 WIREFRAMES · v3.1 SYSTEM&nbsp;&nbsp;·&nbsp;&nbsp;RED-FREE · DARK-ONLY · MONEY FROM INTEGER CENTS&nbsp;&nbsp;·&nbsp;&nbsp;⚑ TAKE-RATE PLACEHOLDER
+  </div>
+</main>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---- step nav ----
+  var steps = document.querySelectorAll(".step");
+  var screens = document.querySelectorAll(".screen");
+  function go(id){
+    screens.forEach(function(s){ s.classList.toggle("active", s.id===id); });
+    steps.forEach(function(b){ b.setAttribute("aria-current", b.dataset.go===id ? "true":"false"); });
+    window.scrollTo({top:0, behavior: (matchMedia("(prefers-reduced-motion:reduce)").matches ? "auto":"smooth")});
+  }
+  steps.forEach(function(b){ b.addEventListener("click", function(){ go(b.dataset.go); }); });
+
+  // ---- W1 money preview + currency ----
+  var symbols = {AUD:"A$", USD:"$", GBP:"£", EUR:"€"};
+  var curSel = document.getElementById("currencySel");
+  var minCents = document.getElementById("minCents");
+  function fmt(cents, sym){
+    var n = parseInt(cents,10); if(isNaN(n)) n=0;
+    var s = (n/100).toLocaleString("en-AU",{minimumFractionDigits:2, maximumFractionDigits:2});
+    return sym + s;
+  }
+  function refreshMoney(){
+    var sym = symbols[curSel.value] || "$";
+    document.getElementById("moneyPrev").textContent = "150000 CENTS = " + fmt(150000, sym);
+    document.getElementById("minPrev").textContent = fmt(minCents.value, sym);
+  }
+  curSel.addEventListener("change", refreshMoney);
+  minCents.addEventListener("input", refreshMoney);
+  refreshMoney();
+
+  // ---- W3 DO scope counter + confirm sheet ----
+  var togs = document.querySelectorAll(".doTog");
+  var scopeCount = document.getElementById("scopeCount");
+  function countScopes(){
+    var n=0; togs.forEach(function(t){ if(t.checked) n++; });
+    scopeCount.textContent = n;
+  }
+  togs.forEach(function(t){ t.addEventListener("change", countScopes); });
+  countScopes();
+
+  var sheet = document.getElementById("sheet");
+  document.getElementById("reviewGrant").addEventListener("click", function(){
+    sheet.classList.add("open");
+    sheet.scrollIntoView({behavior:(matchMedia("(prefers-reduced-motion:reduce)").matches?"auto":"smooth"), block:"nearest"});
+  });
+  document.getElementById("cancelSheet").addEventListener("click", function(){ sheet.classList.remove("open"); });
+
+  // ---- W4 go-live gating ----
+  var accept = document.getElementById("acceptContract");
+  var goBtn = document.getElementById("goliveBtn");
+  var gateNote = document.getElementById("gateNote");
+  accept.addEventListener("change", function(){
+    if(accept.checked){
+      goBtn.disabled = false;
+      goBtn.textContent = "● GO LIVE";
+      gateNote.textContent = "● PREREQUISITES MET · READY TO COMMIT";
+      gateNote.style.color = "var(--mint)";
+      var lastPr = document.querySelectorAll(".prereq .pr.no");
+      if(lastPr.length){
+        var el = lastPr[lastPr.length-1];
+        el.classList.remove("no"); el.classList.add("ok");
+        el.querySelector(".g").textContent = "●";
+        el.lastChild.textContent = " Data contract accepted";
+      }
+    } else {
+      goBtn.disabled = true;
+      goBtn.textContent = "⊘ GO LIVE";
+      gateNote.textContent = "⚑ GATED · 2 PREREQUISITES OUTSTANDING";
+      gateNote.style.color = "var(--amber)";
+    }
+  });
+})();
+</script>
+</body>
+</html>

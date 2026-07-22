@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A-List v2 Tokens</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --serif:"Cormorant Garamond",Georgia,"Times New Roman",serif;
+    --inter:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --canvas:#060606;
+    --w100:rgba(255,255,255,1);
+    --w70:rgba(255,255,255,.70);
+    --w50:rgba(255,255,255,.50);
+    --w40:rgba(255,255,255,.40);
+    --w30:rgba(255,255,255,.30);
+    --w25:rgba(255,255,255,.25);
+    --w20:rgba(255,255,255,.20);
+    --card:rgba(255,255,255,.05);
+    --hair:rgba(255,255,255,.10);
+    --red:#d4183d;
+    --platinum-a:#8e8e93;
+    --platinum-b:#e5e4e2;
+    --platinum-c:#f5f5f7;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--canvas);
+    color:var(--w70);
+    font-family:var(--inter);
+    font-weight:400;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+    padding-top:64px;
+  }
+  ::selection{background:rgba(229,228,226,.25)}
+  a{color:inherit;text-decoration:none}
+  :focus-visible{outline:2px solid #f5f5f7;outline-offset:3px;border-radius:4px}
+
+  /* fixed back-link */
+  .backbar{
+    position:fixed;top:0;left:0;right:0;z-index:50;
+    background:linear-gradient(180deg,rgba(6,6,6,.94),rgba(6,6,6,.72) 70%,rgba(6,6,6,0));
+    padding:20px 32px 26px;
+    backdrop-filter:blur(6px);
+    pointer-events:none;
+  }
+  .backbar a{
+    pointer-events:auto;
+    font-family:var(--inter);
+    font-size:11px;font-weight:500;
+    letter-spacing:.28em;text-transform:uppercase;
+    color:var(--w40);
+    transition:color .2s ease;
+  }
+  .backbar a:hover{color:var(--w70)}
+
+  .wrap{max-width:940px;margin:0 auto;padding:24px 28px 140px}
+
+  /* page masthead */
+  .masthead{padding:36px 0 26px;border-bottom:1px solid var(--hair);margin-bottom:8px}
+  .kicker{font-size:9px;font-weight:700;letter-spacing:.4em;text-transform:uppercase;color:var(--w25);margin-bottom:22px}
+  .masthead h1{
+    font-family:var(--serif);font-weight:500;
+    font-size:clamp(42px,8vw,68px);line-height:.98;letter-spacing:-.01em;
+    margin:0;color:var(--w100);
+  }
+  .masthead .sub{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--w50)}
+  .lede{
+    font-family:var(--inter);font-size:14.5px;line-height:1.75;color:var(--w50);
+    max-width:600px;margin:22px 0 0;
+  }
+  .lede b{color:var(--w70);font-weight:500}
+
+  /* section scaffold */
+  section{padding:52px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+  .sec-head{display:flex;align-items:baseline;gap:16px;margin-bottom:8px}
+  .sec-no{font-family:var(--inter);font-size:11px;font-weight:700;letter-spacing:.3em;color:var(--w25)}
+  .sec-head h2{
+    font-family:var(--inter);font-size:12px;font-weight:700;
+    letter-spacing:.34em;text-transform:uppercase;color:var(--w70);margin:0;
+  }
+  .sec-intro{font-size:14px;line-height:1.75;color:var(--w50);max-width:600px;margin:0 0 30px}
+  .sec-intro b{color:var(--w70);font-weight:500}
+
+  /* generic card */
+  .card{
+    background:var(--card);border:1px solid var(--hair);border-radius:10px;
+    padding:24px;
+  }
+  .stack{display:grid;gap:16px}
+  .cols2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .cols3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  @media(max-width:720px){.cols2,.cols3{grid-template-columns:1fr}}
+
+  /* luxury micro-label */
+  .lux{font-weight:700;text-transform:uppercase;color:var(--w40)}
+  .lux-11{font-size:11px;letter-spacing:.15em;color:var(--w50)}
+  .lux-10{font-size:10px;letter-spacing:.24em;color:var(--w40)}
+  .lux-9{font-size:9px;letter-spacing:.32em;color:var(--w30)}
+  .lux-8{font-size:8px;letter-spacing:.4em;color:var(--w20)}
+
+  /* inline value token */
+  .val{
+    font-family:var(--inter);font-size:11px;font-weight:500;
+    letter-spacing:.02em;color:var(--w50);
+    background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+    border-radius:6px;padding:2px 7px;white-space:nowrap;display:inline-block;
+  }
+  .note{font-size:12.5px;line-height:1.65;color:var(--w40);margin:14px 0 0}
+  .note b{color:var(--w70);font-weight:500}
+  .rule{font-size:11px;line-height:1.6;color:var(--w40);margin-top:4px}
+  .rule.reserve{color:#e5e4e2}
+  .caption{font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--w30);margin-bottom:14px}
+
+  /* ── FOUNDATIONS ── */
+  .canvas-swatch{height:96px;border-radius:10px;position:relative;overflow:hidden}
+  .sw-060{background:#060606;border:1px solid var(--hair)}
+  .sw-000{background:#000;border:1px solid var(--hair)}
+  .sw-card{background:var(--card);border:1px solid var(--hair)}
+  .sw-tag{position:absolute;left:12px;bottom:10px}
+
+  .ramp{display:grid;gap:0;border:1px solid var(--hair);border-radius:10px;overflow:hidden}
+  .ramp-row{display:flex;align-items:center;gap:16px;padding:13px 18px;border-top:1px solid rgba(255,255,255,.05)}
+  .ramp-row:first-child{border-top:0}
+  .ramp-chip{width:34px;height:34px;border-radius:8px;flex:none;border:1px solid rgba(255,255,255,.06)}
+  .ramp-txt{font-family:var(--inter);font-size:14px;flex:1}
+  .ramp-use{font-size:11px;color:var(--w30);text-align:right;max-width:210px}
+
+  .geo-row{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+  .geo-box{width:80px;height:56px;background:var(--card);border:1px solid var(--hair);display:flex;align-items:center;justify-content:center}
+  .r10{border-radius:10px}
+  .pill{border-radius:999px}
+  .pill-demo{padding:9px 20px;font-size:12px;font-weight:600;letter-spacing:.04em;color:var(--w70);background:rgba(255,255,255,.06);border:1px solid var(--w20)}
+
+  /* ── TYPE ── */
+  .type-serif{font-family:var(--serif);color:var(--w100);line-height:1.05;letter-spacing:-.01em}
+  .t-hero{font-size:56px;font-weight:500}
+  .t-venue{font-size:34px;font-weight:500}
+  .t-artist{font-size:24px;font-weight:400;font-style:italic;color:var(--w70)}
+  .type-row{padding:16px 0;border-top:1px solid rgba(255,255,255,.06)}
+  .type-row:first-child{border-top:0;padding-top:0}
+  .inter-sample{font-family:var(--inter)}
+  .lbl-ramp>div{padding:11px 0;border-top:1px solid rgba(255,255,255,.05)}
+  .lbl-ramp>div:first-child{border-top:0}
+
+  /* ── PLATINUM ── */
+  .platinum-text{
+    background:linear-gradient(135deg,#8e8e93 0%,#e5e4e2 38%,#f5f5f7 55%,#8e8e93 100%);
+    -webkit-background-clip:text;background-clip:text;
+    -webkit-text-fill-color:transparent;color:transparent;
+  }
+  .platinum-border{
+    position:relative;border-radius:10px;padding:1px;
+    background:linear-gradient(135deg,#8e8e93 0%,#e5e4e2 38%,#f5f5f7 55%,#8e8e93 100%);
+  }
+  .platinum-border>.inner{
+    background:#080808;border-radius:9px;padding:26px 24px;height:100%;
+  }
+  .marble{
+    position:relative;border-radius:10px;overflow:hidden;
+    background:
+      radial-gradient(120% 90% at 20% 8%,rgba(245,245,247,.14),rgba(245,245,247,0) 42%),
+      radial-gradient(90% 70% at 88% 22%,rgba(142,142,147,.20),rgba(142,142,147,0) 50%),
+      radial-gradient(140% 120% at 70% 110%,rgba(229,228,226,.10),rgba(229,228,226,0) 55%),
+      #070707;
+    border:1px solid var(--hair);
+  }
+  .marble-hero{padding:52px 28px 44px;text-align:center}
+  .conf-hero{padding:44px 24px;text-align:center}
+  .wallet-btn{
+    display:inline-flex;align-items:center;gap:9px;
+    background:#000;border:1px solid rgba(255,255,255,.22);border-radius:999px;
+    padding:13px 22px;font-family:var(--inter);font-size:13px;font-weight:600;
+    letter-spacing:.02em;color:#fff;margin-top:20px;min-height:48px;
+  }
+  .apple-mark{font-size:15px;line-height:1}
+
+  /* ── LOGO NEON ── */
+  .neon-text{
+    font-family:var(--serif);font-weight:500;font-size:40px;letter-spacing:.02em;
+    background:linear-gradient(100deg,#BD00FF 0%,#FF00E5 50%,#00D9FF 100%);
+    -webkit-background-clip:text;background-clip:text;
+    -webkit-text-fill-color:transparent;color:transparent;
+  }
+  .neon-mark{
+    width:64px;height:64px;border-radius:16px;display:flex;align-items:center;justify-content:center;
+    background:
+      radial-gradient(120% 120% at 30% 20%,rgba(189,0,255,.9),rgba(189,0,255,0) 60%),
+      radial-gradient(120% 120% at 80% 80%,rgba(0,217,255,.9),rgba(0,217,255,0) 60%),
+      linear-gradient(135deg,#BD00FF,#FF00E5,#00D9FF);
+    font-family:var(--serif);font-weight:500;font-size:30px;color:#fff;
+    box-shadow:0 0 30px rgba(189,0,255,.35),0 0 20px rgba(0,217,255,.25);
+  }
+  .neon-notif{
+    display:flex;gap:12px;align-items:center;
+    background:rgba(255,255,255,.06);border:1px solid var(--hair);border-radius:14px;
+    padding:12px 14px;
+  }
+  .neon-notif .mini-mark{
+    width:32px;height:32px;border-radius:8px;flex:none;
+    background:linear-gradient(135deg,#BD00FF,#FF00E5,#00D9FF);
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--serif);font-weight:500;font-size:16px;color:#fff;
+  }
+  .forbid{border-color:rgba(212,24,61,.4)!important}
+  .forbid-tag{color:var(--red);font-size:9px;font-weight:700;letter-spacing:.26em;text-transform:uppercase}
+
+  /* ── FEEDBACK STATES ── */
+  .fb{border-radius:10px;padding:20px;border:1px solid var(--hair);background:var(--card)}
+  .fb-success{
+    background:
+      radial-gradient(120% 120% at 20% 0%,rgba(245,245,247,.10),rgba(245,245,247,0) 55%),
+      rgba(255,255,255,.04);
+    border-color:rgba(229,228,226,.28);
+  }
+  .fb-fail{
+    background:rgba(212,24,61,.08);
+    border-color:rgba(212,24,61,.45);
+  }
+  .fb-fail .fb-title{color:#ff6b85}
+  .skel{border-radius:8px;overflow:hidden;position:relative;background:rgba(255,255,255,.05)}
+  .skel-line{height:12px;margin:10px 0;border-radius:6px;position:relative;overflow:hidden;background:rgba(255,255,255,.06)}
+  .skel-line::after{
+    content:"";position:absolute;inset:0;
+    background:linear-gradient(90deg,rgba(255,255,255,0) 0%,rgba(255,255,255,.14) 50%,rgba(255,255,255,0) 100%);
+    transform:translateX(-100%);
+    animation:shimmer 1.4s ease-in-out infinite;
+  }
+  .skel-line.w60{width:60%}
+  .skel-line.w40{width:40%}
+  @keyframes shimmer{from{transform:translateX(-100%)}to{transform:translateX(300%)}}
+  .fb-title{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--w50);margin-bottom:12px}
+  .fb-body{font-size:13px;line-height:1.6;color:var(--w50)}
+  .fb-body b{color:var(--w70);font-weight:500}
+  .plat-line{font-family:var(--serif);font-size:22px;font-weight:500}
+
+  .dots{display:flex;gap:9px;align-items:center;margin-top:6px}
+  .dot{width:13px;height:13px;border-radius:50%;flex:none}
+  .dot-plat{background:linear-gradient(135deg,#8e8e93,#e5e4e2,#f5f5f7,#8e8e93)}
+  .dot-hollow{background:transparent;border:1.5px solid var(--w30)}
+  .dot-red{background:var(--red)}
+  .dot-legend{display:flex;gap:20px;flex-wrap:wrap;margin-top:14px}
+  .dot-legend div{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--w40)}
+
+  /* ── CONTROLS ── */
+  .cta-white{
+    display:inline-flex;align-items:center;justify-content:center;
+    background:#fff;color:#000;border:none;border-radius:999px;
+    font-family:var(--inter);font-size:14px;font-weight:700;letter-spacing:.02em;
+    padding:0 26px;min-height:48px;cursor:pointer;
+    transition:transform .12s ease;width:100%;
+  }
+  .cta-white:active{transform:scale(.95)}
+  .cta-secondary{
+    display:inline-flex;align-items:center;justify-content:center;
+    background:rgba(255,255,255,.10);color:var(--w70);border:1px solid var(--w20);border-radius:999px;
+    font-family:var(--inter);font-size:14px;font-weight:600;
+    padding:0 26px;min-height:48px;cursor:pointer;width:100%;
+    transition:transform .12s ease,background .2s ease;
+  }
+  .cta-secondary:active{transform:scale(.97)}
+  .cta-ghost{
+    display:inline-flex;align-items:center;justify-content:center;
+    background:transparent;color:var(--w40);border:none;border-radius:999px;
+    font-family:var(--inter);font-size:13px;font-weight:500;
+    padding:0 26px;min-height:48px;cursor:pointer;width:100%;
+    transition:color .2s ease;
+  }
+  .cta-ghost:hover{color:var(--w70)}
+  .checkout-input{
+    width:100%;background:rgba(255,255,255,.04);border:1px solid var(--hair);
+    border-radius:999px;padding:14px 20px;min-height:48px;
+    font-family:var(--inter);font-size:15px;color:var(--w100);
+  }
+  .checkout-input::placeholder{color:var(--w30)}
+  .checkout-input:focus{outline:none;border-color:var(--w30)}
+  .ctrl-label{font-size:9px;font-weight:700;letter-spacing:.26em;text-transform:uppercase;color:var(--w25);margin-bottom:10px}
+
+  /* ── VENUE-LINK LOCK ── */
+  .lock-list{list-style:none;padding:0;margin:0;display:grid;gap:0}
+  .lock-list li{
+    display:flex;gap:14px;align-items:flex-start;
+    padding:15px 0;border-top:1px solid rgba(255,255,255,.06);
+  }
+  .lock-list li:first-child{border-top:0}
+  .lock-glyph{color:var(--w30);font-size:13px;line-height:1.5;flex:none;width:14px}
+  .lock-glyph.no{color:var(--red)}
+  .lock-txt{font-size:13.5px;line-height:1.6;color:var(--w50)}
+  .lock-txt b{color:var(--w70);font-weight:500}
+  .powered-demo{
+    margin-top:22px;padding:24px;border-radius:10px;
+    background:#050505;border:1px solid rgba(255,255,255,.06);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .powered-by{font-size:8px;font-weight:700;letter-spacing:.4em;text-transform:uppercase;color:var(--w20)}
+
+  .footer{padding:44px 0 0;text-align:center}
+  .footer .powered-by{color:var(--w20)}
+
+  @media (max-width:640px){
+    .wrap{padding:20px 20px 100px}
+    .t-hero{font-size:40px}
+    .t-venue{font-size:28px}
+    .neon-text{font-size:30px}
+    .ramp-use{max-width:120px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+
+<div class="backbar"><a href="/deliverables">&larr; DELIVERABLES</a></div>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <div class="kicker">A-LIST&nbsp;&nbsp;·&nbsp;&nbsp;2026 APP STYLE GUIDE&nbsp;&nbsp;·&nbsp;&nbsp;v2 PROPOSAL</div>
+    <h1>Tokens for the<br>booking flow<span class="sub">, extended.</span></h1>
+    <p class="lede">the platinum system already knows how to feel expensive. this extends it into the moments money changes hands &mdash; <b>payment feedback, split-pay language, checkout controls</b> &mdash; without losing the composure. everything here is additive to the app style guide; nothing overrides it. rendered live, with values inline.</p>
+  </div>
+
+  <!-- 01 FOUNDATIONS -->
+  <section>
+    <div class="sec-head"><span class="sec-no">01</span><h2>Foundations</h2></div>
+    <p class="sec-intro">the surface never competes with the content. a near-black canvas, one card treatment, and a single hierarchy tool: <b>white opacity</b>, never gray tints. depth comes from restraint.</p>
+
+    <div class="caption">Canvas &amp; card surfaces</div>
+    <div class="cols3" style="margin-bottom:28px">
+      <div>
+        <div class="canvas-swatch sw-060"><span class="sw-tag lux-9">CANVAS</span></div>
+        <div class="note"><b>base canvas</b> <span class="val">#060606</span></div>
+      </div>
+      <div>
+        <div class="canvas-swatch sw-000"><span class="sw-tag lux-9">CANVAS · ALT</span></div>
+        <div class="note"><b>true black</b> <span class="val">#000</span> for OLED &amp; pass wells</div>
+      </div>
+      <div>
+        <div class="canvas-swatch sw-card"><span class="sw-tag lux-9">CARD</span></div>
+        <div class="note"><b>card surface</b> <span class="val">bg white/5</span> <span class="val">border white/10</span></div>
+      </div>
+    </div>
+
+    <div class="caption">White-opacity hierarchy ramp</div>
+    <div class="ramp">
+      <div class="ramp-row"><span class="ramp-chip" style="background:rgba(255,255,255,1)"></span><span class="ramp-txt" style="color:var(--w100)">primary — venue names, hero, price</span><span class="ramp-use">white/100</span></div>
+      <div class="ramp-row"><span class="ramp-chip" style="background:rgba(255,255,255,.7)"></span><span class="ramp-txt" style="color:var(--w70)">body copy, active labels</span><span class="ramp-use">white/70</span></div>
+      <div class="ramp-row"><span class="ramp-chip" style="background:rgba(255,255,255,.5)"></span><span class="ramp-txt" style="color:var(--w50)">secondary, supporting prose</span><span class="ramp-use">white/50</span></div>
+      <div class="ramp-row"><span class="ramp-chip" style="background:rgba(255,255,255,.4)"></span><span class="ramp-txt" style="color:var(--w40)">metadata, captions</span><span class="ramp-use">white/40</span></div>
+      <div class="ramp-row"><span class="ramp-chip" style="background:rgba(255,255,255,.3)"></span><span class="ramp-txt" style="color:var(--w30)">placeholders, hollow dots</span><span class="ramp-use">white/30</span></div>
+      <div class="ramp-row"><span class="ramp-chip" style="background:rgba(255,255,255,.25)"></span><span class="ramp-txt" style="color:var(--w25)">faint kickers, disabled</span><span class="ramp-use">white/25</span></div>
+      <div class="ramp-row"><span class="ramp-chip" style="background:rgba(255,255,255,.2)"></span><span class="ramp-txt" style="color:var(--w20)">ambient — powered-by, hairline text</span><span class="ramp-use">white/20</span></div>
+    </div>
+    <p class="note">seven steps — <span class="val">100 / 70 / 50 / 40 / 30 / 25 / 20</span> — carry the entire consumer hierarchy. no gray. no color for structure.</p>
+
+    <div class="caption" style="margin-top:34px">Radius &amp; pill geometry</div>
+    <div class="card">
+      <div class="geo-row">
+        <div class="geo-box r10"><span class="lux-9">10px</span></div>
+        <div class="pill-demo pill">RESERVE</div>
+        <div class="pill-demo pill">● HELD · 9:41</div>
+        <div class="checkout-input pill" style="width:180px;padding:11px 18px">card number</div>
+      </div>
+      <p class="note"><b>cards</b> <span class="val">radius 10px</span> &nbsp; <b>CTAs, chips, inputs</b> <span class="val">pill · 999px</span>. two radii, nothing between them.</p>
+    </div>
+  </section>
+
+  <!-- 02 TYPE -->
+  <section>
+    <div class="sec-head"><span class="sec-no">02</span><h2>Type</h2></div>
+    <p class="sec-intro">two families, cleanly split. <b>Cormorant Garamond</b> carries names and hero copy — the things you'd say aloud with reverence. <b>Inter</b> carries everything functional. serif for who &amp; where; sans for how &amp; when.</p>
+
+    <div class="caption">Cormorant Garamond — venue, artist, hero</div>
+    <div class="card" style="margin-bottom:20px">
+      <div class="type-row">
+        <div class="type-serif t-hero">You're in.</div>
+        <div class="note"><span class="val">Cormorant 500 · 56px</span> hero / confirmation moment</div>
+      </div>
+      <div class="type-row">
+        <div class="type-serif t-venue">Meridian Room</div>
+        <div class="note"><span class="val">Cormorant 500 · 34px</span> venue name</div>
+      </div>
+      <div class="type-row">
+        <div class="type-serif t-artist">with Amara Kone</div>
+        <div class="note"><span class="val">Cormorant 400 italic · 24px</span> artist / lineup</div>
+      </div>
+    </div>
+
+    <div class="caption">Inter — functional</div>
+    <div class="card" style="margin-bottom:20px">
+      <div class="inter-sample" style="font-size:15px;font-weight:400;color:var(--w70)">counts toward your minimum · refundable to 6pm day-of</div>
+      <div class="inter-sample" style="font-size:15px;font-weight:700;color:var(--w100);margin-top:10px">$300.00 deposit</div>
+      <p class="note"><span class="val">Inter 400</span> body · <span class="val">Inter 500</span> labels · <span class="val">Inter 700</span> price &amp; CTA. checkout body text sits at <span class="val">15px</span>.</p>
+    </div>
+
+    <div class="caption">The luxury-label rule</div>
+    <div class="card">
+      <div class="lbl-ramp">
+        <div class="lux lux-11">11PX · TRACKING .15EM · WHITE/50</div>
+        <div class="lux lux-10">10PX · TRACKING .24EM · WHITE/40</div>
+        <div class="lux lux-9">9PX · TRACKING .32EM · WHITE/30</div>
+        <div class="lux lux-8">8PX · TRACKING .40EM · WHITE/20</div>
+      </div>
+      <p class="note">functional labels are <b>8–11px, uppercase, bold, tracking .15–.4em</b>. the rule that makes it feel engraved rather than shouted: <b>smaller = wider tracking + lower opacity</b>. an 8px label breathes at .4em and recedes to white/20.</p>
+    </div>
+  </section>
+
+  <!-- 03 PLATINUM -->
+  <section>
+    <div class="sec-head"><span class="sec-no">03</span><h2>Platinum</h2></div>
+    <p class="sec-intro">the house metal. a <b>135&deg; gradient</b> — <span class="val">#8e8e93 → #e5e4e2 → #f5f5f7 → #8e8e93</span> — rendered as text fill or a 1px border. it reads as brushed platinum catching light. <b class="rule reserve">reserved for hero &amp; confirmation moments only</b> — the instant a booking becomes real. everywhere else it would cheapen.</p>
+
+    <div class="cols2" style="margin-bottom:20px">
+      <div>
+        <div class="caption">Gradient text — confirmation</div>
+        <div class="marble conf-hero">
+          <div class="lux-9" style="margin-bottom:16px">CONFIRMED · TABLE 6</div>
+          <div class="platinum-text" style="font-family:var(--serif);font-weight:500;font-size:46px;line-height:1">You're in.</div>
+        </div>
+      </div>
+      <div>
+        <div class="caption">Platinum-border card — booking</div>
+        <div class="platinum-border">
+          <div class="inner">
+            <div class="lux-9" style="margin-bottom:12px">MERIDIAN ROOM · SAT</div>
+            <div class="type-serif" style="font-size:26px;color:var(--w100)">Table 6 · party of 6</div>
+            <div class="note" style="color:var(--w40)">doors 10pm · $1,500.00 minimum</div>
+            <a class="wallet-btn" href="#" onclick="return false"><span class="apple-mark">&#63743;</span> Add to Apple Wallet</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="caption">Marble radial-wash — hero surface</div>
+    <div class="marble marble-hero">
+      <div class="lux-9" style="margin-bottom:18px">FRIDAY · PRESENTED BY A-LIST</div>
+      <div class="type-serif" style="font-size:44px;color:var(--w100)">Meridian Room</div>
+      <div class="type-serif" style="font-size:20px;font-style:italic;color:var(--w50);margin-top:6px">an evening with Amara Kone</div>
+      <p class="note" style="color:var(--w40);margin-top:16px">built from layered radial washes of platinum tones over #070707 — <b>no image asset</b>. the hero glows without ever loading a photo.</p>
+    </div>
+  </section>
+
+  <!-- 04 LOGO NEON -->
+  <section>
+    <div class="sec-head"><span class="sec-no">04</span><h2>Logo Neon</h2></div>
+    <p class="sec-intro">the one place color lives. a neon gradient — <span class="val">#BD00FF → #FF00E5 → #00D9FF</span> — belongs to the <b>logo mark and notification pushes</b>. it's the brand's electric signature, and it stays there.</p>
+
+    <div class="cols2" style="margin-bottom:20px">
+      <div>
+        <div class="caption">Logo mark</div>
+        <div class="card" style="display:flex;align-items:center;gap:20px">
+          <div class="neon-mark">A</div>
+          <div>
+            <div class="neon-text">A-List</div>
+            <div class="note" style="margin-top:6px">the mark, and only the mark</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="caption">Notification push</div>
+        <div class="card">
+          <div class="neon-notif">
+            <div class="mini-mark">A</div>
+            <div>
+              <div class="lux-9" style="margin-bottom:3px">A-LIST · NOW</div>
+              <div style="font-size:13px;color:var(--w70)">your table is ready. head to the door.</div>
+            </div>
+          </div>
+          <p class="note">lock-screen pushes carry the neon mark — the only neon a guest sees outside the app icon.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card forbid">
+      <div class="forbid-tag">RULE · NEVER</div>
+      <p class="note" style="margin-top:10px"><b>logo / notifications only.</b> never body UI, never a button, never text emphasis, and <b>never on venue-link</b>. inside the booking flow the neon does not exist — platinum and white opacity carry everything.</p>
+    </div>
+  </section>
+
+  <!-- 05 FEEDBACK STATES -->
+  <section>
+    <div class="sec-head"><span class="sec-no">05</span><h2>Feedback States</h2><span class="lux-9" style="margin-left:auto">v2 PROPOSAL</span></div>
+    <p class="sec-intro">the new work. payment has three outcomes and each earns a distinct, composed treatment — <b>success wears platinum, pending shimmers, failure speaks in the one red we allow</b>. no spinners, no toast confetti.</p>
+
+    <div class="cols3" style="margin-bottom:24px">
+      <div>
+        <div class="caption">Success · platinum</div>
+        <div class="fb fb-success">
+          <div class="fb-title">CONFIRMED</div>
+          <div class="platinum-text plat-line">deposit received</div>
+          <div class="fb-body" style="margin-top:8px">table 6 is yours. <b>$300.00</b> counts toward your minimum.</div>
+        </div>
+      </div>
+      <div>
+        <div class="caption">Pending · shimmer skeleton</div>
+        <div class="fb">
+          <div class="fb-title">PROCESSING</div>
+          <div class="skel-line" style="width:80%"></div>
+          <div class="skel-line w60"></div>
+          <div class="skel-line w40"></div>
+          <div class="fb-body" style="margin-top:12px;color:var(--w40)">no spinner — the surface breathes.</div>
+        </div>
+      </div>
+      <div>
+        <div class="caption">Failure · destructive red</div>
+        <div class="fb fb-fail">
+          <div class="fb-title">CARD DECLINED</div>
+          <div class="fb-body" style="color:var(--w70)">that didn't go through. <b>your table's still held for 4:32.</b></div>
+          <div class="dots" style="margin-top:14px"><span class="val" style="border-color:rgba(212,24,61,.4);color:#ff6b85">#d4183d family</span></div>
+        </div>
+      </div>
+    </div>
+
+    <p class="note" style="margin-bottom:24px"><b>pending motion</b> — a light sweep travels the skeleton left to right: <span class="val">translateX(-100%) → 300%</span> over <span class="val">1.4s</span>, ease-in-out, infinite. it says "working" without ever spinning.</p>
+
+    <div class="caption">Split-pay dots</div>
+    <div class="card">
+      <div class="dots">
+        <span class="dot dot-plat"></span>
+        <span class="dot dot-plat"></span>
+        <span class="dot dot-plat"></span>
+        <span class="dot dot-hollow"></span>
+        <span class="dot dot-red"></span>
+      </div>
+      <div class="dot-legend">
+        <div><span class="dot dot-plat"></span> paid — platinum</div>
+        <div><span class="dot dot-hollow"></span> pending — hollow white/30</div>
+        <div><span class="dot dot-red"></span> failed — red #d4183d</div>
+      </div>
+      <p class="note">the split at a glance: <b>3 of 5 settled, one still coming, one bounced</b>. platinum for locked, hollow for outstanding, red for failed.</p>
+    </div>
+  </section>
+
+  <!-- 06 CONTROLS -->
+  <section>
+    <div class="sec-head"><span class="sec-no">06</span><h2>Controls</h2></div>
+    <p class="sec-intro">one primary action per screen, always the white pill. secondary recedes into the surface; declines go ghost so leaving is never a fight. <b>every target clears 48px</b>.</p>
+
+    <div class="cols3" style="margin-bottom:24px">
+      <div>
+        <div class="ctrl-label">PRIMARY CTA</div>
+        <button class="cta-white" type="button">PAY $300.00 DEPOSIT</button>
+        <p class="note">white pill · <span class="val">active:scale-95</span> on press</p>
+      </div>
+      <div>
+        <div class="ctrl-label">SECONDARY</div>
+        <button class="cta-secondary" type="button">OR PAY WITH CARD</button>
+        <p class="note"><span class="val">white/10</span> fill · <span class="val">border white/20</span></p>
+      </div>
+      <div>
+        <div class="ctrl-label">GHOST · DECLINE</div>
+        <button class="cta-ghost" type="button">no thanks</button>
+        <p class="note">decline paths stay ghost — no border, no weight</p>
+      </div>
+    </div>
+
+    <div class="caption">Checkout inputs — 15px, pill, ≥48px</div>
+    <div class="card">
+      <div class="stack" style="max-width:420px">
+        <input class="checkout-input" type="text" placeholder="full name" aria-label="full name">
+        <input class="checkout-input" type="tel" placeholder="phone" aria-label="phone">
+        <input class="checkout-input" type="text" placeholder="card number" aria-label="card number">
+      </div>
+      <p class="note">inputs are <span class="val">15px</span> pills at <span class="val">min-height 48px</span> — thumb-sized, legible, never cramped. every interactive target on a consumer surface meets the <span class="val">≥48px</span> floor.</p>
+    </div>
+  </section>
+
+  <!-- 07 VENUE-LINK THEMING LOCK -->
+  <section style="border-bottom:none">
+    <div class="sec-head"><span class="sec-no">07</span><h2>Venue-Link Theming Lock</h2></div>
+    <p class="sec-intro">venue-link is a public, un-branded booking surface a venue drops into their own site. it runs on this system but strips anything that would read as <b>A-List the app</b>. these rules are non-negotiable on venue-link.</p>
+
+    <ul class="lock-list card">
+      <li><span class="lock-glyph">●</span><span class="lock-txt"><b>powered-by footer, always.</b> "POWERED BY A-LIST" set at <span class="val">8px</span> · <span class="val">tracking .4em</span> · <span class="val">white/20</span>. ambient, never a link, never larger.</span></li>
+      <li><span class="lock-glyph no">○</span><span class="lock-txt"><b>no neon.</b> the logo gradient does not appear on venue-link — not in a mark, not in a push. platinum and white opacity only.</span></li>
+      <li><span class="lock-glyph no">○</span><span class="lock-txt"><b>no A-List branding.</b> no app icon, no "get the app" before confirmation, no signup wall ahead of checkout. the venue is the host; A-List is the rail underneath.</span></li>
+      <li><span class="lock-glyph">●</span><span class="lock-txt"><b>platinum stays reserved.</b> hero &amp; confirmation only — same rule as everywhere, enforced harder here where the venue's name leads.</span></li>
+    </ul>
+
+    <div class="powered-demo">
+      <span class="powered-by">POWERED BY A-LIST</span>
+    </div>
+    <p class="note">↑ the exact footer treatment, rendered. it sits at the base of every venue-link screen and never grows.</p>
+  </section>
+
+  <div class="footer">
+    <div class="powered-by">POWERED BY A-LIST</div>
+  </div>
+
+</div>
+
+</body>
+</html>

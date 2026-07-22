@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atlas Promoter Receipts</title>
+<style>
+  :root{
+    --s0:#04050A; --s1:#0B0E17; --s2:#111524;
+    --hi:#F5F7FF; --mid:#B8C0D4; --lo:#6B7280;
+    --violet:#A78BFA; --cyan:#22D3EE; --electric:#60A5FA; --amber:#FBBF24; --mint:#34D399;
+    --mono:Menlo,Monaco,"SF Mono",monospace;
+    --hair-chrome:rgba(255,255,255,.12);
+    --hair-card:rgba(255,255,255,.08);
+    --hair-row:rgba(255,255,255,.05);
+    --glass:rgba(255,255,255,.05);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--s0); color:var(--mid);
+    font-family:"Helvetica Neue",Helvetica,Arial,sans-serif; font-weight:300;
+    -webkit-font-smoothing:antialiased;
+    padding-top:44px;
+    min-height:100vh;
+  }
+  a{color:inherit;text-decoration:none}
+  button{font-family:inherit;color:inherit;cursor:pointer;border:0;background:none}
+  :focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+
+  /* back link */
+  .backlink{
+    position:fixed;top:0;left:0;right:0;height:44px;z-index:60;
+    display:flex;align-items:center;padding:0 24px;
+    font-family:var(--mono);font-size:11px;letter-spacing:.22em;color:var(--lo);
+    background:rgba(4,5,10,.82);backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--hair-chrome);
+  }
+  .backlink:hover{color:var(--mid)}
+
+  .mono{font-family:var(--mono)}
+  .kick{font-family:var(--mono);font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--lo)}
+
+  /* header */
+  .head{
+    display:flex;align-items:flex-end;justify-content:space-between;gap:24px;
+    padding:32px 32px 24px;border-bottom:1px solid var(--hair-chrome);
+    background:var(--glass);backdrop-filter:blur(12px);
+  }
+  .head .htitle{font-weight:200;font-size:30px;color:var(--hi);letter-spacing:-.01em;margin:8px 0 0}
+  .mint-btn{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:11px 18px;border-radius:8px;
+    background:rgba(34,211,238,.12);border:1px solid rgba(34,211,238,.45);
+    color:var(--cyan);font-size:14px;font-weight:400;
+    transition:background .12s ease,border-color .12s ease;
+    white-space:nowrap;
+  }
+  .mint-btn:hover{background:rgba(34,211,238,.20);border-color:var(--cyan)}
+  .mint-btn:active{transform:translateY(1px)}
+
+  /* layout */
+  .layout{display:flex;align-items:flex-start;gap:0}
+  .board{
+    width:340px;flex:0 0 340px;
+    position:sticky;top:44px;align-self:flex-start;
+    height:calc(100vh - 44px);overflow-y:auto;
+    border-right:1px solid var(--hair-chrome);
+    padding:20px 16px 40px;
+  }
+  .board-label{padding:0 6px 14px;display:flex;justify-content:space-between;align-items:baseline}
+  .detail{flex:1 1 auto;min-width:0;padding:28px 32px 80px}
+
+  /* leaderboard rows */
+  .prow{
+    display:grid;grid-template-columns:26px 1fr auto;gap:12px;align-items:center;
+    width:100%;text-align:left;padding:12px 10px;border-radius:8px;
+    border:1px solid transparent;transition:background .12s ease,border-color .12s ease;
+  }
+  .prow:hover{background:var(--s1)}
+  .prow.active{background:var(--s1);border-color:rgba(34,211,238,.35)}
+  .prow .rank{font-family:var(--mono);font-size:13px;color:var(--lo);text-align:right}
+  .prow.top .rank{color:var(--amber)}
+  .prow .phandle{font-size:15px;color:var(--hi);font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .prow .psub{font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;color:var(--lo);margin-top:4px}
+  .prow .psub .sup-good{color:var(--mint)}
+  .prow .psub .sup-warn{color:var(--amber)}
+  .prow .prev{font-family:var(--mono);font-size:13px;color:var(--mid);text-align:right;white-space:nowrap}
+  .prow.zero .prev{color:var(--lo)}
+
+  /* detail header */
+  .d-top{display:flex;align-items:flex-start;justify-content:space-between;gap:28px;flex-wrap:wrap}
+  .d-handle{font-weight:200;font-size:30px;color:var(--hi);letter-spacing:-.005em;margin:0}
+  .d-meta{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--lo);margin-top:8px}
+  .weekbars{display:flex;align-items:flex-end;gap:5px;height:46px;margin-top:6px}
+  .weekbars .wb{width:11px;background:var(--electric);border-radius:2px 2px 0 0;opacity:.85;min-height:2px}
+  .weekbars .wb:last-child{background:var(--cyan);opacity:1}
+  .week-cap{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;color:var(--lo);text-transform:uppercase;margin-top:8px}
+
+  /* stat strip */
+  .stats{display:flex;gap:16px;flex-wrap:wrap;margin:26px 0 6px}
+  .stat{
+    flex:1 1 180px;background:var(--s1);border:1px solid var(--hair-card);
+    border-radius:11px;padding:16px 18px;
+  }
+  .stat .l{font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--lo)}
+  .stat .v{font-family:var(--mono);font-size:22px;color:var(--hi);margin-top:9px}
+  .stat .v.small{font-size:14px;color:var(--amber)}
+  .flag{color:var(--amber)}
+
+  .sec-label{font-family:var(--mono);font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--mid);margin:34px 0 14px}
+
+  /* funnel */
+  .funnel{background:var(--s1);border:1px solid var(--hair-card);border-radius:11px;padding:20px 20px 8px}
+  .fstage{margin-bottom:4px}
+  .fstage .frow{display:flex;align-items:center;gap:14px}
+  .fstage .fname{font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--lo);width:96px;flex:0 0 96px;text-transform:uppercase}
+  .fbar-wrap{flex:1 1 auto;min-width:0}
+  .fbar{height:22px;border-radius:4px;min-width:3px}
+  .fstage .fval{font-family:var(--mono);font-size:13px;color:var(--hi);width:118px;flex:0 0 118px;text-align:right;white-space:nowrap}
+  .fconv{font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--lo);margin:5px 0 9px 110px}
+  .fconv b{color:var(--mid);font-weight:400}
+  .b-gray{background:#3a4056}
+  .b-electric{background:var(--electric)}
+  .b-mint{background:var(--mint)}
+  .b-cyan{background:var(--cyan)}
+  .b-violet{background:var(--violet)}
+
+  /* tables */
+  table{width:100%;border-collapse:collapse;background:var(--s1);border:1px solid var(--hair-card);border-radius:11px;overflow:hidden}
+  thead th{
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--lo);font-weight:400;text-align:left;padding:12px 14px;border-bottom:1px solid var(--hair-card);
+  }
+  tbody td{padding:13px 14px;font-size:13.5px;color:var(--mid);border-bottom:1px solid var(--hair-row);vertical-align:middle}
+  tbody tr:last-child td{border-bottom:0}
+  td.num,th.num{text-align:right;font-family:var(--mono)}
+  .money{font-family:var(--mono);font-size:13px;color:var(--hi)}
+  .money.take{color:var(--mid)}
+  .guest{color:var(--hi)}
+  .subtle{color:var(--lo);font-family:var(--mono);font-size:11px}
+
+  /* state chips */
+  .chip{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;padding:3px 8px;border-radius:999px;white-space:nowrap;display:inline-block}
+  .chip.closed{color:var(--mint);border:1px solid rgba(52,211,153,.4)}
+  .chip.noshow{color:var(--amber);border:1px solid rgba(251,191,36,.45)}
+  .chip.cancelled{color:var(--lo);border:1px solid var(--hair-card)}
+  tr.is-cancelled td.guest-cell{text-decoration:line-through;color:var(--lo)}
+
+  tfoot td{padding:13px 14px;border-top:1px solid var(--hair-card);font-family:var(--mono)}
+  tfoot .flabel{font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--lo)}
+  tfoot .fmoney{color:var(--hi);text-align:right;font-size:14px}
+  .closeout-stamp{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--lo);margin-top:10px}
+
+  /* per-link table */
+  .lk-url{font-family:var(--mono);font-size:12px;color:var(--electric)}
+  .lk-camp{position:relative;padding-left:12px;font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--mid)}
+  .lk-camp::before{content:"";position:absolute;left:0;top:1px;bottom:1px;width:2px;background:var(--amber);border-radius:2px}
+  .lk-camp.none{color:var(--lo)}
+  .lk-camp.none::before{background:var(--hair-card)}
+  .share-wrap{width:110px}
+  .share-bar{height:7px;background:var(--s2);border-radius:4px;overflow:hidden}
+  .share-fill{height:100%;background:var(--electric);border-radius:4px}
+  .share-pct{font-family:var(--mono);font-size:10px;color:var(--lo);margin-top:5px}
+  .copy-btn{
+    font-family:var(--mono);font-size:10px;letter-spacing:.12em;
+    padding:6px 11px;border-radius:6px;border:1px solid var(--hair-card);color:var(--mid);
+    transition:border-color .12s ease,color .12s ease,background .12s ease;
+  }
+  .copy-btn:hover{border-color:rgba(34,211,238,.5);color:var(--cyan)}
+  .copy-btn.done{color:var(--mint);border-color:rgba(52,211,153,.5)}
+
+  /* empty state */
+  .empty{
+    background:var(--s1);border:1px dashed var(--hair-chrome);border-radius:11px;
+    padding:44px 28px;text-align:center;
+  }
+  .empty .glyph{font-size:26px;color:var(--lo);line-height:1}
+  .empty .et{font-size:15px;color:var(--mid);margin-top:16px}
+  .empty .es{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--lo);margin-top:8px;line-height:1.7}
+
+  /* modal */
+  .scrim{
+    position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;
+    background:rgba(4,5,10,.72);backdrop-filter:blur(6px);padding:24px;
+  }
+  .scrim.open{display:flex}
+  .modal{
+    width:100%;max-width:460px;background:var(--s1);
+    border:1px solid var(--hair-chrome);border-radius:14px;
+    box-shadow:0 24px 80px rgba(0,0,0,.55);
+    padding:26px 26px 24px;
+  }
+  .modal h2{font-weight:200;font-size:22px;color:var(--hi);margin:6px 0 2px}
+  .modal .msub{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--lo)}
+  .field{margin-top:20px}
+  .field label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--lo);margin-bottom:8px}
+  .field select,.field input{
+    width:100%;background:var(--s2);border:1px solid var(--hair-card);border-radius:8px;
+    color:var(--hi);font-size:14px;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;
+    padding:11px 12px;
+  }
+  .field select:focus-visible,.field input:focus-visible{outline:2px solid var(--cyan);outline-offset:1px;border-color:transparent}
+  .field .hint{font-family:var(--mono);font-size:10px;color:var(--lo);margin-top:7px;letter-spacing:.04em}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:26px}
+  .m-btn{padding:10px 16px;border-radius:8px;font-size:13px;transition:background .12s,border-color .12s}
+  .m-ghost{color:var(--mid);border:1px solid var(--hair-card)}
+  .m-ghost:hover{border-color:var(--hair-chrome);color:var(--hi)}
+  .m-go{background:rgba(34,211,238,.12);border:1px solid rgba(34,211,238,.45);color:var(--cyan)}
+  .m-go:hover{background:rgba(34,211,238,.22);border-color:var(--cyan)}
+  .minted{
+    background:var(--s2);border:1px solid var(--hair-card);border-radius:9px;
+    padding:14px 14px;margin-top:20px;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  }
+  .minted .mlink{font-family:var(--mono);font-size:12.5px;color:var(--electric);word-break:break-all}
+  .minted-note{font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--lo);margin-top:14px;line-height:1.7}
+  .hide{display:none !important}
+
+  @media (max-width:900px){
+    .layout{flex-direction:column}
+    .board{position:static;width:100%;flex:none;height:auto;border-right:0;border-bottom:1px solid var(--hair-chrome)}
+    .detail{padding:24px 20px 60px;width:100%}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none !important;animation:none !important;scroll-behavior:auto !important}
+  }
+</style>
+</head>
+<body>
+<a class="backlink" href="/deliverables">← DELIVERABLES</a>
+
+<div class="head">
+  <div>
+    <div class="kick">MERIDIAN ROOM&nbsp;&nbsp;·&nbsp;&nbsp;PROMOTER RECEIPTS&nbsp;&nbsp;·&nbsp;&nbsp;SETTLED TABS</div>
+    <h1 class="htitle">Promoters</h1>
+  </div>
+  <button class="mint-btn" id="openMint">+&nbsp;&nbsp;Mint a link</button>
+</div>
+
+<div class="layout">
+  <aside class="board" aria-label="Promoter leaderboard">
+    <div class="board-label">
+      <span class="kick">LEADERBOARD</span>
+      <span class="kick">BY SETTLED REV</span>
+    </div>
+    <div id="boardRows"></div>
+  </aside>
+
+  <main class="detail" id="detail" aria-live="polite"></main>
+</div>
+
+<!-- MINT MODAL -->
+<div class="scrim" id="scrim" role="dialog" aria-modal="true" aria-labelledby="mintTitle">
+  <div class="modal">
+    <!-- STEP 1 -->
+    <div id="step1">
+      <div class="msub">STEP 1 · 2</div>
+      <h2 id="mintTitle">Mint a tracked link</h2>
+      <div class="field">
+        <label for="promSel">Promoter</label>
+        <select id="promSel"></select>
+      </div>
+      <div class="field hide" id="newProm">
+        <label for="newHandle">New promoter handle</label>
+        <input id="newHandle" type="text" placeholder="@handle" autocomplete="off">
+        <div class="hint">Appended to the leaderboard at $0 · settles on first closed tab.</div>
+      </div>
+      <div class="field">
+        <label for="campIn">Campaign <span style="color:var(--lo)">(optional)</span></label>
+        <input id="campIn" type="text" placeholder="friday-residency" autocomplete="off">
+        <div class="hint">Tags every booking on this link for attribution.</div>
+      </div>
+      <div class="modal-actions">
+        <button class="m-btn m-ghost" id="cancelMint">Cancel</button>
+        <button class="m-btn m-go" id="genLink">Generate link</button>
+      </div>
+    </div>
+    <!-- STEP 2 -->
+    <div id="step2" class="hide">
+      <div class="msub">STEP 2 · 2 · <span style="color:var(--mint)">LINK LIVE</span></div>
+      <h2>Ready to share</h2>
+      <div class="minted">
+        <span class="mlink" id="mintedLink"></span>
+        <button class="copy-btn" id="copyMinted">COPY</button>
+      </div>
+      <div class="minted-note" id="mintedNote"></div>
+      <div class="modal-actions">
+        <button class="m-btn m-ghost" id="shareMinted">Share</button>
+        <button class="m-btn m-go" id="doneMint">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ---------- money from integer cents ---------- */
+function money(cents){
+  var neg = cents < 0;
+  var v = Math.abs(cents);
+  var s = "$" + (v/100).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+  return neg ? "("+s+")" : s;
+}
+function moneyShort(cents){
+  var v = Math.round(cents/100);
+  if(v>=1000) return "$"+(v/1000).toFixed(1).replace(/\.0$/,"")+"k";
+  return "$"+v;
+}
+
+/* ---------- data (Meridian Room) ---------- */
+var PROMOTERS = [
+  {
+    handle:"@nocturne.marca", showUp:88,
+    weeks:[210000,264000,238000,301000,355000,412000],
+    funnel:{taps:2140, bookings:96, seated:84, tab:41200000, take:5768000},
+    receipts:[
+      {date:"07-18",guest:"Dominic R.",table:"Booth 2",party:6,state:"closed",tab:184000,take:25760},
+      {date:"07-18",guest:"Priya N.",table:"T-11",party:4,state:"closed",tab:96500,take:13510},
+      {date:"07-17",guest:"Marcus L.",table:"Mezz 1",party:8,state:"closed",tab:312000,take:43680},
+      {date:"07-17",guest:"Cassie V.",table:"T-04",party:4,state:"noshow",tab:0,take:0},
+      {date:"07-12",guest:"Theo B.",table:"Booth 1",party:6,state:"closed",tab:227500,take:31850},
+      {date:"07-12",guest:"Ana G.",table:"T-08",party:4,state:"cancelled",tab:0,take:0},
+      {date:"07-11",guest:"Reza M.",table:"Mezz 2",party:8,state:"closed",tab:398000,take:55720}
+    ],
+    links:[
+      {url:"mrdn.co/r/marca/fri",camp:"friday-residency",taps:1180,booked:52,rev:2210000},
+      {url:"mrdn.co/r/marca/ig01",camp:"ig-story-jul",taps:640,booked:29,rev:1120000},
+      {url:"mrdn.co/r/marca/vip",camp:"industry-list",taps:320,booked:15,rev:788000}
+    ],
+    lastCloseout:"2026-07-18 02:41"
+  },
+  {
+    handle:"@velvetrope.kj", showUp:79,
+    weeks:[140000,166000,151000,188000,203000,241000],
+    funnel:{taps:1560, bookings:71, seated:56, tab:26400000, take:3696000},
+    receipts:[
+      {date:"07-18",guest:"Lena K.",table:"T-06",party:6,state:"closed",tab:171000,take:23940},
+      {date:"07-18",guest:"Omar S.",table:"T-02",party:4,state:"noshow",tab:0,take:0},
+      {date:"07-17",guest:"Bianca T.",table:"Booth 3",party:6,state:"closed",tab:205000,take:28700},
+      {date:"07-11",guest:"Devon H.",table:"T-09",party:4,state:"closed",tab:112000,take:15680},
+      {date:"07-11",guest:"Iris P.",table:"Mezz 1",party:8,state:"cancelled",tab:0,take:0},
+      {date:"07-10",guest:"Sam W.",table:"T-05",party:4,state:"closed",tab:98000,take:13720}
+    ],
+    links:[
+      {url:"mrdn.co/r/kj/late",camp:"after-midnight",taps:920,booked:41,rev:1440000},
+      {url:"mrdn.co/r/kj/gen",camp:null,taps:640,booked:30,rev:960000}
+    ],
+    lastCloseout:"2026-07-18 03:02"
+  },
+  {
+    handle:"@lila.aftermidnight", showUp:71,
+    weeks:[88000,96000,74000,120000,101000,142000],
+    funnel:{taps:1020, bookings:44, seated:31, tab:14900000, take:2086000},
+    receipts:[
+      {date:"07-18",guest:"Noa F.",table:"T-03",party:4,state:"closed",tab:104000,take:14560},
+      {date:"07-17",guest:"Jules D.",table:"T-07",party:6,state:"noshow",tab:0,take:0},
+      {date:"07-17",guest:"Kai R.",table:"Booth 1",party:6,state:"closed",tab:178000,take:24920},
+      {date:"07-10",guest:"Mira Z.",table:"T-10",party:4,state:"noshow",tab:0,take:0},
+      {date:"07-10",guest:"Elon P.",table:"T-01",party:4,state:"closed",tab:86500,take:12110}
+    ],
+    links:[
+      {url:"mrdn.co/r/lila/sun",camp:"sunday-soft",taps:560,booked:22,rev:790000},
+      {url:"mrdn.co/r/lila/tt",camp:"tiktok-clip",taps:460,booked:22,rev:632000}
+    ],
+    lastCloseout:"2026-07-18 02:58"
+  },
+  {
+    handle:"@orion.guestlist", showUp:64,
+    weeks:[52000,44000,61000,48000,58000,71000],
+    funnel:{taps:680, bookings:26, seated:16, tab:7100000, take:994000},
+    receipts:[
+      {date:"07-17",guest:"Tara Q.",table:"T-12",party:4,state:"closed",tab:92000,take:12880},
+      {date:"07-17",guest:"Rico A.",table:"T-06",party:6,state:"noshow",tab:0,take:0},
+      {date:"07-11",guest:"Yuki M.",table:"Booth 2",party:6,state:"cancelled",tab:0,take:0},
+      {date:"07-10",guest:"Paul E.",table:"T-04",party:4,state:"closed",tab:74000,take:10360}
+    ],
+    links:[
+      {url:"mrdn.co/r/orion/list",camp:"door-list",taps:680,booked:26,rev:710000}
+    ],
+    lastCloseout:"2026-07-17 03:14"
+  },
+  {
+    handle:"@saintclair.soiree", showUp:0,
+    weeks:[0,0,0,0,0,0],
+    funnel:{taps:0, bookings:0, seated:0, tab:0, take:0},
+    receipts:[],
+    links:[
+      {url:"mrdn.co/r/saintclair/deb",camp:"debut-night",taps:38,booked:0,rev:0}
+    ],
+    lastCloseout:null
+  }
+];
+
+/* revenue = sum of settled (closed) tabs */
+function settledRev(p){ return p.receipts.reduce(function(a,r){return a + (r.state==="closed"?r.tab:0);},0); }
+function settledTake(p){ return p.receipts.reduce(function(a,r){return a + (r.state==="closed"?r.take:0);},0); }
+function bookingsCount(p){ return p.receipts.length; }
+
+/* sort by settled revenue desc (stable, zeros last) */
+function sortedPromoters(){
+  return PROMOTERS.map(function(p,i){return {p:p,i:i,rev:settledRev(p)};})
+    .sort(function(a,b){ if(b.rev!==a.rev) return b.rev-a.rev; return a.i-b.i; })
+    .map(function(o){return o.p;});
+}
+
+/* ---------- render leaderboard ---------- */
+var activeHandle = null;
+function renderBoard(){
+  var rows = sortedPromoters();
+  var host = document.getElementById("boardRows");
+  host.innerHTML = "";
+  rows.forEach(function(p,idx){
+    var rev = settledRev(p);
+    var rank = String(idx+1).padStart(2,"0");
+    var good = p.showUp>=75;
+    var b = document.createElement("button");
+    b.className = "prow" + (idx===0?" top":"") + (rev===0?" zero":"") + (p.handle===activeHandle?" active":"");
+    b.setAttribute("aria-pressed", p.handle===activeHandle ? "true":"false");
+    b.innerHTML =
+      '<span class="rank">'+rank+'</span>'+
+      '<span><span class="phandle">'+p.handle+'</span>'+
+        '<span class="psub">'+bookingsCount(p)+' bkg&nbsp;&nbsp;·&nbsp;&nbsp;'+p.links.length+' link'+(p.links.length===1?"":"s")+
+        '&nbsp;&nbsp;·&nbsp;&nbsp;<span class="'+(good?"sup-good":"sup-warn")+'">'+p.showUp+'% show</span></span></span>'+
+      '<span class="prev">'+(rev===0?"— · —":moneyShort(rev))+'</span>';
+    b.addEventListener("click", function(){ selectPromoter(p.handle); });
+    host.appendChild(b);
+  });
+}
+
+/* ---------- render detail ---------- */
+function selectPromoter(handle){
+  activeHandle = handle;
+  renderBoard();
+  var p = PROMOTERS.find(function(x){return x.handle===handle;});
+  renderDetail(p);
+  document.getElementById("detail").scrollIntoView({block:"nearest"});
+}
+
+function convPct(a,b){ if(!a) return "0%"; return Math.round((b/a)*100)+"%"; }
+
+function renderDetail(p){
+  var host = document.getElementById("detail");
+  var rev = settledRev(p);
+  var take = settledTake(p);
+  var maxWeek = Math.max.apply(null, p.weeks.concat([1]));
+
+  var html = "";
+
+  /* top: handle + week bars */
+  html += '<div class="d-top">';
+  html += '<div><h2 class="d-handle">'+p.handle+'</h2>'+
+          '<div class="d-meta">SHOW-UP '+p.showUp+'%&nbsp;&nbsp;·&nbsp;&nbsp;'+p.links.length+' TRACKED LINK'+(p.links.length===1?"":"S")+'&nbsp;&nbsp;·&nbsp;&nbsp;'+
+          (p.lastCloseout?'SETTLED THROUGH '+p.lastCloseout.slice(0,10):'AWAITING FIRST CLOSE')+'</div></div>';
+  html += '<div><div class="weekbars">';
+  p.weeks.forEach(function(w){
+    var h = Math.round((w/maxWeek)*46);
+    html += '<span class="wb" style="height:'+Math.max(h,2)+'px;'+(w===0?'opacity:.25':'')+'"></span>';
+  });
+  html += '</div><div class="week-cap">SETTLED · LAST 6 WEEKS</div></div>';
+  html += '</div>';
+
+  /* stat strip */
+  html += '<div class="stats">';
+  html += '<div class="stat"><div class="l">Settled revenue</div><div class="v">'+money(rev)+'</div></div>';
+  html += '<div class="stat"><div class="l">Metered take</div><div class="v">'+money(take)+'</div>'+
+          '<div class="v small"><span class="flag">⚑</span> rate placeholder</div></div>';
+  html += '<div class="stat"><div class="l">Settled bookings</div><div class="v">'+p.receipts.filter(function(r){return r.state==="closed";}).length+'</div></div>';
+  html += '</div>';
+
+  if(rev===0 && p.receipts.length===0){
+    /* ---------- empty state ---------- */
+    html += '<div class="sec-label">RECEIPTS</div>';
+    html += '<div class="empty">'+
+      '<div class="glyph">⊘</div>'+
+      '<div class="et">No settled receipts yet</div>'+
+      '<div class="es">'+p.handle+' has a live link but no closed tabs.<br>'+
+      p.links[0].taps+' taps logged · attribution starts on first close.</div>'+
+      '</div>';
+    /* still show the link table so they can copy their link */
+    html += renderLinks(p, 0);
+    host.innerHTML = html;
+    wireCopies();
+    return;
+  }
+
+  /* ---------- funnel ---------- */
+  var f = p.funnel;
+  html += '<div class="sec-label">CONVERSION FUNNEL</div>';
+  html += '<div class="funnel">';
+  html += fstage("Link taps","b-gray",100,f.taps.toLocaleString());
+  html += fconv("↓ "+convPct(f.taps,f.bookings)+" tap to book");
+  html += fstage("Bookings","b-electric",Math.max((f.bookings/f.taps)*100,4),f.bookings.toLocaleString());
+  html += fconv("↓ "+convPct(f.bookings,f.seated)+" show-up (seated)");
+  html += fstage("Seated","b-mint",Math.max((f.seated/f.taps)*100,4),f.seated.toLocaleString());
+  html += fconv("↓ "+money(Math.round(f.tab/Math.max(f.seated,1)))+" avg tab / seat");
+  html += fstage("Tab","b-cyan",Math.max((f.seated/f.taps)*100*0.72,3),money(f.tab));
+  html += fconv("↓ <span class=\"flag\">⚑</span> rate placeholder");
+  html += fstage("Take","b-violet",Math.max((f.seated/f.taps)*100*0.42,2.5),money(f.take));
+  html += '</div>';
+
+  /* ---------- receipts ledger ---------- */
+  html += '<div class="sec-label">RECEIPTS LEDGER</div>';
+  html += '<table><thead><tr>'+
+    '<th>Date</th><th>Guest · Table</th><th class="num">Party</th><th>State</th>'+
+    '<th class="num">Tab</th><th class="num">Take</th></tr></thead><tbody>';
+  p.receipts.forEach(function(r){
+    var chip = r.state==="closed" ? '<span class="chip closed">CLOSED</span>' :
+               r.state==="noshow" ? '<span class="chip noshow">△ NO-SHOW</span>' :
+               '<span class="chip cancelled">CANCELLED</span>';
+    html += '<tr class="'+(r.state==="cancelled"?"is-cancelled":"")+'">'+
+      '<td class="subtle">'+r.date+'</td>'+
+      '<td class="guest-cell"><span class="guest">'+r.guest+'</span> <span class="subtle">· '+r.table+'</span></td>'+
+      '<td class="num">'+r.party+'</td>'+
+      '<td>'+chip+'</td>'+
+      '<td class="num money">'+(r.tab?money(r.tab):'—')+'</td>'+
+      '<td class="num money take">'+(r.take?money(r.take):'—')+'</td>'+
+      '</tr>';
+  });
+  html += '</tbody><tfoot><tr>'+
+    '<td colspan="4" class="flabel">Settled total</td>'+
+    '<td class="num fmoney">'+money(rev)+'</td>'+
+    '<td class="num fmoney">'+money(take)+'</td>'+
+    '</tr></tfoot></table>';
+  html += '<div class="closeout-stamp">● LAST CLOSEOUT '+(p.lastCloseout||"—")+'&nbsp;&nbsp;·&nbsp;&nbsp;take metered at <span class="flag">⚑</span> rate placeholder</div>';
+
+  /* ---------- per-link table ---------- */
+  html += renderLinks(p, rev);
+
+  host.innerHTML = html;
+  wireCopies();
+}
+
+function fstage(name,cls,pct,val){
+  return '<div class="fstage"><div class="frow">'+
+    '<span class="fname">'+name+'</span>'+
+    '<span class="fbar-wrap"><span class="fbar '+cls+'" style="width:'+pct+'%"></span></span>'+
+    '<span class="fval">'+val+'</span></div></div>';
+}
+function fconv(txt){ return '<div class="fconv"><b>'+txt+'</b></div>'; }
+
+function renderLinks(p, rev){
+  var maxRev = Math.max.apply(null, p.links.map(function(l){return l.rev;}).concat([1]));
+  var html = '<div class="sec-label">PER-LINK BREAKDOWN</div>';
+  html += '<table><thead><tr>'+
+    '<th>Link</th><th>Campaign</th><th class="num">Taps</th><th class="num">Booked</th>'+
+    '<th>Share of rev</th><th class="num">Revenue</th><th></th></tr></thead><tbody>';
+  p.links.forEach(function(l){
+    var share = rev>0 ? (l.rev/rev) : 0;
+    var pct = Math.round(share*100);
+    html += '<tr>'+
+      '<td><span class="lk-url">'+l.url+'</span></td>'+
+      '<td>'+(l.camp?'<span class="lk-camp">'+l.camp+'</span>':'<span class="lk-camp none">no campaign</span>')+'</td>'+
+      '<td class="num">'+l.taps.toLocaleString()+'</td>'+
+      '<td class="num">'+l.booked+'</td>'+
+      '<td><div class="share-wrap"><div class="share-bar"><div class="share-fill" style="width:'+(rev>0?Math.max(pct,2):0)+'%"></div></div>'+
+        '<div class="share-pct">'+(rev>0?pct+"%":"—")+'</div></div></td>'+
+      '<td class="num money">'+(l.rev?money(l.rev):'—')+'</td>'+
+      '<td><button class="copy-btn" data-copy="https://'+l.url+'">COPY</button></td>'+
+      '</tr>';
+  });
+  html += '</tbody></table>';
+  return html;
+}
+
+/* ---------- clipboard (with fallback) ---------- */
+function copyText(text){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    return navigator.clipboard.writeText(text).catch(function(){ return fallbackCopy(text); });
+  }
+  return fallbackCopy(text);
+}
+function fallbackCopy(text){
+  return new Promise(function(resolve){
+    var ta = document.createElement("textarea");
+    ta.value = text; ta.setAttribute("readonly","");
+    ta.style.position="fixed"; ta.style.top="-1000px";
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand("copy"); }catch(e){}
+    document.body.removeChild(ta); resolve();
+  });
+}
+function flashCopied(btn){
+  var orig = btn.textContent;
+  btn.textContent = "COPIED ●"; btn.classList.add("done");
+  setTimeout(function(){ btn.textContent = orig; btn.classList.remove("done"); }, 1400);
+}
+function wireCopies(){
+  document.querySelectorAll("[data-copy]").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      copyText(btn.getAttribute("data-copy")).then(function(){ flashCopied(btn); });
+    });
+  });
+}
+
+/* ---------- mint modal ---------- */
+var scrim = document.getElementById("scrim");
+var promSel = document.getElementById("promSel");
+var newProm = document.getElementById("newProm");
+var newHandle = document.getElementById("newHandle");
+var campIn = document.getElementById("campIn");
+var step1 = document.getElementById("step1");
+var step2 = document.getElementById("step2");
+var lastFocus = null;
+
+function fillPromoterSelect(){
+  promSel.innerHTML = "";
+  PROMOTERS.forEach(function(p){
+    var o = document.createElement("option");
+    o.value = p.handle; o.textContent = p.handle;
+    promSel.appendChild(o);
+  });
+  var n = document.createElement("option");
+  n.value = "__new__"; n.textContent = "+ New promoter…";
+  promSel.appendChild(n);
+}
+function openMint(){
+  lastFocus = document.activeElement;
+  fillPromoterSelect();
+  step1.classList.remove("hide"); step2.classList.add("hide");
+  newProm.classList.add("hide"); newHandle.value=""; campIn.value="";
+  if(activeHandle) promSel.value = activeHandle;
+  scrim.classList.add("open");
+  promSel.focus();
+}
+function closeMint(){
+  scrim.classList.remove("open");
+  if(lastFocus && lastFocus.focus) lastFocus.focus();
+}
+promSel.addEventListener("change", function(){
+  if(promSel.value==="__new__"){ newProm.classList.remove("hide"); newHandle.focus(); }
+  else newProm.classList.add("hide");
+});
+
+function slug(s){ return s.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,""); }
+function rand4(){ return Math.random().toString(36).slice(2,6); }
+
+document.getElementById("genLink").addEventListener("click", function(){
+  var handle, isNew=false;
+  if(promSel.value==="__new__"){
+    var h = newHandle.value.trim();
+    if(!h){ newHandle.focus(); return; }
+    handle = h[0]==="@" ? h : "@"+h;
+    isNew = true;
+  } else {
+    handle = promSel.value;
+  }
+  var camp = campIn.value.trim();
+  var handleSlug = slug(handle.replace(/^@/,""));
+  var path = camp ? slug(camp) : "gen";
+  var link = "https://mrdn.co/r/"+handleSlug+"/"+path+"-"+rand4();
+
+  /* if new promoter, append at $0 with empty receipts */
+  if(isNew && !PROMOTERS.find(function(x){return x.handle===handle;})){
+    PROMOTERS.push({
+      handle:handle, showUp:0, weeks:[0,0,0,0,0,0],
+      funnel:{taps:0,bookings:0,seated:0,tab:0,take:0},
+      receipts:[],
+      links:[{url:link.replace("https://",""), camp:camp||null, taps:0, booked:0, rev:0}],
+      lastCloseout:null
+    });
+    renderBoard();
+  } else if(!isNew){
+    /* attach the new link to existing promoter */
+    var ex = PROMOTERS.find(function(x){return x.handle===handle;});
+    ex.links.push({url:link.replace("https://",""), camp:camp||null, taps:0, booked:0, rev:0});
+    if(activeHandle===handle) renderDetail(ex);
+    renderBoard();
+  }
+
+  document.getElementById("mintedLink").textContent = link;
+  document.getElementById("mintedNote").innerHTML =
+    "Attributed to <b style=\"color:var(--mid)\">"+handle+"</b>"+
+    (camp?" · campaign <b style=\"color:var(--mid)\">"+camp+"</b>":"")+
+    "<br>Take metered at <span class=\"flag\">⚑</span> rate placeholder on first closed tab.";
+  step1.classList.add("hide"); step2.classList.remove("hide");
+  document.getElementById("copyMinted").focus();
+});
+
+document.getElementById("copyMinted").addEventListener("click", function(){
+  var btn = this;
+  copyText(document.getElementById("mintedLink").textContent).then(function(){ flashCopied(btn); });
+});
+document.getElementById("shareMinted").addEventListener("click", function(){
+  var link = document.getElementById("mintedLink").textContent;
+  if(navigator.share){
+    navigator.share({title:"Meridian Room", text:"Reserve a table", url:link}).catch(function(){});
+  } else {
+    var btn = this;
+    copyText(link).then(function(){ btn.textContent = "Copied to clipboard"; setTimeout(function(){btn.textContent="Share";},1600); });
+  }
+});
+document.getElementById("doneMint").addEventListener("click", closeMint);
+document.getElementById("cancelMint").addEventListener("click", closeMint);
+document.getElementById("openMint").addEventListener("click", openMint);
+scrim.addEventListener("click", function(e){ if(e.target===scrim) closeMint(); });
+document.addEventListener("keydown", function(e){ if(e.key==="Escape" && scrim.classList.contains("open")) closeMint(); });
+
+/* ---------- init ---------- */
+renderBoard();
+selectPromoter(sortedPromoters()[0].handle);
+</script>
+</body>
+</html>
