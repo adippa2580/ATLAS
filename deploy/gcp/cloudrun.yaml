@@ -33,6 +33,12 @@ spec:
               value: 'false'
             - name: GCP_PROJECT_ID
               value: __PROJECT_ID__
+            - name: SPOTIFY_CLIENT_ID
+              value: 38b7964e801c4955a90895a2766e7ea3
+            - name: SPOTIFY_REDIRECT_URL
+              value: https://atlas-4je5vwjoha-uc.a.run.app/v1/connectors/spotify/callback
+            - name: SPOTIFY_CLIENT_SECRET
+              value: '__SPOTIFY_CLIENT_SECRET__'
             - name: ALIST_FEED_URL
               value: https://ofjcnikfebfgopytsgbm.supabase.co
             - name: ALIST_FEED_KEY

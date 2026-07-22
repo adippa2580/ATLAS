@@ -1,4 +1,7 @@
 import {
+  Get,
+  Query,
+  Res,
   Body,
   Controller,
   Injectable,
@@ -9,6 +12,10 @@ import {
 } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { ApiTags } from '@nestjs/swagger';
+import type { Response as ExpressResponse } from 'express';
+
+/** The A-List flagship tenant — browser OAuth legs write into its graph. */
+const FLAGSHIP_TENANT_ID = '00000000-0000-0000-0000-00000000a115';
 import { IsArray, IsOptional, IsString } from 'class-validator';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { Scopes } from '../../../common/auth/scopes.decorator';
@@ -88,11 +95,13 @@ export class ConnectorsService {
     this.pendingStates.delete(dto.state); // single-use
     const guestId = pending.guestId;
 
-    // TODO: real server-side code→token exchange belongs here — POST the
-    // provider's OAuth `code` (dto.code) to its token endpoint with the client
-    // secret and receive the access token. We must NEVER accept an access token
-    // from the client body. Until that is wired, adapters run against a stub.
-    const accessToken = 'stub';
+    // Server-side code→token exchange (never accept tokens from the client).
+    // Instagram stays stubbed pending a Meta app review; Spotify is live when
+    // SPOTIFY_CLIENT_ID/SECRET/REDIRECT_URL are configured.
+    const accessToken =
+      provider === 'spotify' && dto.code
+        ? await this.spotify.exchangeCode(dto.code)
+        : 'stub';
 
     const consent = await this.prisma.consentGrant.create({
       data: {
@@ -161,6 +170,58 @@ export class ConnectorsController {
     @Body() dto: CallbackDto,
   ) {
     return this.svc.callback(ctx, provider, dto);
+  }
+
+  /**
+   * Browser entry: 302 straight to Spotify consent. Public route (excluded
+   * from tenant middleware) — the state nonce binds the flow to the guestId
+   * issued here. HARDENING TODO: gate issuance behind a signed invite token
+   * so third parties can't attach taste to arbitrary guest ids.
+   */
+  @Get('spotify/connect')
+  connectRedirect(
+    @Query('guestId') guestId: string,
+    @Res() res: ExpressResponse,
+  ) {
+    if (!guestId) {
+      res.status(400).send('guestId required');
+      return;
+    }
+    const { authorizeUrl } = this.svc.authorize('spotify', { guestId });
+    res.redirect(authorizeUrl);
+  }
+
+  /** Browser return leg from Spotify — completes the flow and renders HTML. */
+  @Get('spotify/callback')
+  async connectCallback(
+    @Query('code') code: string,
+    @Query('state') state: string,
+    @Query('error') error: string,
+    @Res() res: ExpressResponse,
+  ) {
+    const page = (inner: string, status = 200) =>
+      res
+        .status(status)
+        .type('html')
+        .send(
+          `<!doctype html><meta charset="utf-8"><title>A-List × Spotify</title><body style="font-family:system-ui;background:#100C14;color:#EDE8F1;display:grid;place-items:center;min-height:95vh"><div style="max-width:560px;padding:32px;background:#191320;border:1px solid #2A2233;border-radius:14px">${inner}</div>`,
+        );
+    if (error) return page(`<h2>Spotify said no</h2><p>${error}</p>`, 400);
+    if (!code || !state) return page('<h2>Missing code or state</h2>', 400);
+    try {
+      // Tenant context for the write path: the flagship tenant. The state
+      // nonce (not the caller) determines the guest.
+      const ctx = { tenantId: FLAGSHIP_TENANT_ID, scopes: [] } as TenantContext;
+      const result = await this.svc.callback(ctx, 'spotify', {
+        code,
+        state,
+      } as CallbackDto);
+      return page(
+        `<h2>Connected ✓</h2><p><b>${result.synced}</b> taste signals written to the ATLAS graph as consented connector evidence (consent ${result.consentId.slice(0, 8)}…).</p><p><a style="color:#DDA9D5" href="/dashboard">Open the ops console →</a></p>`,
+      );
+    } catch (e) {
+      return page(`<h2>Connect failed</h2><p>${(e as Error).message}</p>`, 400);
+    }
   }
 
   @Post('quiz')

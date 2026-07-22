@@ -86,7 +86,11 @@ export class AppModule implements NestModule, OnModuleInit {
   configure(consumer: MiddlewareConsumer): void {
     consumer
       .apply(TenantMiddleware)
-      .exclude('v1/venue-link/(.*)')
+      .exclude(
+        'v1/venue-link/(.*)',
+        'v1/connectors/spotify/connect',
+        'v1/connectors/spotify/callback',
+      )
       .forRoutes('*');
   }
 

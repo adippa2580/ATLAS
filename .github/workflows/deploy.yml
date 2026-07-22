@@ -191,11 +191,14 @@ jobs:
           gcloud run jobs execute atlas-seed --region "$REGION" --wait
 
       - name: Deploy service
+        env:
+          SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
         run: |
           SQL_CONN="$(gcloud sql instances describe atlas-pg --format='value(connectionName)')"
           sed -e "s/__REGION__/${REGION}/g" \
               -e "s/__PROJECT_ID__/${PROJECT_ID}/g" \
               -e "s/__IMAGE_TAG__/${GITHUB_SHA::7}/g" \
               -e "s#__SQL_CONNECTION_NAME__#${SQL_CONN}#g" \
+              -e "s#__SPOTIFY_CLIENT_SECRET__#${SPOTIFY_CLIENT_SECRET}#g" \
               deploy/gcp/cloudrun.yaml > /tmp/cloudrun.rendered.yaml
           gcloud run services replace /tmp/cloudrun.rendered.yaml --region "$REGION"

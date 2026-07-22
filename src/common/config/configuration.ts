@@ -39,6 +39,7 @@ export interface AppConfig {
     stripeWebhookSecret: string;
     spotifyClientId: string;
     spotifyClientSecret: string;
+    spotifyRedirectUrl: string;
     instagramClientId: string;
     instagramClientSecret: string;
     klaviyoApiKey: string;
@@ -90,6 +91,7 @@ export default (): AppConfig => ({
     stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? '',
     spotifyClientId: process.env.SPOTIFY_CLIENT_ID ?? '',
     spotifyClientSecret: process.env.SPOTIFY_CLIENT_SECRET ?? '',
+    spotifyRedirectUrl: process.env.SPOTIFY_REDIRECT_URL ?? '',
     instagramClientId: process.env.INSTAGRAM_CLIENT_ID ?? '',
     instagramClientSecret: process.env.INSTAGRAM_CLIENT_SECRET ?? '',
     klaviyoApiKey: process.env.KLAVIYO_API_KEY ?? '',
