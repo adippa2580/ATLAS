@@ -28,8 +28,9 @@ const DEFAULT_MIN_SCORE = 1;
 const REACHABLE_CONSENT_SCOPES = ['marketing', 'identity'];
 
 class ActDto {
-  @IsIn(['promote_matched', 'late_night_drop', 'mint_link'])
-  action!: 'promote_matched' | 'late_night_drop' | 'mint_link';
+  @IsIn(['promote_matched', 'late_night_drop', 'mint_link', 'defend_regulars'])
+  action!:
+    'promote_matched' | 'late_night_drop' | 'mint_link' | 'defend_regulars';
   @IsOptional() @IsString() eventId?: string;
   @IsOptional() @IsString() venueId?: string;
   @IsOptional() @IsInt() @Min(0) minScore?: number;
@@ -37,7 +38,7 @@ class ActDto {
 
 export interface GroundedRecommendation {
   id: string;
-  kind: 'event_demand' | 'late_night_fill';
+  kind: 'event_demand' | 'late_night_fill' | 'competitor_opening';
   headline: string;
   date: string | null;
   insight: string;
@@ -71,11 +72,35 @@ export class RecommendationsService {
     private readonly drops: InventoryDropService,
   ) {}
 
-  private parseDate(metadata: unknown): Date | null {
-    const raw = (metadata as { date?: string } | null)?.date;
+  private parseDate(
+    metadata: unknown,
+    key: 'date' | 'openingDate' = 'date',
+  ): Date | null {
+    const raw = (metadata as Record<string, string> | null)?.[key];
     if (!raw) return null;
     const d = new Date(raw);
     return Number.isNaN(d.getTime()) ? null : d;
+  }
+
+  /** Consented repeat guests with a recent booking here — who a rival can poach. */
+  private async exposedRegulars(ctx: TenantContext, venueId: string) {
+    const since = new Date(Date.now() - 60 * 86_400_000);
+    const recent = await this.prisma.booking.findMany({
+      where: {
+        tenantId: ctx.tenantId,
+        venueId,
+        status: { not: 'cancelled' },
+        date: { gte: since },
+        guest: {
+          provisional: false,
+          consents: {
+            some: { revokedAt: null, scope: { in: REACHABLE_CONSENT_SCOPES } },
+          },
+        },
+      },
+      select: { guestId: true },
+    });
+    return [...new Set(recent.map((b) => b.guestId))];
   }
 
   private genresOf(metadata: unknown): string[] {
@@ -209,6 +234,46 @@ export class RecommendationsService {
       });
     }
 
+    // Competitor openings — grounded ONLY when a catalog venue entity carries
+    // metadata.competitor + a dated openingDate (class-3 feed; no source, no
+    // signal). The exposed audience is our own consented recent regulars — the
+    // people a rival's opening weekend can actually poach.
+    const venues = await this.prisma.entity.findMany({
+      where: { kind: 'venue' },
+    });
+    for (const rival of venues) {
+      const meta = rival.metadata as { competitor?: boolean } | null;
+      if (!meta?.competitor) continue;
+      const opening = this.parseDate(rival.metadata, 'openingDate');
+      if (!opening) {
+        ungrounded.push(rival.name);
+        continue;
+      }
+      if (opening < now || opening > horizon) continue;
+      const exposed = venueId ? await this.exposedRegulars(ctx, venueId) : [];
+      const dayLabel = opening.toISOString().slice(0, 10);
+      recommendations.push({
+        id: `competitor:${rival.id}`,
+        kind: 'competitor_opening',
+        headline: `${rival.name} opens · ${dayLabel}`,
+        date: opening.toISOString(),
+        insight: exposed.length
+          ? `Splits the weekend crowd — ${exposed.length} consented regulars booked here in the last 60 days are the exposed audience`
+          : 'Splits the weekend crowd — no recent consented regulars to defend yet',
+        matched: exposed.length,
+        repeatMatched: exposed.length,
+        actions: exposed.length
+          ? [
+              {
+                action: 'defend_regulars',
+                label: `Lock in ${exposed.length} regulars for that weekend`,
+              },
+              { action: 'late_night_drop', label: 'Release after-party slots' },
+            ]
+          : [{ action: 'late_night_drop', label: 'Release after-party slots' }],
+      });
+    }
+
     // Late-night fill: only when no live late-drop inventory exists yet.
     if (venueId) {
       const drops = await this.prisma.inventory.count({
@@ -278,6 +343,35 @@ export class RecommendationsService {
         action: dto.action,
         code: link.code,
         campaignId: link.campaignId,
+      };
+    }
+
+    if (dto.action === 'defend_regulars') {
+      const exposed = await this.exposedRegulars(ctx, venueId);
+      if (!exposed.length) {
+        throw new BadRequestException('No consented regulars to defend');
+      }
+      const audience = await this.prisma.audience.create({
+        data: {
+          tenantId: ctx.tenantId,
+          name: `Regulars lock-in · ${event?.name ?? 'defensive'}`,
+          predicates: {
+            defensive: true,
+            rivalEventId: dto.eventId ?? null,
+            matchedGuestIds: exposed,
+          },
+        },
+      });
+      const delivery = await this.klaviyo.sendCampaign(exposed.length, {
+        template: 'regulars_lock_in',
+        rival: event?.name ?? null,
+        audienceId: audience.id,
+      });
+      return {
+        action: dto.action,
+        audienceId: audience.id,
+        matched: exposed.length,
+        delivery,
       };
     }
 

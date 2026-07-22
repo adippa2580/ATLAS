@@ -642,7 +642,7 @@
           '<div class="imp" style="background:'+(pos?"var(--good-wash)":"var(--crit-wash)")+';color:'+(pos?"var(--good)":"var(--crit)")+'">'+sign(d.c)+' pts</div></div>'}).join("")+'</div>'+
 
       // external forces
-      '<div class="dsec"><h3>External market forces <span class="hint">local demand context</span></h3>'+
+      '<div class="dsec"><h3>External market forces <span class="hint">demo narrative — grounded, actionable versions live on the Ops Console “Do next” panel (/v1/recommendations)</span></h3>'+
         o.external.map(function(f){var ic=fIco[f.t]||["•","var(--muted)"];var im=impMap[f.imp];return '<div class="force"><div class="ico" style="background:color-mix(in srgb,'+ic[1]+' 14%,transparent);color:'+ic[1]+'">'+ic[0]+'</div>'+
           '<div class="txt"><div class="h">'+esc(f.h)+' <span class="tagpair" style="color:var(--faint)">'+f.t+' '+dirA[f.dir]+'</span></div><div class="s">'+esc(f.s)+'</div></div>'+
           '<div class="imp pill '+im[0]+'">'+im[1]+'</div></div>'}).join("")+'</div>'+

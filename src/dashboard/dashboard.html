@@ -740,7 +740,9 @@
         actions:[{action:"promote_matched",label:"Promote to 34 matched guests"},{action:"late_night_drop",label:"Release after-party slots"},{action:"mint_link",label:"Mint attributed promo link"}]},
       {id:"demo2",kind:"event_demand",headline:"Afro House Fridays · "+next(5),insight:"21 consented guests match via taste graph (afro house) — 9 are repeat guests here",matched:21,repeatMatched:9,
         actions:[{action:"promote_matched",label:"Promote to 21 matched guests"},{action:"mint_link",label:"Mint attributed promo link"}]},
-      {id:"demo3",kind:"late_night_fill",headline:"Late-night fill opportunity",insight:"No after-party inventory released — 4 late slots available to drop at standard minimums",matched:0,repeatMatched:0,
+      {id:"demo3",kind:"competitor_opening",headline:"Rival Rooftop opens · "+next(5),insight:"Splits the weekend crowd — 18 consented regulars booked here in the last 60 days are the exposed audience",matched:18,repeatMatched:18,
+        actions:[{action:"defend_regulars",label:"Lock in 18 regulars for that weekend"},{action:"late_night_drop",label:"Release after-party slots"}]},
+      {id:"demo4",kind:"late_night_fill",headline:"Late-night fill opportunity",insight:"No after-party inventory released — 4 late slots available to drop at standard minimums",matched:0,repeatMatched:0,
         actions:[{action:"late_night_drop",label:"Release late-night slots"}]}
     ],ungrounded:[]};
   }
@@ -750,7 +752,7 @@
     h.innerHTML="";
     d.recommendations.forEach(function(r){
       var el=document.createElement("div"); el.className="rec";
-      var chips = r.kind==="event_demand" ? '<span class="plchip" data-pc="taste">taste</span> <span class="plchip" data-pc="marketing">marketing</span>' : '<span class="plchip" data-pc="venues">venues</span> <span class="plchip" data-pc="revenue">revenue</span>';
+      var chips = r.kind==="event_demand" ? '<span class="plchip" data-pc="taste">taste</span> <span class="plchip" data-pc="marketing">marketing</span>' : r.kind==="competitor_opening" ? '<span class="plchip" data-pc="identity">identity</span> <span class="plchip" data-pc="marketing">marketing</span>' : '<span class="plchip" data-pc="venues">venues</span> <span class="plchip" data-pc="revenue">revenue</span>';
       el.innerHTML='<div class="rh"><span class="rn">'+r.headline+'</span> '+chips+(r.matched?'<span class="rd">'+r.matched+' matched · '+r.repeatMatched+' repeat</span>':'')+'</div>'+
         '<div class="ri">'+r.insight+'</div><div class="ra"></div><div class="receipt" hidden></div>';
       var ra=el.querySelector(".ra"), receipt=el.querySelector(".receipt");
@@ -761,9 +763,10 @@
           try{
             if(mode!=="live"){ await sleep(500);
               receipt.textContent = a.action==="promote_matched" ? "✓ audience created · campaign to "+r.matched+" guests queued (klaviyo · demo)" :
+                a.action==="defend_regulars" ? "✓ lock-in campaign to "+r.matched+" regulars queued (klaviyo · demo)" :
                 a.action==="late_night_drop" ? "✓ 4 late slots released · Late Drop 1–4 (demo)" : "✓ promo link minted · atlas.link/"+Math.random().toString(36).slice(2,10)+" (demo)";
               return; }
-            var eventId = r.id && r.id.indexOf("event:")===0 ? r.id.slice(6) : undefined;
+            var eventId = r.id && r.id.indexOf("event:")===0 ? r.id.slice(6) : r.id && r.id.indexOf("competitor:")===0 ? r.id.slice(11) : undefined;
             var res=await apiCall("POST","/v1/recommendations/act",A,{action:a.action,eventId:eventId});
             if(res&&res.ok){var j=res.json||{};
               receipt.textContent = a.action==="promote_matched" ? "✓ audience "+(j.audienceId||"")+" · delivered to "+(j.delivery&&j.delivery.delivered)+" guests" :

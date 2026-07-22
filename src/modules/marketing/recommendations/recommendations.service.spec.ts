@@ -160,4 +160,70 @@ describe('RecommendationsService', () => {
     expect(linkRes.code).toHaveLength(12);
     expect(created.links[0].campaignId).toBe('event:e1');
   });
+
+  const rival = {
+    id: 'v-rival',
+    name: 'Rival Rooftop',
+    kind: 'venue',
+    metadata: { competitor: true, openingDate: soon },
+  };
+
+  it('grounds a competitor opening with the exposed-regulars count', async () => {
+    const { svc } = make({
+      events: [rival],
+      repeatBookings: [{ guestId: 'g1' }, { guestId: 'g2' }, { guestId: 'g1' }],
+    });
+    const out = await svc.list(ctx, { venueId: 'v1' });
+    const rec = out.recommendations.find(
+      (r) => r.kind === 'competitor_opening',
+    )!;
+    expect(rec.headline).toContain('Rival Rooftop opens');
+    expect(rec.headline).toContain(soon.slice(0, 10));
+    expect(rec.matched).toBe(2);
+    expect(rec.insight).toContain('2 consented regulars');
+    expect(rec.actions[0].action).toBe('defend_regulars');
+  });
+
+  it('reports a competitor venue without an openingDate as ungrounded', async () => {
+    const { svc } = make({
+      events: [
+        {
+          id: 'v2',
+          name: 'Mystery Rival',
+          kind: 'venue',
+          metadata: { competitor: true },
+        },
+      ],
+    });
+    const out = await svc.list(ctx, {});
+    expect(
+      out.recommendations.some((r) => r.kind === 'competitor_opening'),
+    ).toBe(false);
+    expect(out.ungrounded).toContain('Mystery Rival');
+  });
+
+  it('defend_regulars builds the lock-in audience and sends via Klaviyo', async () => {
+    const { svc, created, klaviyo } = make({
+      events: [rival],
+      repeatBookings: [{ guestId: 'g1' }, { guestId: 'g2' }],
+    });
+    const res: any = await svc.act(ctx, {
+      action: 'defend_regulars',
+      eventId: 'v-rival',
+      venueId: 'v1',
+    } as any);
+    expect(created.audiences[0].predicates.defensive).toBe(true);
+    expect(created.audiences[0].predicates.matchedGuestIds).toEqual([
+      'g1',
+      'g2',
+    ]);
+    expect(klaviyo.sendCampaign).toHaveBeenCalledWith(
+      2,
+      expect.objectContaining({
+        template: 'regulars_lock_in',
+        rival: 'Rival Rooftop',
+      }),
+    );
+    expect(res.matched).toBe(2);
+  });
 });

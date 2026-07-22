@@ -55,6 +55,11 @@ async function main(): Promise<void> {
         metadata: { date: nextDow(5), genres: ['afro house'], city: 'Miami' },
       },
       {
+        kind: 'venue',
+        name: 'Rival Rooftop',
+        metadata: { competitor: true, openingDate: nextDow(5), city: 'Miami' },
+      },
+      {
         kind: 'event',
         name: 'Sundown Festival — After Parties',
         metadata: {
