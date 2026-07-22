@@ -1,0 +1,695 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atlas Intelligence Demo</title>
+<style>
+  :root{
+    /* Atlas v3.1 surfaces + text */
+    --s0:#04050A; --s1:#0B0E17; --s2:#111524;
+    --hi:#F5F7FF; --mid:#B8C0D4; --lo:#6B7280;
+    /* accents */
+    --violet:#A78BFA; --cyan:#22D3EE; --electric:#60A5FA; --amber:#FBBF24;
+    --mint:#34D399;
+    /* pillar palette (order fixed) */
+    --pc-taste:#c55285; --pc-identity:#933e92; --pc-crews:#6f52b9;
+    --pc-venues:#129db0; --pc-bookings:#618aeb; --pc-revenue:#b48706; --pc-marketing:#ac4b06;
+    --mono:Menlo,Monaco,"SF Mono",monospace;
+    --sans:"Helvetica Neue",Helvetica,Arial,sans-serif;
+    --hair-chrome:rgba(255,255,255,.12);
+    --hair-card:rgba(255,255,255,.08);
+    --hair-row:rgba(255,255,255,.05);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--s0); color:var(--mid);
+    font-family:var(--sans); font-weight:300;
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+    padding-top:52px;
+  }
+  a{color:inherit;text-decoration:none}
+  :focus-visible{outline:2px solid var(--cyan); outline-offset:2px}
+
+  /* fixed back-link */
+  .back{
+    position:fixed; top:0; left:0; right:0; z-index:50;
+    height:44px; display:flex; align-items:center; gap:8px;
+    padding:0 22px; font-family:var(--mono); font-size:11px;
+    letter-spacing:.22em; color:var(--lo);
+    background:rgba(4,5,10,.72); backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--hair-chrome);
+  }
+  .back:hover{color:var(--mid)}
+
+  .wrap{max-width:1240px; margin:0 auto; padding:34px 26px 100px}
+
+  /* header */
+  .kicker{font-family:var(--mono); font-size:11px; letter-spacing:.26em; text-transform:uppercase; color:var(--lo); margin-bottom:14px}
+  h1{margin:0; font-weight:200; font-size:34px; letter-spacing:-.01em; color:var(--hi)}
+  .lede{margin:12px 0 0; max-width:640px; font-size:14px; line-height:1.7; color:var(--mid)}
+  .flow-map{margin-top:16px; font-family:var(--mono); font-size:10.5px; letter-spacing:.18em; color:var(--lo)}
+  .flow-map b{color:var(--electric); font-weight:400}
+
+  /* segmented control */
+  .seg{display:inline-flex; margin-top:26px; padding:4px; gap:4px; border-radius:10px;
+    background:rgba(255,255,255,.05); border:1px solid var(--hair-chrome); backdrop-filter:blur(12px); flex-wrap:wrap}
+  .seg button{
+    appearance:none; border:0; cursor:pointer; border-radius:7px;
+    padding:9px 15px; background:transparent; color:var(--mid);
+    font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+    transition:background .12s ease, color .12s ease;
+  }
+  .seg button:hover{color:var(--hi)}
+  .seg button[aria-selected="true"]{background:var(--s2); color:var(--hi); box-shadow:inset 0 0 0 1px var(--hair-chrome)}
+  .seg button .idx{color:var(--violet); margin-right:8px}
+  .seg button[aria-selected="true"] .idx{color:var(--cyan)}
+
+  /* transport controls */
+  .transport{display:flex; align-items:center; gap:14px; margin-top:18px; flex-wrap:wrap}
+  .btn{
+    appearance:none; cursor:pointer; border-radius:8px;
+    font-family:var(--mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase;
+    padding:11px 18px; transition:background .12s ease, border-color .12s ease, color .12s ease, transform .06s ease;
+  }
+  .btn:active{transform:translateY(1px)}
+  .btn-next{background:rgba(34,211,238,.10); border:1px solid rgba(34,211,238,.45); color:var(--cyan)}
+  .btn-next:hover{background:rgba(34,211,238,.18)}
+  .btn-next:disabled{cursor:not-allowed; background:var(--s1); border-color:var(--hair-card); color:var(--lo)}
+  .btn-ghost{background:transparent; border:1px solid var(--hair-chrome); color:var(--mid)}
+  .btn-ghost:hover{color:var(--hi); border-color:var(--hair-chrome)}
+  /* autoplay toggle */
+  .toggle{display:inline-flex; align-items:center; gap:10px; font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--lo); cursor:pointer; user-select:none}
+  .toggle .track{width:40px; height:22px; border-radius:11px; background:var(--s2); border:1px solid var(--hair-chrome); position:relative; transition:background .16s ease, border-color .16s ease}
+  .toggle .knob{position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:var(--lo); transition:transform .16s ease, background .16s ease}
+  .toggle input{position:absolute; opacity:0; width:0; height:0}
+  .toggle input:checked + .track{background:rgba(96,165,250,.22); border-color:rgba(96,165,250,.5)}
+  .toggle input:checked + .track .knob{transform:translateX(18px); background:var(--electric)}
+  .toggle input:focus-visible + .track{outline:2px solid var(--cyan); outline-offset:2px}
+  .step-count{font-family:var(--mono); font-size:11px; letter-spacing:.14em; color:var(--lo); margin-left:auto}
+  .step-count b{color:var(--hi); font-weight:400}
+
+  /* signal-in row */
+  .signal-in{margin-top:24px; display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;
+    font-family:var(--mono); font-size:11px; letter-spacing:.16em; color:var(--lo); text-transform:uppercase}
+  .signal-in .val{font-family:var(--sans); font-weight:300; font-size:15px; letter-spacing:normal; text-transform:none; color:var(--hi)}
+
+  /* progress rail */
+  .rail{margin-top:14px; height:2px; background:var(--hair-card); border-radius:2px; overflow:hidden}
+  .rail-fill{height:100%; width:0; background:linear-gradient(90deg,var(--electric),var(--cyan)); transition:width .5s cubic-bezier(.22,1,.36,1)}
+
+  /* layout */
+  .layout{display:grid; grid-template-columns:1fr 340px; gap:26px; margin-top:20px; align-items:start}
+  @media (max-width:980px){ .layout{grid-template-columns:1fr} }
+
+  /* pipeline */
+  .pipe-wrap{overflow-x:auto; padding:34px 2px 8px; -webkit-overflow-scrolling:touch}
+  .pipe{position:relative; display:flex; gap:14px; min-width:940px}
+  /* travelling token */
+  .token{
+    position:absolute; top:-2px; left:0; z-index:6; pointer-events:none;
+    display:inline-flex; align-items:center; gap:7px;
+    padding:5px 11px; border-radius:999px;
+    background:rgba(34,211,238,.14); border:1px solid rgba(34,211,238,.55);
+    font-family:var(--mono); font-size:10px; letter-spacing:.18em; color:var(--cyan); text-transform:uppercase;
+    transition:left .5s cubic-bezier(.22,1,.36,1), background .2s ease, border-color .2s ease, color .2s ease, opacity .3s ease;
+    white-space:nowrap;
+  }
+  .token .dot{font-size:12px; line-height:1}
+  .token.halt{background:rgba(251,191,36,.16); border-color:rgba(251,191,36,.6); color:var(--amber)}
+
+  .stage{
+    flex:1 1 0; min-width:0; position:relative;
+    background:var(--s1); border:1px solid var(--hair-card); border-radius:12px;
+    padding:14px 14px 15px; min-height:172px;
+    transition:border-color .16s ease, background .16s ease, box-shadow .16s ease, opacity .2s ease;
+    opacity:.55;
+  }
+  /* connector line between stages */
+  .stage::before{
+    content:""; position:absolute; top:34px; left:-15px; width:15px; height:1px;
+    background:var(--hair-card); transition:background .3s ease;
+  }
+  .stage:first-child::before{display:none}
+  .stage-head{display:flex; align-items:center; gap:9px; margin-bottom:12px}
+  .stage-num{
+    width:20px; height:20px; border-radius:5px; flex:none;
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); font-size:10px; color:var(--lo);
+    background:var(--s2); border:1px solid var(--hair-card); transition:all .16s ease;
+  }
+  .stage-name{font-family:var(--mono); font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--mid); line-height:1.3}
+  .stage-glyph{margin-left:auto; font-size:12px; color:var(--lo); transition:color .16s ease}
+
+  .stage-body{display:flex; flex-direction:column; gap:11px}
+  .payload{
+    font-family:var(--mono); font-size:10px; line-height:1.55; letter-spacing:.02em;
+    color:var(--lo); word-break:break-word;
+    background:var(--s2); border:1px solid var(--hair-row); border-radius:7px; padding:8px 9px;
+    min-height:44px;
+  }
+  .value{font-size:12.5px; line-height:1.5; color:var(--lo)}
+  .value-label{font-family:var(--mono); font-size:8.5px; letter-spacing:.22em; text-transform:uppercase; color:var(--lo); display:block; margin-bottom:5px}
+  .await{font-family:var(--mono); font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--lo); opacity:.7}
+
+  /* stage tones */
+  .stage.active{opacity:1; border-color:rgba(34,211,238,.34); box-shadow:0 0 0 1px rgba(34,211,238,.08)}
+  .stage.active::before{background:rgba(34,211,238,.4)}
+  .stage.active .stage-num{background:rgba(34,211,238,.14); border-color:rgba(34,211,238,.5); color:var(--cyan)}
+  .stage.active .stage-glyph{color:var(--mint)}
+  .stage.active .payload{color:var(--mid); border-color:var(--hair-card)}
+  .stage.active .value{color:var(--mint)}
+
+  .stage.blocked{opacity:1; border-color:rgba(251,191,36,.55); background:rgba(251,191,36,.05); box-shadow:none}
+  .stage.blocked::before{background:rgba(251,191,36,.5)}
+  .stage.blocked .stage-num{background:rgba(251,191,36,.16); border-color:rgba(251,191,36,.55); color:var(--amber)}
+  .stage.blocked .stage-name{color:var(--amber)}
+  .stage.blocked .stage-glyph{color:var(--amber)}
+  .stage.blocked .payload{color:var(--amber); border-color:rgba(251,191,36,.3); background:rgba(251,191,36,.06)}
+  .stage.blocked .value{color:var(--amber)}
+
+  .stage.dead{opacity:.62; border-style:dashed; border-color:var(--hair-card); background:transparent; box-shadow:none}
+  .stage.dead::before{background:transparent; border-top:1px dashed var(--hair-card); height:0}
+  .stage.dead .stage-num{background:transparent; border-style:dashed; color:var(--lo)}
+  .stage.dead .stage-glyph{color:var(--lo)}
+  .stage.dead .payload{color:var(--lo); border-style:dashed; background:transparent}
+  .stage.dead .value{color:var(--lo)}
+
+  /* insight card (sticky) */
+  .insight{position:sticky; top:66px}
+  .insight-card{
+    background:rgba(255,255,255,.05); border:1px solid var(--hair-chrome); border-radius:12px;
+    backdrop-filter:blur(12px); padding:20px 20px 22px; min-height:300px;
+    display:flex; flex-direction:column;
+  }
+  .insight-kicker{font-family:var(--mono); font-size:9.5px; letter-spacing:.24em; text-transform:uppercase; color:var(--lo); margin-bottom:16px}
+  /* pending / empty state */
+  .insight-pending{display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; flex:1; gap:14px; padding:30px 8px; color:var(--lo)}
+  .insight-pending .g{font-size:26px; color:var(--lo); opacity:.6}
+  .insight-pending .t{font-size:13px; line-height:1.6; max-width:220px}
+
+  .pillar-chip{display:inline-flex; align-items:center; gap:8px; align-self:flex-start;
+    padding:5px 11px 5px 9px; border-radius:999px; font-family:var(--mono); font-size:10px;
+    letter-spacing:.16em; text-transform:uppercase; margin-bottom:18px;}
+  .pillar-chip .pd{width:8px; height:8px; border-radius:50%}
+
+  .big-stat{font-weight:200; font-size:52px; line-height:1; letter-spacing:-.02em; color:var(--hi); font-family:var(--mono)}
+  .big-stat.word{font-family:var(--sans); font-weight:200; font-size:40px}
+  .big-label{font-family:var(--mono); font-size:9px; letter-spacing:.22em; text-transform:uppercase; color:var(--lo); margin-top:8px}
+
+  .bars{margin-top:22px; display:flex; flex-direction:column; gap:9px}
+  .bar-row{display:grid; grid-template-columns:96px 1fr auto; align-items:center; gap:10px}
+  .bar-label{font-family:var(--mono); font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--mid); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .bar-track{height:7px; border-radius:4px; background:var(--s2); overflow:hidden}
+  .bar-fill{height:100%; width:0; border-radius:4px; transition:width .6s cubic-bezier(.22,1,.36,1)}
+  .bar-val{font-family:var(--mono); font-size:10px; color:var(--mid); white-space:nowrap}
+
+  .sowhat{margin-top:22px; border-left:2px solid var(--cyan); padding:2px 0 2px 13px}
+  .sowhat .l{font-family:var(--mono); font-size:8.5px; letter-spacing:.24em; text-transform:uppercase; color:var(--cyan); display:block; margin-bottom:7px}
+  .sowhat .t{font-size:13.5px; line-height:1.6; color:var(--hi); font-weight:300}
+
+  .impact{margin-top:18px; align-self:flex-start; display:inline-flex; align-items:center; gap:8px;
+    padding:6px 12px; border-radius:999px; font-family:var(--mono); font-size:9.5px; letter-spacing:.2em; text-transform:uppercase}
+  .impact.high{border:1px solid rgba(251,191,36,.6); color:var(--amber); background:rgba(251,191,36,.06)}
+  .impact.med{border:1px solid rgba(34,211,238,.55); color:var(--cyan); background:rgba(34,211,238,.06)}
+  .impact.blocked{border:1px solid rgba(251,191,36,.6); color:var(--amber); background:rgba(251,191,36,.1)}
+
+  .foot{margin-top:40px; padding-top:16px; border-top:1px solid var(--hair-card);
+    font-family:var(--mono); font-size:10px; letter-spacing:.16em; color:var(--lo); line-height:2}
+
+  /* reveal animation */
+  @keyframes fadeUp{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+  .anim{animation:fadeUp .28s ease both}
+
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none !important; animation:none !important}
+    .bar-fill{transition:none !important}
+  }
+  @media (max-width:640px){ .wrap{padding:28px 16px 80px} h1{font-size:27px} }
+</style>
+</head>
+<body>
+<a class="back" href="/deliverables">&#8592;&nbsp;&nbsp;DELIVERABLES</a>
+
+<main class="wrap">
+  <div class="kicker">ATLAS&nbsp;&nbsp;&middot;&nbsp;&nbsp;INTELLIGENCE SUBSTRATE&nbsp;&nbsp;&middot;&nbsp;&nbsp;DEMO</div>
+  <h1>How a signal becomes intelligence</h1>
+  <p class="lede">Every signal Atlas ingests is gated by consent, sealed as evidence, resolved into the graph, and scored across seven pillars before it ever becomes a usable insight. Pick a scenario and walk one payload through the substrate.</p>
+  <div class="flow-map"><b>CONNECTOR</b>&nbsp;&middot;&nbsp;<b>CONSENT&nbsp;GATE</b>&nbsp;&middot;&nbsp;<b>EVIDENCE&nbsp;LOG</b>&nbsp;&middot;&nbsp;<b>GRAPH</b>&nbsp;&middot;&nbsp;<b>PILLARS</b>&nbsp;&middot;&nbsp;<b>INTELLIGENCE</b></div>
+
+  <div class="seg" role="tablist" aria-label="Scenario">
+    <button role="tab" id="tab-A" aria-selected="true" data-scn="A"><span class="idx">A</span>SPOTIFY CONNECT</button>
+    <button role="tab" id="tab-B" aria-selected="false" data-scn="B"><span class="idx">B</span>TAB CLOSE</button>
+    <button role="tab" id="tab-C" aria-selected="false" data-scn="C"><span class="idx">C</span>CONSENT REVOKED</button>
+  </div>
+
+  <div class="transport">
+    <button class="btn btn-next" id="next">NEXT STEP&nbsp;&nbsp;&#8595;</button>
+    <label class="toggle"><input type="checkbox" id="auto"><span class="track"><span class="knob"></span></span>AUTO-PLAY</label>
+    <button class="btn btn-ghost" id="reset">RESET</button>
+    <div class="step-count">STAGE&nbsp;&nbsp;<b id="stepnum">0</b>&nbsp;/&nbsp;6</div>
+  </div>
+
+  <div class="signal-in">
+    <span>SIGNAL IN&nbsp;&nbsp;&middot;</span>
+    <span class="val" id="signalIn">a guest links Spotify at the door</span>
+  </div>
+  <div class="rail"><div class="rail-fill" id="railFill"></div></div>
+
+  <div class="layout">
+    <div class="pipe-wrap">
+      <div class="pipe" id="pipe">
+        <div class="token" id="token" aria-hidden="true"><span class="dot">&#9679;</span><span id="tokenLabel">PAYLOAD</span></div>
+        <!-- stages injected -->
+      </div>
+    </div>
+
+    <div class="insight">
+      <div class="insight-card" id="insightCard" aria-live="polite">
+        <!-- injected -->
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">RED-FREE&nbsp;&nbsp;&middot;&nbsp;&nbsp;DARK-ONLY&nbsp;&nbsp;&middot;&nbsp;&nbsp;GROUND #04050A&nbsp;&nbsp;&middot;&nbsp;&nbsp;MONEY FROM INTEGER CENTS&nbsp;&nbsp;&middot;&nbsp;&nbsp;CONSENT IS THE GATE, NOT A SETTING</div>
+</main>
+
+<script>
+(function(){
+  "use strict";
+
+  var STAGES = ["CONNECTOR","CONSENT GATE","EVIDENCE LOG","GRAPH","PILLARS","INTELLIGENCE"];
+
+  function money(cents){
+    var neg = cents < 0; cents = Math.abs(cents);
+    var s = (cents/100).toFixed(2), parts = s.split(".");
+    var intp = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    var out = "$" + intp + "." + parts[1];
+    return neg ? "(" + out + ")" : out;
+  }
+
+  var PC = {
+    taste:"#c55285", identity:"#933e92", crews:"#6f52b9", venues:"#129db0",
+    bookings:"#618aeb", revenue:"#b48706", marketing:"#ac4b06"
+  };
+
+  var SCN = {
+    A:{
+      signalIn:"a guest links Spotify at the door",
+      stages:[
+        {p:"spotify.oauth &middot; top_artists[50] &middot; audio_features", v:"A guest linked Spotify. We can read taste signal."},
+        {p:"taste.read &#9679; granted &middot; pii.contact &#8856; withheld", v:"Consent covers taste; contact stays withheld."},
+        {p:"evt#8842 &middot; taste.spotify &middot; hash 0x9f3a &middot; immutable", v:"Written to the append-only evidence log."},
+        {p:"g_4471 &middot; artist&times;50 &middot; genre&times;7 &middot; afro-house, minimal", v:"Guest resolved to 50 artists across 7 genres."},
+        {p:"taste &#9650;12 &middot; identity &#9650;4", v:"Taste and identity pillars sharpen."},
+        {p:"insight ready &middot; confidence 0.86 &middot; pillar taste", v:"A usable insight is derived."}
+      ],
+      blockedAt:null,
+      insight:{
+        pillar:"taste",
+        statType:"word", stat:"afro-house", statLabel:"TOP GENRE AFFINITY",
+        barsTitle:"NORMALIZED GENRE AFFINITY",
+        barKind:"single",
+        bars:[
+          {label:"afro-house", val:92, disp:"92"},
+          {label:"minimal", val:78, disp:"78"},
+          {label:"melodic tk", val:64, disp:"64"},
+          {label:"nu-disco", val:51, disp:"51"},
+          {label:"deep house", val:44, disp:"44"},
+          {label:"amapiano", val:38, disp:"38"},
+          {label:"uk garage", val:29, disp:"29"}
+        ],
+        soWhat:"Their taste maps to your Friday resident. Seat them near the booth and the night runs long.",
+        impact:"med"
+      }
+    },
+    B:{
+      signalIn:"a $642.50 tab settles on Square",
+      stages:[
+        {p:"square.webhook &middot; tab.closed &middot; 64250c &middot; covers 5", v:"A tab closed. Payment settled at the venue."},
+        {p:"revenue.read &#9679; venue-owned &middot; pii &#8856; not needed", v:"Venue-owned settlement &mdash; cleared to process."},
+        {p:"evt#8843 &middot; revenue.tab &middot; $642.50 &middot; idempotent", v:"Settlement logged from integer cents."},
+        {p:"T-07 &middot; booking b_221 &middot; crew&times;5 &middot; promoter @dax", v:"Tab tied to table, crew and promoter."},
+        {p:"revenue &#9650;9 &middot; bookings &#9650;3 &middot; crews &#9650;2", v:"Revenue, bookings and crews all move."},
+        {p:"insight ready &middot; confidence 0.91 &middot; pillar revenue", v:"A usable insight is derived."}
+      ],
+      blockedAt:null,
+      insight:{
+        pillar:"revenue",
+        statType:"num", statCents:12850, statLabel:"PER-HEAD SPEND",
+        barsTitle:"PER-HEAD SPEND VS MEDIAN",
+        barKind:"compare",
+        bars:[
+          {label:"this crew", cents:12850, hot:true},
+          {label:"venue med", cents:6100, hot:false},
+          {label:"city med", cents:5400, hot:false}
+        ],
+        soWhat:"This crew outspends your median 2.1&times;. Comp their next entry before a competitor does.",
+        impact:"high"
+      }
+    },
+    C:{
+      signalIn:"a guest files a data-revoke request",
+      stages:[
+        {p:"gdpr.request &middot; consent.revoke &middot; g_4471", v:"A guest revoked consent. The request arrives."},
+        {p:"taste.read &#8856; REVOKED &middot; purge queued", v:"Consent withdrawn &mdash; processing halts here."},
+        {p:"no derivation &middot; revoke noted, then sealed", v:"Nothing derived &mdash; stage skipped."},
+        {p:"no write &middot; edges frozen for g_4471", v:"No graph edges created."},
+        {p:"no update &middot; pillars untouched", v:"No pillar movement."},
+        {p:"no insight &middot; nothing to derive", v:"No intelligence produced."}
+      ],
+      blockedAt:1,
+      insight:null
+    }
+  };
+
+  var state = { scn:"A", step:0, autoTimer:null };
+
+  var pipe = document.getElementById("pipe");
+  var token = document.getElementById("token");
+  var tokenLabel = document.getElementById("tokenLabel");
+  var insightCard = document.getElementById("insightCard");
+  var nextBtn = document.getElementById("next");
+  var resetBtn = document.getElementById("reset");
+  var autoChk = document.getElementById("auto");
+  var railFill = document.getElementById("railFill");
+  var stepnum = document.getElementById("stepnum");
+  var signalIn = document.getElementById("signalIn");
+  var stageEls = [];
+
+  function buildStages(){
+    // clear existing stages but keep token
+    stageEls.forEach(function(el){ pipe.removeChild(el); });
+    stageEls = [];
+    var data = SCN[state.scn];
+    for(var i=0;i<6;i++){
+      var el = document.createElement("div");
+      el.className = "stage";
+      el.setAttribute("data-i", i);
+      el.innerHTML =
+        '<div class="stage-head">' +
+          '<span class="stage-num">' + (i+1) + '</span>' +
+          '<span class="stage-name">' + STAGES[i].replace(" ","<br>") + '</span>' +
+          '<span class="stage-glyph"></span>' +
+        '</div>' +
+        '<div class="stage-body">' +
+          '<div class="payload"><span class="await">awaiting signal</span></div>' +
+          '<div class="value"></div>' +
+        '</div>';
+      pipe.appendChild(el);
+      stageEls.push(el);
+    }
+  }
+
+  function isC(){ return state.scn === "C"; }
+
+  // effective completion: A/B need step 6; C halts at gate (step 2)
+  function halted(){ return isC() && state.step >= 2; }
+  function complete(){ return !isC() && state.step >= 6; }
+
+  function render(){
+    var data = SCN[state.scn];
+    // tabs
+    ["A","B","C"].forEach(function(k){
+      document.getElementById("tab-"+k).setAttribute("aria-selected", k===state.scn ? "true":"false");
+    });
+    signalIn.textContent = data.signalIn;
+    stepnum.textContent = state.step;
+
+    // stages
+    for(var i=0;i<6;i++){
+      var el = stageEls[i];
+      var glyph = el.querySelector(".stage-glyph");
+      var payloadEl = el.querySelector(".payload");
+      var valueEl = el.querySelector(".value");
+      var reached = i < state.step;
+      el.className = "stage"; // reset
+
+      if(isC()){
+        if(i === 0){
+          if(reached){ el.classList.add("active"); }
+        } else if(i === 1){
+          // gate blocks once reached
+          if(reached){ el.classList.add("blocked"); }
+        } else {
+          // downstream: dead once gate reached, else idle
+          if(state.step >= 2){ el.classList.add("dead"); }
+        }
+      } else {
+        if(reached){ el.classList.add("active"); }
+      }
+
+      // content
+      var showContent = false, tone = "idle";
+      if(isC()){
+        if(i===0 && reached){ showContent = true; tone="mint"; }
+        else if(i===1 && reached){ showContent = true; tone="amber"; }
+        else if(i>=2 && state.step>=2){ showContent = true; tone="dead"; }
+      } else if(reached){
+        showContent = true; tone="mint";
+      }
+
+      if(showContent){
+        payloadEl.innerHTML = data.stages[i].p;
+        valueEl.innerHTML = '<span class="value-label">value</span>' + data.stages[i].v;
+        glyph.innerHTML = tone==="amber" ? "&#8856;" : (tone==="dead" ? "&#9711;" : "&#9679;");
+        if(el.classList.contains("active") || el.classList.contains("blocked")){
+          payloadEl.classList.remove("anim"); void payloadEl.offsetWidth; payloadEl.classList.add("anim");
+        }
+      } else {
+        payloadEl.innerHTML = '<span class="await">awaiting signal</span>';
+        valueEl.innerHTML = "";
+        glyph.innerHTML = "";
+      }
+    }
+
+    moveToken();
+    updateRail();
+    updateControls();
+    renderInsight();
+  }
+
+  function moveToken(){
+    if(!stageEls.length) return;
+    var idx, halt = false;
+    if(state.step === 0){
+      idx = 0; // rest at entry, before first stage
+    } else if(isC() && state.step >= 2){
+      idx = 1; halt = true; // stuck at the gate
+    } else {
+      idx = Math.min(state.step, 6) - 1;
+    }
+    var target = stageEls[idx];
+    var centre = target.offsetLeft + target.offsetWidth/2 - token.offsetWidth/2;
+    var left;
+    if(state.step === 0){
+      left = Math.max(0, target.offsetLeft - token.offsetWidth - 6);
+      token.style.opacity = "0.65";
+    } else {
+      left = centre; token.style.opacity = "1";
+    }
+    token.style.left = left + "px";
+
+    if(halt){
+      token.classList.add("halt");
+      tokenLabel.textContent = "HALTED";
+      token.querySelector(".dot").innerHTML = "&#8856;";
+    } else {
+      token.classList.remove("halt");
+      tokenLabel.textContent = state.step===0 ? "SIGNAL" : "PAYLOAD";
+      token.querySelector(".dot").innerHTML = "&#9679;";
+    }
+  }
+
+  function updateRail(){
+    var frac;
+    if(isC()){
+      frac = Math.min(state.step, 2) / 6; // stops at gate
+    } else {
+      frac = state.step / 6;
+    }
+    railFill.style.width = (frac*100) + "%";
+    if(halted()){
+      railFill.style.background = "linear-gradient(90deg,#FBBF24,#FBBF24)";
+    } else {
+      railFill.style.background = "linear-gradient(90deg,var(--electric),var(--cyan))";
+    }
+  }
+
+  function updateControls(){
+    var done = complete() || halted();
+    nextBtn.disabled = done;
+    if(halted()){
+      nextBtn.innerHTML = "HALTED AT GATE";
+    } else if(complete()){
+      nextBtn.innerHTML = "INSIGHT DERIVED";
+    } else {
+      nextBtn.innerHTML = "NEXT STEP&nbsp;&nbsp;&#8595;";
+    }
+    if(done && state.autoTimer){ stopAuto(); }
+  }
+
+  function renderInsight(){
+    var data = SCN[state.scn];
+
+    // blocked / nothing-derived state for C
+    if(isC()){
+      if(state.step >= 2){
+        insightCard.innerHTML =
+          '<div class="insight-kicker">INTELLIGENCE</div>' +
+          '<div class="insight-pending anim">' +
+            '<div class="g">&#8856;</div>' +
+            '<div class="t"><b style="color:#FBBF24;font-weight:400">Blocked at the consent gate.</b><br><br>' +
+            'No evidence written, no graph edges, no pillar movement. The guest is queued for purge &mdash; nothing was derived.</div>' +
+            '<div class="impact blocked">&#8856;&nbsp;NOTHING DERIVED</div>' +
+          '</div>';
+      } else {
+        pendingInsight();
+      }
+      return;
+    }
+
+    if(!complete()){ pendingInsight(); return; }
+
+    var ins = data.insight;
+    var pc = PC[ins.pillar];
+
+    // stat
+    var statHtml;
+    if(ins.statType === "num"){
+      statHtml = '<div class="big-stat">' + money(ins.statCents) + '</div>';
+    } else {
+      statHtml = '<div class="big-stat word">' + ins.stat + '</div>';
+    }
+
+    // bars
+    var barsHtml = "";
+    if(ins.barKind === "single"){
+      var max = 0; ins.bars.forEach(function(b){ if(b.val>max) max=b.val; });
+      ins.bars.forEach(function(b){
+        var w = (b.val/max*100);
+        barsHtml +=
+          '<div class="bar-row">' +
+            '<span class="bar-label">' + b.label + '</span>' +
+            '<span class="bar-track"><span class="bar-fill" style="background:' + pc + '" data-w="' + w + '"></span></span>' +
+            '<span class="bar-val">' + b.disp + '</span>' +
+          '</div>';
+      });
+    } else { // compare (money)
+      var maxc = 0; ins.bars.forEach(function(b){ if(b.cents>maxc) maxc=b.cents; });
+      ins.bars.forEach(function(b){
+        var w = (b.cents/maxc*100);
+        var col = b.hot ? pc : "#6B7280";
+        barsHtml +=
+          '<div class="bar-row">' +
+            '<span class="bar-label"' + (b.hot?' style="color:#F5F7FF"':'') + '>' + b.label + '</span>' +
+            '<span class="bar-track"><span class="bar-fill" style="background:' + col + '" data-w="' + w + '"></span></span>' +
+            '<span class="bar-val"' + (b.hot?' style="color:#F5F7FF"':'') + '>' + money(b.cents) + '</span>' +
+          '</div>';
+      });
+    }
+
+    insightCard.innerHTML =
+      '<div class="insight-kicker anim">INTELLIGENCE DERIVED</div>' +
+      '<span class="pillar-chip anim" style="color:' + pc + ';background:' + hexA(pc,0.12) + ';border:1px solid ' + hexA(pc,0.4) + '">' +
+        '<span class="pd" style="background:' + pc + '"></span>' + ins.pillar + ' PILLAR</span>' +
+      '<div class="anim">' + statHtml +
+        '<div class="big-label">' + ins.statLabel + '</div></div>' +
+      '<div class="bars anim">' +
+        '<div class="value-label" style="margin-bottom:4px">' + ins.barsTitle + '</div>' +
+        barsHtml +
+      '</div>' +
+      '<div class="sowhat anim"><span class="l">SO WHAT</span><span class="t">' + ins.soWhat + '</span></div>' +
+      '<div class="impact ' + ins.impact + ' anim">' + (ins.impact==="high" ? "&#9650;&nbsp;HIGH IMPACT" : "&#9679;&nbsp;MED IMPACT") + '</div>';
+
+    // animate bar fills next frame
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){
+        var fills = insightCard.querySelectorAll(".bar-fill");
+        for(var i=0;i<fills.length;i++){ fills[i].style.width = fills[i].getAttribute("data-w") + "%"; }
+      });
+    });
+  }
+
+  function pendingInsight(){
+    var pending = STAGES[Math.min(state.step,5)];
+    insightCard.innerHTML =
+      '<div class="insight-kicker">INTELLIGENCE</div>' +
+      '<div class="insight-pending">' +
+        '<div class="g">&#9711;</div>' +
+        '<div class="t">' + (state.step===0
+          ? 'Advance the payload through the substrate. An insight surfaces only after all six stages clear.'
+          : 'Tracing&hellip; the payload is at <b style="color:#B8C0D4;font-weight:400">' + pending + '</b>. Keep stepping to derive intelligence.') +
+        '</div>' +
+      '</div>';
+  }
+
+  // hex + alpha helper
+  function hexA(hex, a){
+    var h = hex.replace("#","");
+    var r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
+    return "rgba(" + r + "," + g + "," + b + "," + a + ")";
+  }
+
+  function advance(){
+    if(complete() || halted()) return;
+    state.step = Math.min(state.step + 1, 6);
+    render();
+  }
+
+  function setScenario(scn){
+    state.scn = scn;
+    state.step = 0;
+    stopAuto(); autoChk.checked = false;
+    buildStages();
+    // reposition token after layout settles
+    render();
+    requestAnimationFrame(moveToken);
+  }
+
+  function reset(){
+    state.step = 0;
+    stopAuto(); autoChk.checked = false;
+    render();
+  }
+
+  function startAuto(){
+    if(state.autoTimer) return;
+    if(complete() || halted()) return;
+    state.autoTimer = setInterval(function(){
+      advance();
+      if(complete() || halted()) stopAuto();
+    }, 550);
+  }
+  function stopAuto(){
+    if(state.autoTimer){ clearInterval(state.autoTimer); state.autoTimer = null; }
+  }
+
+  // events
+  nextBtn.addEventListener("click", advance);
+  resetBtn.addEventListener("click", reset);
+  autoChk.addEventListener("change", function(){
+    if(autoChk.checked){ if(complete()||halted()){ reset(); } startAuto(); }
+    else stopAuto();
+  });
+  Array.prototype.forEach.call(document.querySelectorAll(".seg button"), function(b){
+    b.addEventListener("click", function(){ setScenario(b.getAttribute("data-scn")); });
+  });
+  window.addEventListener("resize", function(){ requestAnimationFrame(moveToken); });
+
+  // keyboard: right-arrow / space advances, left resets
+  document.addEventListener("keydown", function(e){
+    if(e.target && /INPUT|BUTTON|TEXTAREA/.test(e.target.tagName)) return;
+    if(e.key === "ArrowRight"){ e.preventDefault(); advance(); }
+    else if(e.key === "ArrowLeft"){ e.preventDefault(); reset(); }
+  });
+
+  // init
+  buildStages();
+  render();
+  requestAnimationFrame(moveToken);
+})();
+</script>
+</body>
+</html>

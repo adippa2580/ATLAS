@@ -38,7 +38,10 @@ export class DeliverablesController {
   @Header('Content-Type', 'text/html; charset=utf-8')
   @Header('Cache-Control', 'no-store')
   index(): string {
-    return this.pages.get('index.html') ?? '<!doctype html><title>Deliverables</title>';
+    return (
+      this.pages.get('index.html') ??
+      '<!doctype html><title>Deliverables</title>'
+    );
   }
 
   @Get(':file')
