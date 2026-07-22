@@ -7,6 +7,9 @@ import { PromotersModule } from './promoters/promoters.module';
 import { WinbackModule } from './winback/winback.module';
 import { ReportingModule } from './reporting/reporting.module';
 import { EntitiesModule } from './entities/entities.module';
+import { EventOffersModule } from './offers/event-offers.module';
+import { CrewRebookModule } from './nudges/crew-rebook.module';
+import { TasteSegmentsModule } from './audiences/taste-segments.module';
 
 /**
  * Marketing hub — the 7 primitives (#17–#23) that turn the taste-graph moat into
@@ -23,6 +26,9 @@ import { EntitiesModule } from './entities/entities.module';
     WinbackModule,
     ReportingModule,
     EntitiesModule,
+    EventOffersModule,
+    CrewRebookModule,
+    TasteSegmentsModule,
   ],
   exports: [
     AudiencesModule,
