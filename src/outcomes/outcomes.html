@@ -731,6 +731,96 @@
       '<div class="src">analysis model for “'+esc(a.lk)+'” is on the roadmap · drivers shown are live score contributions</div>';
   }
 
+  // Every act-now "↗" drill maps to a real, tenant-scoped insight endpoint.
+  // Coverage/walk-in use the bespoke coverage renderer; the rest use the generic
+  // one below. Anything without a mapping (docs like "Playbook") falls back to
+  // the live driver panel.
+  var A2="00000000-0000-0000-0000-00000000a115", IDATE2="2026-07-17";
+  var DRILL_MAP={
+    "Coverage gap analysis":{coverage:1},
+    "Walk-in flow":{coverage:1},
+    "Enrichment funnel":{path:"/v1/insights/identity-coverage",kpis:["matchRate","reachablePct","darkRevenuePct","guestCount"]},
+    "Consent capture map":{path:"/v1/insights/identity-coverage",kpis:["matchRate","reachablePct","matchedGuestCount","reachableGuestCount"]},
+    "Consent register":{path:"/v1/insights/identity-coverage",arrayKey:"kindCoverage",fmt:"num",title:"Identity links by kind"},
+    "Dormancy cohort":{path:"/v1/insights/at-risk",arrayKey:"atRisk",labelKey:"displayName",valueKey:"lifetimeSpendCents",fmt:"money",title:"Silent whales — top spenders lapsing"},
+    "POS signal spec":{path:"/v1/insights/demand",arrayKey:"ranking",labelKey:"subjectRef",valueKey:"demandScore",fmt:"num",title:"Latent taste demand (evidence-derived)"},
+    "Event calendar model":{path:"/v1/insights/demand",arrayKey:"ranking",labelKey:"subjectRef",valueKey:"demandScore",fmt:"num",title:"Latent demand by subject"},
+    "Cold-start brief":{path:"/v1/insights/demand",arrayKey:"ranking",labelKey:"subjectRef",valueKey:"guestCount",fmt:"num",title:"Demand breadth — distinct interested guests"},
+    "Inventory drop plan":{path:"/v1/insights/portability",arrayKey:"ranking",labelKey:"venueName",valueKey:"latentDemand",fmt:"num",title:"Cross-venue latent demand"},
+    "Yield model":{path:"/v1/insights/portability",arrayKey:"ranking",labelKey:"venueName",valueKey:"latentDemand",fmt:"num",title:"Yield opportunity by venue"},
+    "Crew retention brief":{path:"/v1/insights/connectors",arrayKey:"ranking",labelKey:"name",valueKey:"connectorScore",fmt:"num",title:"Crew super-connectors"},
+    "Crew funnel audit":{path:"/v1/insights/connectors",arrayKey:"ranking",labelKey:"name",valueKey:"crewBookings",fmt:"num",title:"Crew booking throughput"},
+    "Group offer kit":{path:"/v1/insights/connectors",arrayKey:"ranking",labelKey:"name",valueKey:"groupSpend",fmt:"money",title:"Group spend by crew"},
+    "Midweek spend teardown":{path:"/v1/insights/attribution-ltv",arrayKey:"byChannel",labelKey:"channel",valueKey:"lifetimeRevenueCents",fmt:"money",title:"Lifetime revenue by channel"},
+    "Attach model":{path:"/v1/insights/attribution-ltv",arrayKey:"byChannel",labelKey:"channel",valueKey:"lifetimeRevenueCents",fmt:"money",title:"Revenue contribution by channel"},
+    "Deposit funnel":{path:"/v1/insights/attribution-ltv",arrayKey:"byChannel",labelKey:"channel",valueKey:"acquiredGuests",fmt:"num",title:"Guests acquired by channel"},
+    "Confirm rollout":{path:"/v1/insights/attribution-ltv",arrayKey:"byChannel",labelKey:"channel",valueKey:"ltvMultiple",fmt:"num",title:"LTV multiple by channel"},
+    "Audience performance":{path:"/v1/insights/attribution-ltv",arrayKey:"byChannel",labelKey:"channel",valueKey:"lifetimeRevenueCents",fmt:"money",title:"Audience lifetime value by channel"},
+    "Channel mix":{path:"/v1/insights/attribution-ltv",arrayKey:"byChannel",labelKey:"channel",valueKey:"acquiredGuests",fmt:"num",title:"Acquisition mix by channel"},
+    "No-show analysis":{path:"/v1/insights/no-show-risk?date="+IDATE2,arrayKey:"bookings",valueKey:"riskScore",fmt:"num",title:"No-show risk by booking"}
+  };
+
+  async function fetchInsight(path){
+    try{
+      var r=await fetch(path,{headers:{"X-Tenant-Id":A2,"X-Scopes":"mkt:reporting:read"},cache:"no-store"});
+      if(!r.ok) throw 0;
+      return {live:true,data:await r.json()};
+    }catch(e){ return null; }
+  }
+
+  function fmtVal(v,fmt){
+    if(v==null) return "—";
+    if(typeof v!=="number") return esc(String(v));
+    if(fmt==="money") return "$"+Math.round(v/100).toLocaleString();
+    if(fmt==="pct") return Math.round(v<=1?v*100:v)+"%";
+    return (Math.round(v*100)/100).toLocaleString();
+  }
+  function pickLabel(r){
+    var pref=["displayName","name","venueName","channel","subjectRef","label","kind","guestId","venueId","crewId","week"];
+    for(var i=0;i<pref.length;i++) if(r[pref[i]]!=null) return String(r[pref[i]]);
+    for(var k in r) if(typeof r[k]==="string") return r[k];
+    return "—";
+  }
+  function pickNum(r){ for(var k in r){ if(typeof r[k]==="number") return r[k]; } return 0; }
+  function niceKey(k){ return k.replace(/([A-Z])/g," $1").replace(/Cents| Pct| Rate/g,"").replace(/_/g," ").trim(); }
+
+  function insightHTML(cfg,res){
+    var d=res.data, akey=cfg.arrayKey, arr=null;
+    if(akey && d && d[akey]!=null){
+      var av=d[akey];
+      arr=Array.isArray(av)?av:Object.keys(av).map(function(k){return {label:k,value:av[k]};});
+    } else if(Array.isArray(d)){ arr=d; }
+    else if(d&&typeof d==="object"){ for(var k in d){ if(Array.isArray(d[k])){arr=d[k]; akey=k; break;} } }
+
+    var kpis="";
+    if(d&&!Array.isArray(d)){
+      var keys=(cfg.kpis||Object.keys(d)).filter(function(k){return typeof d[k]==="number";}).slice(0,4);
+      var tiles=keys.map(function(k){
+        var f=/Cents$/.test(k)?"money":(/Pct$|Rate$/.test(k)?"pct":"num");
+        return '<div class="kpi"><div class="k">'+esc(niceKey(k))+'</div><div class="v">'+fmtVal(d[k],f)+'</div></div>';
+      }).join("");
+      if(tiles) kpis='<div class="kpis">'+tiles+'</div>';
+    }
+
+    var bars="";
+    if(arr&&arr.length){
+      var rows=arr.slice(0,8).map(function(r){
+        var label=(cfg.labelKey&&r[cfg.labelKey]!=null)?r[cfg.labelKey]:(r.label!=null?r.label:pickLabel(r));
+        var val=(cfg.valueKey&&r[cfg.valueKey]!=null)?r[cfg.valueKey]:(r.value!=null?r.value:pickNum(r));
+        return {label:String(label),val:Number(val)||0};
+      });
+      var max=Math.max.apply(null,rows.map(function(x){return Math.abs(x.val);}).concat([1]));
+      bars='<h4>'+esc(cfg.title||akey||"Detail")+'</h4><div class="vbar">'+rows.map(function(x){
+        var w=Math.round(100*Math.abs(x.val)/max);
+        var lbl=x.label.length>18?esc(x.label.slice(0,17))+"…":esc(x.label);
+        return '<div class="row"><span>'+lbl+'</span><span class="tk"><i style="width:'+w+'%"></i></span><span class="n">'+fmtVal(x.val,cfg.fmt||"num")+'</span></div>';
+      }).join("")+'</div>';
+    }
+    var src=(cfg.path||"").split("?")[0];
+    return (kpis+bars||'<div style="color:var(--muted);font-size:13px;padding:8px 0">No rows for this window yet.</div>')+
+      '<div class="src">'+(res.live?"live · ":"sample · ")+"GET "+esc(src)+'</div>';
+  }
+
   async function openDrill(idx){
     var o=DATA.filter(function(x){return x.id===STATE.sel})[0]; if(!o) return;
     var a=o.actions[idx]; if(!a) return;
@@ -744,8 +834,12 @@
       '<div id="drillBody"><div style="padding:18px 0;color:var(--muted);font-size:13px">loading…</div></div></div>';
     scrim.classList.add("on");
     var body=scrim.querySelector("#drillBody");
-    if(a.lk==="Coverage gap analysis"){
-      var res=await fetchCoverage(); body.innerHTML=coverageHTML(res);
+    var cfg=DRILL_MAP[a.lk];
+    if(cfg&&cfg.coverage){
+      body.innerHTML=coverageHTML(await fetchCoverage());
+    } else if(cfg&&cfg.path){
+      var res=await fetchInsight(cfg.path);
+      body.innerHTML=res?insightHTML(cfg,res):genericDrillHTML(o,a);
     } else {
       body.innerHTML=genericDrillHTML(o,a);
     }
