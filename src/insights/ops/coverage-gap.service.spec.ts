@@ -21,8 +21,16 @@ describe('OpsInsightsService.coverageGap', () => {
   it('computes coverage %, gap, and worst-venue-first split from provisional identity', async () => {
     const svc = make(
       [
-        { venueId: 'vA', date: at('2026-07-01'), guest: { provisional: false } },
-        { venueId: 'vA', date: at('2026-07-01'), guest: { provisional: false } },
+        {
+          venueId: 'vA',
+          date: at('2026-07-01'),
+          guest: { provisional: false },
+        },
+        {
+          venueId: 'vA',
+          date: at('2026-07-01'),
+          guest: { provisional: false },
+        },
         { venueId: 'vA', date: at('2026-07-01'), guest: { provisional: true } },
         { venueId: 'vB', date: at('2026-07-08'), guest: { provisional: true } },
         { venueId: 'vB', date: at('2026-07-08'), guest: null }, // missing → un-enriched

@@ -82,7 +82,11 @@ describe('DoorService.walkIn', () => {
     expect(identity.addLink).toHaveBeenCalledWith(
       ctx,
       'gNew',
-      expect.objectContaining({ kind: 'phone', verified: true, source: 'door' }),
+      expect.objectContaining({
+        kind: 'phone',
+        verified: true,
+        source: 'door',
+      }),
     );
     expect(res.enriched).toBe(true);
 
