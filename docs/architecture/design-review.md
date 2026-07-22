@@ -35,6 +35,12 @@ accordingly.
 
 ## 1. The meta-finding ⚑ (all four reviewers)
 
+> ✅ Implemented (see [p1-spine-rls-outbox.md](p1-spine-rls-outbox.md)) — RLS now exists:
+> `ENABLE`+`FORCE ROW LEVEL SECURITY` on every `tenantId` table, a `tenant_isolation` policy
+> (permissive when `app.current_tenant` is unset, enforcing when bound), and `runWithTenant`
+> setting the GUC via `SET LOCAL` in a per-request transaction. Defense-in-depth behind the
+> existing app-layer `tenantId` filtering.
+
 **Tenant isolation is app-level only. The promised Postgres RLS does not exist.**
 The schema header and system-design doc state _"Postgres RLS enforces isolation in prod,"_
 but there are **zero** `ENABLE ROW LEVEL SECURITY` / `CREATE POLICY` statements in the
@@ -64,6 +70,11 @@ model. Until then, delete the claim so it doesn't read as a shipped control.
 | P0-8 | **Consent revocation is a no-op on derived data.** ⚑ `revoke` only sets `revokedAt`; evidence and the `GuestAffinity` derived from withdrawn-consent data remain and are still served. Compliance + correctness failure on the exact dimension that is the moat. | `consent.module.ts:35` | data, arch |
 | P0-9 | **Evidence write is a non-transactional dual write** (Postgres row + in-memory bus), and the bus is **at-most-once with silent loss** (`Promise.all(...catch(log))`, no retry/DLQ); `pubsub` mode only logs — the prod transport doesn't exist. A transient error permanently diverges the log from the graph. | `evidence-bus.ts:47-60`, `taste.service.ts` | arch, code |
 
+> ✅ P0-9 Implemented (see [p1-spine-rls-outbox.md](p1-spine-rls-outbox.md)) — transactional
+> outbox: the `AffinityEvidence` row and an `EvidenceOutbox` row commit in one transaction; a
+> restart-surviving relay delivers to the bus/Pub/Sub at-least-once. Idempotency via `dedupeKey`
+> + idempotent recompute. Replaces the fire-and-forget at-most-once in-memory publish.
+
 ### P0 — Infra (production-safety; low-effort, high-payoff)
 - **Cloud SQL** has `deletion_protection = false`, no PITR, `ZONAL`, and a public IP — the
   system of record is one stray delete or zonal outage from gone. _(deletion-protection +
@@ -88,6 +99,10 @@ model. Until then, delete the claim so it doesn't read as a shipped control.
    identity-merge are the same missing object: a shared identity spine (`guest_global_id`) +
    a consented, per-venue _scoped projection_** (not an aggregate). Resolve these two first —
    the recompute/serving/erasure clusters all depend on the resulting model.
+   ✅ Implemented (see [p1-spine-rls-outbox.md](p1-spine-rls-outbox.md)) — `GlobalGuest` spine +
+   `Guest.globalGuestId` linkage + `VenueProjectionGrant` + a consent-gated projection service
+   (the only sanctioned cross-tenant read: a derived, scoped summary, never raw rows). This also
+   resolves the merge-vs-append-only concern below (spine linkage is an append-only overlay).
 2. **Merge vs append-only.** "Collapse onto surviving `guest_id`" either rewrites evidence
    (breaks append-only/replay) or needs an unspecified resolution overlay. Make merge an
    **append-only overlay** via `identity_merge_log`, resolved at read/recompute time. (Today's

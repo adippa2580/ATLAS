@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
-import { EvidenceBus } from '../../../common/evidence/evidence-bus';
+import { EvidenceMessage } from '../../../common/evidence/evidence-bus';
 import { TenantContext } from '../../../common/tenancy/tenant-context';
 import { Prisma, Signal } from '@prisma/client';
 import { AppendEvidenceDto, MuteDto } from './dto';
@@ -8,14 +8,13 @@ import { sha256 } from '../../../common/util/hash';
 
 @Injectable()
 export class TasteService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly bus: EvidenceBus,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   /**
    * The ONLY write path into the taste graph. Appends a consent-tagged,
-   * provenance-tagged evidence record and publishes it to the recompute stream.
+   * provenance-tagged evidence record and, in the SAME transaction, enqueues an
+   * EvidenceOutbox row (transactional-outbox pattern) so the recompute message
+   * can never be lost. The OutboxRelayService delivers it onto the bus.
    * Idempotent on (tenantId, dedupeKey).
    */
   async appendEvidence(ctx: TenantContext, dto: AppendEvidenceDto) {
@@ -33,25 +32,56 @@ export class TasteService {
 
     const observedAt = new Date();
 
-    // Append-only: try to INSERT a fresh evidence row. A unique-violation on
-    // (tenantId, dedupeKey) means this is a duplicate / at-least-once redelivery
-    // — return the existing row and do NOT publish, so the derived affinity is
-    // never re-applied for the same evidence (P0-6: evidence double-count).
-    let record;
+    // The recompute message, identical to what was published inline before the
+    // outbox existed. This is the payload the relay forwards onto the bus and
+    // that AffinityRecomputeService.apply consumes.
+    const message: EvidenceMessage = {
+      tenantId: ctx.tenantId,
+      guestId: dto.guestId,
+      subjectType: dto.subjectType,
+      subjectRef: dto.subjectRef,
+      signal: dto.signal,
+      weight: dto.weight ?? 1,
+      provenance: dto.provenance,
+      consentId: dto.consentId,
+      dedupeKey: dto.dedupeKey,
+      observedAt: observedAt.toISOString(),
+    };
+
+    // Append-only + durable enqueue in ONE transaction: insert the fresh
+    // evidence row AND its outbox row atomically, so the recompute message is
+    // never lost even if the process dies before delivery.
+    //
+    // A unique-violation on (tenantId, dedupeKey) means this is a duplicate /
+    // at-least-once redelivery — the whole tx rolls back (no evidence row, no
+    // outbox row enqueued) and we return the existing row, so the derived
+    // affinity is never re-applied for the same evidence (P0-6: double-count).
     try {
-      record = await this.prisma.affinityEvidence.create({
-        data: {
-          tenantId: ctx.tenantId,
-          guestId: dto.guestId,
-          subjectType: dto.subjectType,
-          subjectRef: dto.subjectRef,
-          signal: dto.signal,
-          weight: dto.weight ?? 1,
-          provenance: dto.provenance,
-          consentId: dto.consentId,
-          dedupeKey: dto.dedupeKey,
-          observedAt,
-        },
+      return await this.prisma.$transaction(async (tx) => {
+        const record = await tx.affinityEvidence.create({
+          data: {
+            tenantId: ctx.tenantId,
+            guestId: dto.guestId,
+            subjectType: dto.subjectType,
+            subjectRef: dto.subjectRef,
+            signal: dto.signal,
+            weight: dto.weight ?? 1,
+            provenance: dto.provenance,
+            consentId: dto.consentId,
+            dedupeKey: dto.dedupeKey,
+            observedAt,
+          },
+        });
+
+        await tx.evidenceOutbox.create({
+          data: {
+            tenantId: ctx.tenantId,
+            payload: message as unknown as Prisma.InputJsonValue,
+            dedupeKey: dto.dedupeKey,
+          },
+        });
+
+        return record;
       });
     } catch (err) {
       if (
@@ -59,7 +89,7 @@ export class TasteService {
         err.code === 'P2002'
       ) {
         // Duplicate dedupeKey — the original evidence stands unchanged and was
-        // already published on first insert. Return it without republishing.
+        // already enqueued on first insert. Return it without re-enqueuing.
         return this.prisma.affinityEvidence.findUnique({
           where: {
             tenantId_dedupeKey: {
@@ -71,22 +101,6 @@ export class TasteService {
       }
       throw err;
     }
-
-    // Only genuinely-new evidence is published into the recompute stream.
-    await this.bus.publish({
-      tenantId: ctx.tenantId,
-      guestId: dto.guestId,
-      subjectType: dto.subjectType,
-      subjectRef: dto.subjectRef,
-      signal: dto.signal,
-      weight: dto.weight ?? 1,
-      provenance: dto.provenance,
-      consentId: dto.consentId,
-      dedupeKey: dto.dedupeKey,
-      observedAt: observedAt.toISOString(),
-    });
-
-    return record;
   }
 
   /** Raw append-only evidence for a guest — the actual writes into the graph. */

@@ -1,5 +1,5 @@
 import { NestFactory, Reflector } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { RequestMethod, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
@@ -15,7 +15,14 @@ async function bootstrap(): Promise<void> {
   app.useLogger(app.get(Logger));
 
   app.setGlobalPrefix('v1', {
-    exclude: ['health', 'dashboard', 'outcomes'],
+    exclude: [
+      { path: '/', method: RequestMethod.GET }, // platform home / menu
+      'health',
+      'dashboard',
+      'outcomes',
+      'deliverables',
+      'deliverables/(.*)',
+    ],
   });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.useGlobalGuards(new ScopesGuard(app.get(Reflector)));

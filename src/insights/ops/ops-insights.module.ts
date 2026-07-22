@@ -1,5 +1,6 @@
 import { Controller, Get, Injectable, Module, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { BookingStatus } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { Scopes } from '../../common/auth/scopes.decorator';
 import { Tenant, TenantContext } from '../../common/tenancy/tenant-context';
@@ -36,6 +37,22 @@ function dayRange(dateStr: string): { start: Date; end: Date } {
   const start = new Date(`${dateStr}T00:00:00.000Z`);
   const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
   return { start, end };
+}
+
+/** ISO year-week label ("2026-W30") for weekly trend bucketing (UTC). */
+function isoYearWeek(d: Date): string {
+  const date = new Date(
+    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()),
+  );
+  const dayNum = (date.getUTCDay() + 6) % 7; // Mon=0 … Sun=6
+  date.setUTCDate(date.getUTCDate() - dayNum + 3); // shift to the ISO Thursday
+  const firstThursday = new Date(Date.UTC(date.getUTCFullYear(), 0, 4));
+  const week =
+    1 +
+    Math.round(
+      (date.getTime() - firstThursday.getTime()) / (7 * 24 * 60 * 60 * 1000),
+    );
+  return `${date.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
 }
 
 /**
@@ -521,6 +538,94 @@ export class OpsInsightsService {
 
     return { tenantId: t, venueId, date: dateStr, mix };
   }
+
+  /**
+   * Coverage-gap analysis — the identity pillar's largest negative driver. Over
+   * attended bookings (seated/closed), what share are still un-enriched
+   * (provisional identity)? Broken down by venue and trended by ISO week, plus
+   * the number of walk-ins the door has instrumented and the standing
+   * provisional backlog. Grounded entirely in Booking + Guest +
+   * BookingStatusEvent — no synthetic numbers.
+   */
+  async coverageGap(ctx: TenantContext, venueId?: string) {
+    const t = ctx.tenantId;
+    const bookings = await this.prisma.booking.findMany({
+      where: {
+        tenantId: t,
+        ...(venueId ? { venueId } : {}),
+        status: { in: [BookingStatus.seated, BookingStatus.closed] },
+      },
+      select: {
+        venueId: true,
+        date: true,
+        guest: { select: { provisional: true } },
+      },
+    });
+
+    const isUnenriched = (b: (typeof bookings)[number]) =>
+      b.guest?.provisional ?? true;
+    const total = bookings.length;
+    const unenriched = bookings.filter(isUnenriched).length;
+    const enriched = total - unenriched;
+    const pct = (part: number, whole: number) =>
+      whole ? Math.round((100 * part) / whole) : null;
+    const coveragePct = pct(enriched, total);
+
+    // Per-venue split, worst gap first.
+    const vAgg = new Map<string, { total: number; unenriched: number }>();
+    for (const b of bookings) {
+      const cur = vAgg.get(b.venueId) ?? { total: 0, unenriched: 0 };
+      cur.total += 1;
+      if (isUnenriched(b)) cur.unenriched += 1;
+      vAgg.set(b.venueId, cur);
+    }
+    const byVenue = [...vAgg.entries()]
+      .map(([vid, v]) => ({
+        venueId: vid,
+        total: v.total,
+        unenriched: v.unenriched,
+        coveragePct: pct(v.total - v.unenriched, v.total),
+      }))
+      .sort((a, b) => b.unenriched - a.unenriched);
+
+    // Weekly coverage trend, oldest → newest.
+    const wAgg = new Map<string, { total: number; enriched: number }>();
+    for (const b of bookings) {
+      const key = isoYearWeek(b.date);
+      const cur = wAgg.get(key) ?? { total: 0, enriched: 0 };
+      cur.total += 1;
+      if (!isUnenriched(b)) cur.enriched += 1;
+      wAgg.set(key, cur);
+    }
+    const trend = [...wAgg.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([week, v]) => ({
+        week,
+        total: v.total,
+        coveragePct: pct(v.enriched, v.total),
+      }));
+
+    const [walkInsCaptured, provisionalBacklog] = await Promise.all([
+      this.prisma.bookingStatusEvent.count({
+        where: { tenantId: t, reason: 'walk-in' },
+      }),
+      this.prisma.guest.count({ where: { tenantId: t, provisional: true } }),
+    ]);
+
+    return {
+      tenantId: t,
+      venueId: venueId ?? null,
+      total,
+      enriched,
+      unenriched,
+      coveragePct,
+      gapPct: coveragePct === null ? null : 100 - coveragePct,
+      walkInsCaptured,
+      provisionalBacklog,
+      byVenue,
+      trend,
+    };
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -566,6 +671,21 @@ export class OpsInsightsController {
     @Query('date') date: string,
   ) {
     return this.svc.productMix(ctx, venueId, date);
+  }
+
+  /**
+   * Coverage-gap analysis — un-enriched (provisional) share of attended
+   * bookings, by venue and by week, with walk-in capture + provisional backlog.
+   * Optional `venueId` narrows to one venue. Backs the identity pillar's
+   * "Coverage gap analysis" drill and the door walk-in lever.
+   */
+  @Get('coverage-gap')
+  @Scopes('mkt:reporting:read')
+  coverageGap(
+    @Tenant() ctx: TenantContext,
+    @Query('venueId') venueId?: string,
+  ) {
+    return this.svc.coverageGap(ctx, venueId);
   }
 }
 

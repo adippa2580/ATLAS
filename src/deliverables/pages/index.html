@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Project Atlas — Design Deliverables</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ground:#04050A; --ink:#B8C0D4; --ink-bright:#F5F7FF; --muted:#6B7280;
+    --atlas-card:#0B0E17; --atlas-card-hover:#111524;
+    --cyan:#22D3EE; --violet:#A78BFA; --platinum:#E5E4E2;
+    --mono:Menlo,"SF Mono",Monaco,Consolas,monospace;
+    --serif:"Cormorant Garamond",Georgia,"Times New Roman",serif;
+    --inter:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--ground); color:var(--ink);
+    font-family:"Helvetica Neue",Helvetica,Arial,sans-serif; font-weight:300;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit; text-decoration:none}
+  .wrap{max-width:1080px; margin:0 auto; padding:56px 48px 100px}
+
+  /* surface nav */
+  .surfacenav{display:flex; gap:4px; flex-wrap:wrap; align-items:center; padding:0 0 14px; margin-bottom:20px; border-bottom:1px solid rgba(255,255,255,0.07)}
+  .surfacenav a{font-family:var(--mono); font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); padding:7px 12px; border-radius:7px; transition:color .12s ease, background .12s ease}
+  .surfacenav a:hover{color:var(--cyan); background:rgba(34,211,238,0.08)}
+  .surfacenav a.on{color:#04050A; background:var(--cyan)}
+  .surfacenav a:focus-visible{outline:2px solid var(--cyan); outline-offset:2px}
+
+  /* header */
+  header{border-bottom:1px solid rgba(255,255,255,0.10); padding-bottom:26px; margin-bottom:40px}
+  .eyebrow{font-family:var(--mono); font-size:11px; letter-spacing:.28em; color:var(--muted); text-transform:uppercase; margin-bottom:14px}
+  h1{margin:0; font-weight:200; font-size:40px; color:var(--ink-bright); letter-spacing:-.01em}
+  .lede{margin:14px 0 0; max-width:680px; font-size:14px; line-height:1.7; color:var(--ink)}
+  .code{font-family:var(--mono); font-size:12px; color:var(--cyan)}
+
+  /* section label */
+  .section-label{font-family:var(--mono); font-size:10.5px; letter-spacing:.24em; text-transform:uppercase; margin-bottom:16px; padding-left:12px}
+  .section-label.atlas{color:var(--violet); border-left:3px solid var(--violet)}
+  .section-label.alist{color:var(--platinum); border-left:3px solid var(--platinum)}
+
+  /* card grid */
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:14px}
+  .grid.atlas{margin-bottom:44px}
+  .grid.alist{margin-bottom:36px}
+
+  .card{display:block; border-radius:12px; padding:20px 22px; transition:background .16s ease, border-color .16s ease, transform .05s ease}
+  .card:focus-visible{outline:2px solid var(--cyan); outline-offset:2px}
+  .card .tag{font-family:var(--mono); font-size:9.5px; letter-spacing:.2em; color:var(--muted); margin-bottom:10px}
+  .card .name{font-size:16px; font-weight:400; color:var(--ink-bright); margin-bottom:6px}
+  .card .desc{font-size:12.5px; color:var(--ink); line-height:1.6}
+
+  /* ATLAS cards — midnight, cyan-lit on hover */
+  .card.atlas{background:var(--atlas-card); border:1px solid rgba(255,255,255,0.08)}
+  .card.atlas:hover{background:var(--atlas-card-hover); border-color:rgba(34,211,238,0.40)}
+
+  /* A-List cards — near-black, platinum, serif name + Inter body */
+  .card.alist{background:#0a0a0a; border:1px solid rgba(229,228,226,0.12)}
+  .card.alist:hover{border-color:rgba(229,228,226,0.35)}
+  .card.alist .name{font-family:var(--serif); font-size:19px; font-weight:500}
+  .card.alist .desc{font-family:var(--inter)}
+
+  .foot{font-family:var(--mono); font-size:10.5px; color:var(--muted); line-height:2; border-top:1px solid rgba(255,255,255,0.08); padding-top:18px; margin-top:0}
+
+  @media (max-width:640px){ .wrap{padding:40px 22px 72px} h1{font-size:30px} }
+  @media (prefers-reduced-motion:reduce){*{transition:none !important}}
+</style>
+</head>
+<body>
+<main class="wrap" aria-label="Deliverables index">
+
+  <nav class="surfacenav" aria-label="Atlas surfaces">
+    <a href="/">Home</a>
+    <a href="/dashboard">Ops Console</a>
+    <a href="/outcomes">Outcomes</a>
+    <a class="on" href="/deliverables" aria-current="page">Deliverables</a>
+    <a href="/docs">API Docs</a>
+  </nav>
+
+  <header>
+    <div class="eyebrow">PROJECT ATLAS&nbsp;&nbsp;·&nbsp;&nbsp;DESIGN DELIVERABLES&nbsp;&nbsp;·&nbsp;&nbsp;2026-07-21</div>
+    <h1>Two briefs, nine deliverables</h1>
+    <p class="lede">Atlas operator surfaces on the v3.1 midnight system · A-List consumer surfaces on the 2026 App Style Guide (platinum/dark). Backend contract: <span class="code">adippa2580/ATLAS&nbsp;@&nbsp;e29b6e6</span>.</p>
+  </header>
+
+  <!-- ATLAS -->
+  <div class="section-label atlas">ATLAS&nbsp;&nbsp;·&nbsp;&nbsp;OPERATOR &amp; PLATFORM&nbsp;&nbsp;·&nbsp;&nbsp;v3.1 SYSTEM</div>
+  <div class="grid atlas">
+    <a class="card atlas" href="/deliverables/atlas-tokens.html">
+      <div class="tag">D1&nbsp;&nbsp;·&nbsp;&nbsp;RATIFIED</div>
+      <div class="name">v3.1 product tokens</div>
+      <div class="desc">Surface doctrine, red-free status system (ratified), density, geometry + motion, data-viz ramp.</div>
+    </a>
+    <a class="card atlas" href="/deliverables/ops-console.html">
+      <div class="tag">D2&nbsp;&nbsp;·&nbsp;&nbsp;P1 · INTERACTIVE</div>
+      <div class="name">Ops console</div>
+      <div class="desc">Floor/host stand, bookings board, door list, closeout. Live-night + night-one scenarios, in-rail toggle.</div>
+    </a>
+    <a class="card atlas" href="/deliverables/outcomes-pass.html">
+      <div class="tag">D3&nbsp;&nbsp;·&nbsp;&nbsp;P2 · BEFORE / AFTER</div>
+      <div class="name">Outcomes + insights pass</div>
+      <div class="desc">Headline-first hierarchy, act-now queue, scorecard, drill charts, merge decision.</div>
+    </a>
+    <a class="card atlas" href="/deliverables/promoter-view.html">
+      <div class="tag">D4&nbsp;&nbsp;·&nbsp;&nbsp;P3 · INTERACTIVE</div>
+      <div class="name">Promoter receipts + mint link</div>
+      <div class="desc">Leaderboard with show-up rates, funnel, per-link breakdown, receipts ledger, two-step mint flow.</div>
+    </a>
+    <a class="card atlas" href="/deliverables/tenant-onboarding.html">
+      <div class="tag">D5&nbsp;&nbsp;·&nbsp;&nbsp;P4 · WIREFRAMES</div>
+      <div class="name">Tenant onboarding</div>
+      <div class="desc">30-day checklist home, provisioning, connector stub/live states, grant model, data contract.</div>
+    </a>
+    <a class="card atlas" href="/deliverables/sales-deck.html">
+      <div class="tag">D12&nbsp;&nbsp;·&nbsp;&nbsp;SLIDE DECK · 12 SLIDES</div>
+      <div class="name">Sales-demo walkthrough deck</div>
+      <div class="desc">One booking end to end — SHOW / SAY / PROOF talk track per surface, speaker notes, screenshots of every deliverable.</div>
+    </a>
+    <a class="card atlas" href="/deliverables/intelligence-demo.html">
+      <div class="tag">D11&nbsp;&nbsp;·&nbsp;&nbsp;SUBSTRATE DEMO · ANIMATED</div>
+      <div class="name">How a signal becomes intelligence</div>
+      <div class="desc">Three traced scenarios through connector → consent gate → evidence → graph → pillars → insight, incl. revocation.</div>
+    </a>
+    <a class="card atlas" href="/deliverables/component-library.html">
+      <div class="tag">D6&nbsp;&nbsp;·&nbsp;&nbsp;SHARED KIT</div>
+      <div class="name">Component library</div>
+      <div class="desc">One kit across all four surfaces; the status-color answer documented first.</div>
+    </a>
+  </div>
+
+  <!-- A-LIST -->
+  <div class="section-label alist">A-LIST&nbsp;&nbsp;·&nbsp;&nbsp;CONSUMER&nbsp;&nbsp;·&nbsp;&nbsp;2026 APP STYLE GUIDE (PLATINUM / DARK)</div>
+  <div class="grid alist">
+    <a class="card alist" href="/deliverables/alist-tokens.html">
+      <div class="tag">D7&nbsp;&nbsp;·&nbsp;&nbsp;PROPOSAL</div>
+      <div class="name">v2 tokens — booking-flow extension</div>
+      <div class="desc">Payment feedback on the platinum system, split-pay language, money type, venue-link theming rules.</div>
+    </a>
+    <a class="card alist" href="/deliverables/venue-link.html">
+      <div class="tag">D8&nbsp;&nbsp;·&nbsp;&nbsp;P1 · HI-FI MOBILE</div>
+      <div class="name">Venue-link flow V1–V4</div>
+      <div class="desc">Table map, express checkout, declined + 409 states, confirmation celebration, post-visit claim.</div>
+    </a>
+    <a class="card alist" href="/deliverables/crew-rerank.html">
+      <div class="tag">D10&nbsp;&nbsp;·&nbsp;&nbsp;MOTION SPEC · LIVE DEMO</div>
+      <div class="name">Crew re-rank — the signature moment</div>
+      <div class="desc">Interactive S4→S5 demo, 900ms timeline, low-confidence tells, movement ticks, per-head price updates.</div>
+    </a>
+    <a class="card alist" href="/deliverables/wallet-pass.html">
+      <div class="tag">D9&nbsp;&nbsp;·&nbsp;&nbsp;PASS + UPDATE STATES</div>
+      <div class="name">Wallet pass</div>
+      <div class="desc">Issued, table-ready update, running-tab live state — the pre-app push channel.</div>
+    </a>
+  </div>
+
+  <div class="foot">REMAINING&nbsp;&nbsp;·&nbsp;&nbsp;A-LIST APP S1–S10 (RE-RANK MOMENT DONE)&nbsp;&nbsp;·&nbsp;&nbsp;SUPERSEDED PAPER-VIOLET DRAFTS PRESERVED IN /superseded</div>
+
+</main>
+</body>
+</html>

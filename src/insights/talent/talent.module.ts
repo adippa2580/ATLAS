@@ -48,6 +48,7 @@ function dayRangeUtc(d: Date): { gte: Date; lt: Date } {
 
 interface WhoToBookRow {
   subjectRef: string;
+  name: string; // resolved artist catalog name (falls back to the id)
   demandScore: number;
   guestCount: number;
   crewReach: number;
@@ -57,6 +58,7 @@ interface WhoToBookRow {
 interface RoiRow {
   engagementId: string;
   entityId: string;
+  name: string; // resolved artist catalog name (falls back to the id)
   date: Date;
   nightRevenueCents: number;
   baselineCents: number;
@@ -141,9 +143,14 @@ export class TalentService {
       row.guests.add(a.guestId);
     }
 
+    // Resolve the artist catalog Entity.id refs to display names so callers
+    // render "Bedouin" rather than the raw id. Falls back to the id if unmatched.
+    const nameByRef = await this.entityNames(Array.from(agg.keys()));
+
     return Array.from(agg.entries())
       .map(([subjectRef, v]) => ({
         subjectRef,
+        name: nameByRef.get(subjectRef) ?? subjectRef,
         demandScore: v.demandScore,
         guestCount: v.guests.size,
         crewReach: crewReach.get(subjectRef)?.size ?? 0,
@@ -217,6 +224,11 @@ export class TalentService {
       weekdayNights.set(b.venueId, vWeek);
     }
 
+    // Resolve artist names once for the whole scorecard.
+    const nameById = await this.entityNames(
+      Array.from(new Set(engagements.map((e) => e.entityId))),
+    );
+
     const rows: RoiRow[] = engagements.map((e) => {
       const key = dayKey(e.venueId, e.date);
       const nightRevenueCents = nightlyTotals.get(e.venueId)?.get(key) ?? 0;
@@ -232,6 +244,7 @@ export class TalentService {
       return {
         engagementId: e.id,
         entityId: e.entityId,
+        name: nameById.get(e.entityId) ?? e.entityId,
         date: e.date,
         nightRevenueCents,
         baselineCents,
@@ -242,6 +255,20 @@ export class TalentService {
     });
 
     return rows.sort((a, b) => b.liftCents - a.liftCents);
+  }
+
+  /**
+   * Resolve artist catalog `Entity.id`s to their display names. The catalog is
+   * global (no tenantId), so this is a plain id lookup. Returns a map missing any
+   * ref that has no catalog row; callers fall back to the raw id.
+   */
+  private async entityNames(ids: string[]): Promise<Map<string, string>> {
+    if (ids.length === 0) return new Map();
+    const rows = await this.prisma.entity.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, name: true },
+    });
+    return new Map(rows.map((r) => [r.id, r.name]));
   }
 
   /**

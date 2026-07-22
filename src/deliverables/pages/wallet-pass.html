@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A-List Wallet Pass</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --canvas:#060606;
+    --serif:"Cormorant Garamond",Georgia,"Times New Roman",serif;
+    --inter:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --mono:"SF Mono",Menlo,Monaco,Consolas,monospace;
+    --platinum:linear-gradient(135deg,#8e8e93 0%,#e5e4e2 34%,#f5f5f7 52%,#8e8e93 100%);
+    --neon:linear-gradient(120deg,#BD00FF 0%,#FF00E5 50%,#00D9FF 100%);
+    /* white-opacity hierarchy */
+    --w100:rgba(255,255,255,1);
+    --w70:rgba(255,255,255,.70);
+    --w50:rgba(255,255,255,.50);
+    --w40:rgba(255,255,255,.40);
+    --w30:rgba(255,255,255,.30);
+    --w25:rgba(255,255,255,.25);
+    --w20:rgba(255,255,255,.20);
+    --w12:rgba(255,255,255,.12);
+    --w06:rgba(255,255,255,.06);
+    --ink-shadow:0 40px 90px -30px rgba(0,0,0,.95), 0 8px 30px -12px rgba(0,0,0,.8);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--canvas);
+    color:var(--w70);
+    font-family:var(--inter);
+    font-weight:400;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    /* faint page-level marble drift */
+    background-image:
+      radial-gradient(1100px 700px at 15% -10%, rgba(245,245,247,.05), transparent 60%),
+      radial-gradient(900px 700px at 92% 8%, rgba(142,142,147,.055), transparent 62%),
+      radial-gradient(1200px 900px at 50% 118%, rgba(229,228,226,.035), transparent 60%);
+  }
+  a{color:inherit;text-decoration:none}
+  :focus-visible{outline:2px solid #e5e4e2;outline-offset:3px;border-radius:3px}
+
+  /* fixed back-link */
+  .back{
+    position:fixed;top:20px;left:24px;z-index:50;
+    font-family:var(--inter);font-size:10px;font-weight:500;
+    letter-spacing:.22em;text-transform:uppercase;color:var(--w40);
+    padding:6px 4px;transition:color .16s ease;
+  }
+  .back:hover{color:var(--w70)}
+
+  .stage{max-width:520px;margin:0 auto;padding:96px 20px 120px}
+
+  .lede{margin:0 0 56px}
+  .lede .kick{
+    font-family:var(--inter);font-size:9px;font-weight:700;letter-spacing:.4em;
+    text-transform:uppercase;color:var(--w40);margin-bottom:18px;
+  }
+  .lede h1{
+    font-family:var(--serif);font-weight:500;font-size:44px;line-height:1.02;
+    margin:0 0 16px;letter-spacing:.005em;
+    background:var(--platinum);-webkit-background-clip:text;background-clip:text;
+    color:transparent;
+  }
+  .lede p{
+    font-family:var(--inter);font-size:14.5px;line-height:1.65;color:var(--w50);
+    max-width:440px;margin:0;
+  }
+
+  /* ---- state block ---- */
+  .block{margin:0 0 64px}
+  .state-tag{
+    font-family:var(--inter);font-size:9px;font-weight:700;letter-spacing:.34em;
+    text-transform:uppercase;color:var(--w40);margin-bottom:16px;padding-left:2px;
+    display:flex;align-items:baseline;gap:10px;
+  }
+  .state-tag .n{color:var(--w25)}
+  .caption{
+    font-family:var(--inter);font-size:12.5px;line-height:1.6;color:var(--w40);
+    margin:18px 4px 0;max-width:460px;
+  }
+  .caption .push{
+    display:inline-block;font-weight:600;letter-spacing:.02em;color:var(--w70);
+  }
+  .caption .chip{
+    display:inline-block;font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--w50);border:1px solid var(--w12);
+    border-radius:999px;padding:3px 9px;margin-top:12px;
+  }
+  .flag{
+    margin-top:14px;padding:12px 14px;border-left:2px solid var(--w20);
+    background:var(--w06);border-radius:0 8px 8px 0;
+    font-family:var(--inter);font-size:11.5px;line-height:1.55;color:var(--w40);
+  }
+  .flag b{color:var(--w70);font-weight:600}
+
+  /* ---- the pass (platinum-hairline border via gradient frame) ---- */
+  .pass{
+    position:relative;border-radius:20px;padding:1px;
+    background:var(--platinum);
+    box-shadow:var(--ink-shadow);
+  }
+  .pass-inner{
+    position:relative;border-radius:19px;overflow:hidden;
+    background:
+      radial-gradient(120% 90% at 80% -10%, rgba(245,245,247,.10), transparent 55%),
+      radial-gradient(120% 100% at -10% 110%, rgba(142,142,147,.10), transparent 55%),
+      radial-gradient(90% 60% at 50% 40%, rgba(229,228,226,.035), transparent 70%),
+      #060606;
+  }
+  /* subtle marble veining */
+  .pass-inner::before{
+    content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;
+    background:
+      radial-gradient(2px 90px at 22% 30%, rgba(255,255,255,.05), transparent),
+      radial-gradient(2px 120px at 68% 55%, rgba(255,255,255,.04), transparent),
+      radial-gradient(1px 60px at 40% 80%, rgba(255,255,255,.05), transparent);
+    transform:rotate(-8deg) scale(1.3);
+  }
+
+  .pass-body{position:relative;padding:26px 26px 22px}
+
+  /* header row */
+  .p-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:30px}
+  .brandline{font-family:var(--inter);font-size:9px;font-weight:700;letter-spacing:.4em;text-transform:uppercase;color:var(--w70)}
+  .p-date{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--w40)}
+
+  .event-kicker{font-family:var(--inter);font-size:9px;font-weight:600;letter-spacing:.32em;text-transform:uppercase;color:var(--w30);margin-bottom:8px}
+  .venue{
+    font-family:var(--serif);font-weight:500;font-size:40px;line-height:1;margin:0 0 26px;
+    letter-spacing:.01em;
+    background:var(--platinum);-webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+
+  /* field row */
+  .fields{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:8px}
+  .field .lab{font-family:var(--inter);font-size:8px;font-weight:700;letter-spacing:.3em;text-transform:uppercase;color:var(--w30);margin-bottom:7px}
+  .field .val{font-family:var(--mono);font-size:15px;letter-spacing:.01em;color:var(--w100);font-weight:500}
+  .field .val .sub{font-size:10px;color:var(--w40);margin-left:1px}
+
+  /* perforation divider */
+  .perf{position:relative;height:34px;margin:6px -26px 0}
+  .perf::before{
+    content:"";position:absolute;top:50%;left:26px;right:26px;
+    border-top:1.5px dashed var(--w20);
+  }
+  .perf .notch{position:absolute;top:50%;width:26px;height:26px;border-radius:50%;background:var(--canvas);transform:translateY(-50%)}
+  .perf .notch.l{left:-13px}
+  .perf .notch.r{right:-13px}
+
+  /* QR well */
+  .qr-stub{position:relative;padding:0 26px 26px;display:flex;align-items:center;gap:20px}
+  .qr-well{
+    background:#f5f5f7;border-radius:12px;padding:11px;flex:0 0 auto;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.06);
+    line-height:0;
+  }
+  .qr-well svg{display:block;border-radius:3px}
+  .qr-meta{min-width:0}
+  .qr-meta .scan{font-family:var(--inter);font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:var(--w70);margin-bottom:8px}
+  .qr-meta .bid{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--w40)}
+  .qr-meta .bid .k{display:block;font-size:8px;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:var(--w25);margin-bottom:4px}
+
+  /* ============ STATE 2: TABLE READY — inverted white header strip ============ */
+  .strip{
+    background:#f5f5f7;color:#0a0a0a;padding:15px 26px;
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .strip .now{font-family:var(--inter);font-size:11px;font-weight:700;letter-spacing:.3em;text-transform:uppercase;color:#060606}
+  .strip .now .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#060606;margin-right:9px;vertical-align:middle;animation:pulse 1.6s ease-in-out infinite}
+  .strip .meta{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:rgba(0,0,0,.5)}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+  /* lock-screen notification mock */
+  .lockrow{display:flex;justify-content:center;margin-top:22px}
+  .lockscreen{
+    width:100%;max-width:360px;border-radius:24px;padding:22px 16px 26px;
+    background:
+      radial-gradient(120% 80% at 20% 0%, rgba(189,0,255,.10), transparent 55%),
+      radial-gradient(120% 90% at 90% 20%, rgba(0,217,255,.09), transparent 55%),
+      linear-gradient(180deg, #0a0a0c, #050506);
+    border:1px solid var(--w12);
+  }
+  .ls-time{text-align:center;color:var(--w70);font-family:var(--inter);font-weight:500}
+  .ls-time .hh{font-size:52px;line-height:1;letter-spacing:.01em}
+  .ls-time .dd{font-size:12px;letter-spacing:.06em;color:var(--w40);margin-top:6px}
+  .notif{
+    display:flex;gap:12px;align-items:flex-start;margin-top:26px;
+    background:rgba(28,28,30,.72);backdrop-filter:blur(20px);
+    -webkit-backdrop-filter:blur(20px);
+    border:1px solid var(--w06);border-radius:16px;padding:13px 14px;
+  }
+  .logo-mark{
+    flex:0 0 auto;width:34px;height:34px;border-radius:9px;
+    background:var(--neon);position:relative;
+    box-shadow:0 0 18px -4px rgba(189,0,255,.55);
+  }
+  .logo-mark::after{
+    content:"";position:absolute;inset:0;border-radius:9px;
+    background:radial-gradient(circle at 50% 42%, rgba(255,255,255,.9) 0 2.5px, transparent 3px),
+      conic-gradient(from 0deg, transparent 0 82%, rgba(255,255,255,.85) 82% 100%);
+    -webkit-mask:radial-gradient(circle at 50% 50%, transparent 6px, #000 6.5px 10.5px, transparent 11px);
+    mask:radial-gradient(circle at 50% 50%, transparent 6px, #000 6.5px 10.5px, transparent 11px);
+    opacity:.95;
+  }
+  .notif-body{min-width:0;flex:1}
+  .notif-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+  .notif-app{font-family:var(--inter);font-size:9px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:var(--w50)}
+  .notif-ago{font-family:var(--inter);font-size:11px;color:var(--w30)}
+  .notif-title{font-family:var(--inter);font-size:14px;font-weight:600;color:var(--w100);margin:5px 0 3px}
+  .notif-msg{font-family:var(--inter);font-size:13px;line-height:1.45;color:var(--w50)}
+
+  /* ============ STATE 3: RUNNING TAB — live tab card ============ */
+  .tabcard{padding:22px 26px 24px}
+  .tab-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px}
+  .tab-lab{font-family:var(--inter);font-size:8px;font-weight:700;letter-spacing:.32em;text-transform:uppercase;color:var(--w30)}
+  .tab-live{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--w50);display:flex;align-items:center;gap:7px}
+  .tab-live .dot{width:6px;height:6px;border-radius:50%;background:#e5e4e2;animation:pulse 1.6s ease-in-out infinite}
+  .tab-amount{
+    font-family:var(--mono);font-weight:500;font-size:44px;letter-spacing:-.01em;line-height:1;
+    color:var(--w100);margin-bottom:22px;
+  }
+  .tab-amount .cur{font-size:24px;color:var(--w50);vertical-align:top;margin-right:2px}
+  /* platinum progress bar */
+  .bar-track{height:5px;border-radius:999px;background:var(--w12);overflow:hidden}
+  .bar-fill{height:100%;border-radius:999px;background:var(--platinum);box-shadow:0 0 12px -2px rgba(229,228,226,.5)}
+  .bar-legend{display:flex;justify-content:space-between;margin-top:11px}
+  .bar-legend .phrase{font-family:var(--inter);font-size:12px;color:var(--w50);letter-spacing:.01em}
+  .bar-legend .goal{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--w40)}
+  .tab-foot{display:flex;justify-content:space-between;align-items:center;margin-top:22px;padding-top:18px;border-top:1px solid var(--w06)}
+  .split{display:flex;align-items:center;gap:10px}
+  .split .dots{display:flex;gap:5px}
+  .split .dots .d{width:8px;height:8px;border-radius:50%;background:var(--platinum)}
+  .split .lbl{font-family:var(--inter);font-size:10px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--w50)}
+  .venue-mini{font-family:var(--serif);font-size:17px;color:var(--w50);font-weight:500}
+
+  @media (max-width:440px){
+    .stage{padding:84px 16px 100px}
+    .lede h1{font-size:36px}
+    .venue{font-size:34px}
+    .qr-stub{flex-direction:column;align-items:flex-start;gap:14px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none !important;transition:none !important}
+  }
+</style>
+</head>
+<body>
+
+<a class="back" href="/deliverables">&larr; DELIVERABLES</a>
+
+<main class="stage">
+
+  <div class="lede">
+    <div class="kick">A-LIST&nbsp;&nbsp;·&nbsp;&nbsp;WALLET PASS&nbsp;&nbsp;·&nbsp;&nbsp;PASS + UPDATE STATES</div>
+    <h1>one pass, three moments.</h1>
+    <p>the pass is the channel before the app exists. it issues at deposit, seats you at the door, and carries your tab in real time — pushed silently into apple wallet, no download in the way.</p>
+  </div>
+
+  <!-- ============ STATE 1: ISSUED ============ -->
+  <section class="block">
+    <div class="state-tag"><span class="n">01</span> ISSUED PASS</div>
+    <div class="pass">
+      <div class="pass-inner">
+        <div class="pass-body">
+          <div class="p-head">
+            <span class="brandline">A-LIST</span>
+            <span class="p-date">SAT · AUG 16</span>
+          </div>
+          <div class="event-kicker">SUMMER RESIDENCY</div>
+          <h2 class="venue">Meridian Room</h2>
+          <div class="fields">
+            <div class="field">
+              <div class="lab">Doors</div>
+              <div class="val">10:00<span class="sub">pm</span></div>
+            </div>
+            <div class="field">
+              <div class="lab">Party</div>
+              <div class="val">6</div>
+            </div>
+            <div class="field">
+              <div class="lab">Table</div>
+              <div class="val">B4</div>
+            </div>
+          </div>
+        </div>
+        <div class="perf">
+          <span class="notch l"></span>
+          <span class="notch r"></span>
+        </div>
+        <div class="qr-stub">
+          <div class="qr-well" id="qr-issued" aria-label="Pass QR code for booking AL-8FK2-B4"></div>
+          <div class="qr-meta">
+            <div class="scan">Scan at door</div>
+            <div class="bid"><span class="k">Booking</span>AL-8FK2-B4</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="caption">
+      created the instant your deposit clears. the QR encodes the booking id and nothing else — the door reads it, marks you seated, and the pass takes over from there.
+      <span class="chip">PUSH · ON BOOKING CONFIRM &rarr; PKPASS</span>
+    </p>
+  </section>
+
+  <!-- ============ STATE 2: TABLE READY ============ -->
+  <section class="block">
+    <div class="state-tag"><span class="n">02</span> TABLE READY &nbsp;·&nbsp; UPDATE STATE</div>
+    <div class="pass">
+      <div class="pass-inner">
+        <div class="strip">
+          <span class="now"><span class="dot"></span>TABLE READY</span>
+          <span class="meta">WALK IN NOW</span>
+        </div>
+        <div class="pass-body">
+          <div class="p-head">
+            <span class="brandline">A-LIST</span>
+            <span class="p-date">SAT · AUG 16</span>
+          </div>
+          <div class="event-kicker">SUMMER RESIDENCY</div>
+          <h2 class="venue">Meridian Room</h2>
+          <div class="fields">
+            <div class="field">
+              <div class="lab">Doors</div>
+              <div class="val">10:00<span class="sub">pm</span></div>
+            </div>
+            <div class="field">
+              <div class="lab">Party</div>
+              <div class="val">6</div>
+            </div>
+            <div class="field">
+              <div class="lab">Table</div>
+              <div class="val">B4</div>
+            </div>
+          </div>
+        </div>
+        <div class="perf">
+          <span class="notch l"></span>
+          <span class="notch r"></span>
+        </div>
+        <div class="qr-stub">
+          <div class="qr-well" id="qr-ready" aria-label="Pass QR code for booking AL-8FK2-B4"></div>
+          <div class="qr-meta">
+            <div class="scan">Scan at door</div>
+            <div class="bid"><span class="k">Booking</span>AL-8FK2-B4</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- lock-screen notification mock -->
+    <div class="lockrow">
+      <div class="lockscreen">
+        <div class="ls-time">
+          <div class="hh">9:41</div>
+          <div class="dd">Saturday, August 16</div>
+        </div>
+        <div class="notif">
+          <div class="logo-mark" aria-hidden="true"></div>
+          <div class="notif-body">
+            <div class="notif-top">
+              <span class="notif-app">A-LIST</span>
+              <span class="notif-ago">now</span>
+            </div>
+            <div class="notif-title">Your table is ready</div>
+            <div class="notif-msg">B4 is set at Meridian Room. show your pass at the door — walk straight in.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="caption">
+      the only inversion in the system — a white header strip that means <span class="push">act now</span>, nothing else. it lands with a lock-screen push carrying the neon mark, the one place neon is ever allowed on a consumer surface.
+      <span class="chip">PUSH · HOST SEATS PARTY &rarr; APNS + PASS UPDATE</span>
+    </p>
+  </section>
+
+  <!-- ============ STATE 3: RUNNING TAB ============ -->
+  <section class="block">
+    <div class="state-tag"><span class="n">03</span> RUNNING TAB &nbsp;·&nbsp; UPDATE STATE</div>
+    <div class="pass">
+      <div class="pass-inner">
+        <div class="pass-body" style="padding-bottom:6px">
+          <div class="p-head">
+            <span class="brandline">A-LIST</span>
+            <span class="p-date">SAT · AUG 16</span>
+          </div>
+          <div class="event-kicker">SUMMER RESIDENCY</div>
+          <h2 class="venue" style="margin-bottom:8px">Meridian Room</h2>
+        </div>
+        <div class="perf">
+          <span class="notch l"></span>
+          <span class="notch r"></span>
+        </div>
+        <div class="tabcard">
+          <div class="tab-head">
+            <span class="tab-lab">Tonight&rsquo;s tab</span>
+            <span class="tab-live"><span class="dot"></span>LIVE</span>
+          </div>
+          <div class="tab-amount"><span class="cur">$</span>642.50</div>
+          <div class="bar-track"><div class="bar-fill" style="width:64%"></div></div>
+          <div class="bar-legend">
+            <span class="phrase">past the halfway mark on your table minimum</span>
+            <span class="goal">MIN · $1,000</span>
+          </div>
+          <div class="tab-foot">
+            <div class="split">
+              <span class="dots"><span class="d"></span><span class="d"></span><span class="d"></span><span class="d"></span><span class="d"></span></span>
+              <span class="lbl">5 on the split</span>
+            </div>
+            <span class="venue-mini">B4</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="caption">
+      your tab, live on the face of the pass. every round posts through a <span class="push">Square webhook</span> that pushes a fresh pass update — the platinum bar fills toward the table minimum as the night runs, and the split shows who is covering it.
+      <span class="chip">PUSH · SQUARE ORDER.UPDATED &rarr; PASS UPDATE</span>
+      <span class="flag"><b>copy note.</b> the original comp read &ldquo;43% of minimum.&rdquo; a bare percentage breaks the A-List no-numbers voice, so the state carries meaning through the progress bar plus a phrase — <b>past the halfway mark</b> — never a raw figure.</span>
+    </p>
+  </section>
+
+</main>
+
+<script>
+(function(){
+  "use strict";
+  // Deterministic QR-like matrix from a booking id. Placeholder only — not a
+  // scannable code; it renders a stable, id-derived pattern with finder squares.
+  function hash(str){
+    var h = 2166136261 >>> 0;
+    for (var i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+    return h >>> 0;
+  }
+  function rng(seed){
+    var s = seed >>> 0;
+    return function(){ s ^= s<<13; s^=s>>>17; s^=s<<5; s>>>=0; return s/4294967296; };
+  }
+  function isFinder(x,y,n){
+    // top-left, top-right, bottom-left 7x7 finder zones (plus 1-cell quiet gap)
+    var inTL = x<7 && y<7;
+    var inTR = x>n-8 && y<7;
+    var inBL = x<7 && y>n-8;
+    return inTL || inTR || inBL;
+  }
+  function finderCell(x,y,n){
+    var lx = x, ly = y;
+    if (x>n-8) lx = x-(n-7);
+    if (y>n-8) ly = y-(n-7);
+    var d = Math.max(Math.abs(lx-3),Math.abs(ly-3));
+    return d===1 ? 0 : 1; // 3x3 ring hollow -> classic bullseye
+  }
+  function build(id, px){
+    var n = 25;                 // module count
+    var quiet = 2;              // quiet border in modules
+    var total = n + quiet*2;
+    var mods = px / total;      // module size in px
+    var rand = rng(hash(id));
+    var svgns = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(svgns,"svg");
+    svg.setAttribute("width", px);
+    svg.setAttribute("height", px);
+    svg.setAttribute("viewBox","0 0 "+px+" "+px);
+    svg.setAttribute("shape-rendering","crispEdges");
+    svg.setAttribute("role","img");
+    var frag = document.createDocumentFragment();
+    for (var y=0;y<n;y++){
+      for (var x=0;x<n;x++){
+        var on;
+        if (isFinder(x,y,n)) on = finderCell(x,y,n);
+        else on = rand() > 0.5 ? 1 : 0;
+        if (!on) continue;
+        var r = document.createElementNS(svgns,"rect");
+        r.setAttribute("x", ((x+quiet)*mods).toFixed(2));
+        r.setAttribute("y", ((y+quiet)*mods).toFixed(2));
+        r.setAttribute("width", (mods+0.4).toFixed(2));
+        r.setAttribute("height", (mods+0.4).toFixed(2));
+        r.setAttribute("fill", "#0a0a0a");
+        frag.appendChild(r);
+      }
+    }
+    svg.appendChild(frag);
+    return svg;
+  }
+  var bid = "AL-8FK2-B4";
+  ["qr-issued","qr-ready"].forEach(function(elId){
+    var el = document.getElementById(elId);
+    if (el) el.appendChild(build(bid, 110));
+  });
+})();
+</script>
+</body>
+</html>

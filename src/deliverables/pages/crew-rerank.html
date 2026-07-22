@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A-List Crew Re-rank</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --canvas:#060606; --black:#000;
+    --serif:"Cormorant Garamond",Georgia,"Times New Roman",serif;
+    --inter:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --w100:#ffffff;
+    --w70:rgba(255,255,255,.70);
+    --w50:rgba(255,255,255,.50);
+    --w40:rgba(255,255,255,.40);
+    --w30:rgba(255,255,255,.30);
+    --w25:rgba(255,255,255,.25);
+    --w20:rgba(255,255,255,.20);
+    --card:rgba(255,255,255,.05);
+    --hair:rgba(255,255,255,.10);
+    --hair-soft:rgba(255,255,255,.08);
+    --platinum:linear-gradient(135deg,#8e8e93 0%,#e5e4e2 38%,#f5f5f7 55%,#8e8e93 100%);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--canvas); color:var(--w70);
+    font-family:var(--inter); font-weight:400;
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+    min-height:100vh;
+  }
+  a{color:inherit; text-decoration:none}
+  ::selection{background:rgba(245,245,247,.22)}
+
+  /* fixed back link */
+  .back{
+    position:fixed; top:18px; left:22px; z-index:50;
+    font-family:var(--inter); font-size:10px; font-weight:500;
+    letter-spacing:.28em; text-transform:uppercase; color:var(--w40);
+    padding:8px 10px; border-radius:999px;
+    transition:color .12s ease, background .12s ease;
+  }
+  .back:hover{color:var(--w70); background:rgba(255,255,255,.04)}
+  .back:focus-visible{outline:2px solid #f5f5f7; outline-offset:2px}
+
+  .wrap{max-width:1120px; margin:0 auto; padding:84px 32px 96px}
+
+  /* hero */
+  .hero{position:relative; margin-bottom:44px; overflow:hidden; border-radius:14px;
+        padding:40px 34px; border:1px solid var(--hair-soft);
+        background:radial-gradient(120% 140% at 12% -10%, rgba(245,245,247,.08), rgba(255,255,255,0) 46%),
+                   radial-gradient(90% 120% at 108% 120%, rgba(142,142,147,.10), rgba(255,255,255,0) 50%),
+                   var(--card);}
+  .kicker{font-family:var(--inter); font-size:9px; font-weight:700; letter-spacing:.4em;
+          text-transform:uppercase; color:var(--w40); margin-bottom:18px}
+  .hero h1{margin:0; font-family:var(--serif); font-weight:500; font-size:46px; line-height:1.02;
+           letter-spacing:.005em; color:var(--w100)}
+  .hero .plat{background:var(--platinum); -webkit-background-clip:text; background-clip:text; color:transparent}
+  .hero p{margin:16px 0 0; max-width:640px; font-size:14px; line-height:1.7; color:var(--w50)}
+  .hero .api{margin-top:16px; font-family:var(--inter); font-size:10px; font-weight:500;
+             letter-spacing:.16em; text-transform:uppercase; color:var(--w30)}
+
+  /* layout */
+  .cols{display:grid; grid-template-columns:1.35fr 1fr; gap:26px; align-items:start}
+  @media (max-width:900px){ .cols{grid-template-columns:1fr} }
+
+  .panel{border:1px solid var(--hair); border-radius:10px; background:var(--card); padding:24px 22px}
+  .panel-h{font-family:var(--inter); font-size:9px; font-weight:700; letter-spacing:.34em;
+           text-transform:uppercase; color:var(--w40); margin-bottom:4px}
+  .panel-sub{font-size:12px; color:var(--w50); line-height:1.6; margin:0 0 20px}
+
+  /* ---- crew chips ---- */
+  .crew-head{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:12px}
+  .crew-label{font-family:var(--inter); font-size:9px; font-weight:700; letter-spacing:.3em;
+              text-transform:uppercase; color:var(--w40)}
+  .crew-count{font-family:var(--inter); font-size:9px; font-weight:500; letter-spacing:.24em;
+              text-transform:uppercase; color:var(--w30)}
+  .chips{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px}
+  .chip{
+    display:inline-flex; align-items:baseline; gap:8px;
+    padding:9px 14px; border-radius:999px; cursor:pointer;
+    border:1px solid var(--w20); background:transparent; color:var(--w50);
+    font-family:var(--inter); font-size:12px; font-weight:500;
+    transition:transform .12s ease, background .12s ease, border-color .12s ease, color .12s ease, opacity .12s ease;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .chip .dot{width:6px; height:6px; border-radius:50%; background:var(--w25); transition:background .12s ease; align-self:center}
+  .chip .taste{font-size:9px; font-weight:500; letter-spacing:.12em; text-transform:uppercase; color:var(--w25)}
+  .chip:hover{border-color:var(--w30); color:var(--w70)}
+  .chip.on{background:#f5f5f7; border-color:#f5f5f7; color:#0a0a0a}
+  .chip.on .dot{background:#0a0a0a}
+  .chip.on .taste{color:rgba(10,10,10,.55)}
+  .chip:active{transform:scale(.95)}
+  .chip.commit{animation:commit 120ms ease-out}
+  @keyframes commit{ 0%{transform:scale(.9)} 100%{transform:scale(1)} }
+  .chip:focus-visible{outline:2px solid #f5f5f7; outline-offset:2px}
+
+  .crew-echo{
+    font-family:var(--inter); font-size:11px; letter-spacing:.02em; color:var(--w40);
+    min-height:16px; margin-bottom:22px; padding-top:2px;
+    transition:color .2s ease;
+  }
+  .crew-echo b{font-weight:500; color:var(--w70)}
+  .crew-echo.flash{color:var(--w70)}
+  .crew-echo .newname{color:#f5f5f7; font-weight:500}
+
+  /* ---- recommendation list ---- */
+  .rec-list{list-style:none; margin:0; padding:0; position:relative}
+  .rec-card{
+    position:relative; margin-bottom:10px; border-radius:10px;
+    border:1px solid var(--hair); background:rgba(255,255,255,.04);
+    padding:16px 18px; overflow:hidden;
+    display:grid; grid-template-columns:26px 1fr auto; gap:14px; align-items:center;
+    min-height:88px; will-change:transform;
+  }
+  .rec-card:last-child{margin-bottom:0}
+  .rank{font-family:var(--inter); font-size:11px; font-weight:700; letter-spacing:.1em; color:var(--w30); font-variant-numeric:tabular-nums}
+  .rec-main{min-width:0}
+  .vname{font-family:var(--serif); font-weight:500; font-size:24px; line-height:1.05; color:var(--w100);
+         letter-spacing:.005em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .vmeta{margin-top:5px; font-family:var(--inter); font-size:9px; font-weight:500; letter-spacing:.16em;
+         text-transform:uppercase; color:var(--w40)}
+  .why{
+    display:inline-block; margin-top:10px; padding:5px 11px; border-radius:999px;
+    border:1px solid var(--hair); background:rgba(255,255,255,.05);
+    font-family:var(--inter); font-size:9.5px; font-weight:600; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--w70); white-space:nowrap; max-width:100%;
+    overflow:hidden; text-overflow:ellipsis;
+  }
+  .rec-right{text-align:right; white-space:nowrap}
+  .perhead{font-family:var(--serif); font-weight:500; font-size:22px; color:var(--w100); line-height:1;
+           font-variant-numeric:tabular-nums; transition:opacity .18s ease}
+  .perhead-l{margin-top:6px; font-family:var(--inter); font-size:8px; font-weight:700; letter-spacing:.28em;
+             text-transform:uppercase; color:var(--w30)}
+
+  /* thinking / shimmer */
+  .rec-list.thinking .rec-card{opacity:.70}
+  .rec-card::before{
+    content:""; position:absolute; inset:0; pointer-events:none; opacity:0;
+    background:linear-gradient(100deg, transparent 30%, rgba(245,245,247,.10) 50%, transparent 70%);
+    transform:translateX(-100%);
+  }
+  .rec-list.thinking .rec-card::before{opacity:1; animation:sweep 900ms ease-in-out infinite}
+  @keyframes sweep{ 0%{transform:translateX(-100%)} 100%{transform:translateX(300%)} }
+
+  /* platinum #1 */
+  .rec-card.platinum::after{
+    content:""; position:absolute; inset:0; border-radius:10px; padding:1px; pointer-events:none;
+    background:var(--platinum);
+    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor; mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask-composite:exclude; opacity:0; transition:opacity .34s ease;
+  }
+  .rec-card.platinum.landed::after{opacity:1}
+  .rec-card.platinum.landed .vname{background:var(--platinum); -webkit-background-clip:text; background-clip:text; color:transparent}
+
+  /* movement tick */
+  .tick{
+    position:absolute; top:12px; right:16px; z-index:3;
+    font-family:var(--inter); font-size:10px; font-weight:700; letter-spacing:.08em;
+    padding:2px 7px; border-radius:999px; opacity:0; transform:translateY(-2px);
+    transition:opacity .28s ease, transform .28s ease; pointer-events:none;
+    font-variant-numeric:tabular-nums;
+  }
+  .tick.show{opacity:1; transform:translateY(0)}
+  .tick.up{color:#0a0a0a; background:#e5e4e2}
+  .tick.down{color:var(--w50); background:rgba(255,255,255,.08); border:1px solid var(--hair)}
+
+  .demo-foot{margin-top:16px; font-family:var(--inter); font-size:10px; letter-spacing:.02em; color:var(--w30); line-height:1.6}
+
+  /* ---- timeline spec ---- */
+  .beats{list-style:none; margin:0; padding:0; position:relative}
+  .beats::before{content:""; position:absolute; left:7px; top:8px; bottom:8px; width:1px; background:var(--hair)}
+  .beat{position:relative; padding:0 0 22px 30px}
+  .beat:last-child{padding-bottom:0}
+  .beat .node{position:absolute; left:0; top:3px; width:15px; height:15px; border-radius:50%;
+              border:1px solid var(--w25); background:var(--canvas)}
+  .beat.plat .node{background:var(--platinum); border-color:transparent}
+  .beat .t{font-family:var(--inter); font-size:10px; font-weight:700; letter-spacing:.2em;
+           text-transform:uppercase; color:var(--w70); font-variant-numeric:tabular-nums}
+  .beat .nm{font-family:var(--inter); font-size:9px; font-weight:600; letter-spacing:.24em;
+            text-transform:uppercase; color:var(--w40); margin:2px 0 7px}
+  .beat p{margin:0; font-size:12px; line-height:1.6; color:var(--w50)}
+  .beat .spec{margin-top:8px; display:flex; flex-wrap:wrap; gap:6px}
+  .beat .spec span{font-family:var(--inter); font-size:8.5px; font-weight:600; letter-spacing:.12em;
+                   text-transform:uppercase; color:var(--w50); padding:3px 8px; border-radius:999px;
+                   border:1px solid var(--hair-soft); background:rgba(255,255,255,.03)}
+
+  .rules{margin-top:24px; padding-top:20px; border-top:1px solid var(--hair-soft)}
+  .rules h3{margin:0 0 10px; font-family:var(--inter); font-size:9px; font-weight:700; letter-spacing:.3em;
+            text-transform:uppercase; color:var(--w40)}
+  .rules ul{margin:0; padding:0; list-style:none}
+  .rules li{position:relative; padding:6px 0 6px 16px; font-size:11.5px; line-height:1.55; color:var(--w50)}
+  .rules li::before{content:"○"; position:absolute; left:0; top:6px; font-size:8px; color:var(--w25)}
+
+  .globalfoot{margin-top:40px; text-align:center; font-family:var(--inter); font-size:8px; font-weight:600;
+              letter-spacing:.4em; text-transform:uppercase; color:var(--w20)}
+
+  @media (prefers-reduced-motion:reduce){
+    .chip.commit{animation:none}
+    .rec-list.thinking .rec-card::before{animation:none; opacity:0}
+  }
+  @media (max-width:560px){
+    .wrap{padding:76px 18px 72px}
+    .hero{padding:30px 22px} .hero h1{font-size:36px}
+    .rec-card{grid-template-columns:22px 1fr; grid-auto-rows:auto}
+    .rec-right{grid-column:2; text-align:left; margin-top:8px}
+  }
+</style>
+</head>
+<body>
+<a class="back" href="/deliverables">&larr; DELIVERABLES</a>
+
+<main class="wrap">
+  <section class="hero">
+    <div class="kicker">S4 &rarr; S5 &nbsp;&middot;&nbsp; SIGNATURE MOMENT &nbsp;&middot;&nbsp; MOTION SPEC + LIVE DEMO</div>
+    <h1>the crew changes,<br>and the room <span class="plat">re-ranks</span>.</h1>
+    <p>your people are the input. add or drop someone and the recommendations resettle — a think, a flip, and the night's best table lands platinum. crew is a taste signal, never an invite.</p>
+    <div class="api">POST /v1/recommendations:crew</div>
+  </section>
+
+  <div class="cols">
+    <!-- LIVE DEMO -->
+    <section class="panel" aria-label="Live crew re-rank demo">
+      <div class="panel-h">LIVE &middot; TAP TO RE-RANK</div>
+      <p class="panel-sub">toggle who's out tonight. the list resettles around shared taste; per-head splits the table minimum across the crew.</p>
+
+      <div class="crew-head">
+        <span class="crew-label">YOUR CREW</span>
+        <span class="crew-count" id="crewCount">—</span>
+      </div>
+      <div class="chips" id="chips" role="group" aria-label="Crew members"></div>
+      <div class="crew-echo" id="echo" aria-live="polite"></div>
+
+      <ol class="rec-list" id="list" aria-label="Ranked recommendations" aria-live="off"></ol>
+
+      <p class="demo-foot">re-rank is interruptible — toggle again mid-flight and it restarts from the think beat, never queues. when fewer than two of your crew share taste, the list falls back to crowd reasons and no table takes the platinum.</p>
+    </section>
+
+    <!-- TIMELINE SPEC -->
+    <aside class="panel" aria-label="Motion timeline specification">
+      <div class="panel-h">MOTION TIMELINE &middot; NORMATIVE</div>
+      <p class="panel-sub">every re-rank runs this fixed choreography. total signature moment ~900ms; the platinum border always lands last.</p>
+
+      <ol class="beats">
+        <li class="beat">
+          <span class="node"></span>
+          <div class="t">T0</div>
+          <div class="nm">CHIP COMMIT</div>
+          <p>the toggled chip commits with a light haptic and a scale settle.</p>
+          <div class="spec"><span>120MS</span><span>EASE-OUT</span><span>SCALE .9&rarr;1</span></div>
+        </li>
+        <li class="beat">
+          <span class="node"></span>
+          <div class="t">T+80</div>
+          <div class="nm">THINK</div>
+          <p>cards dim to 70% under a shimmer sweep; the crew line echoes the input first, so the read feels considered.</p>
+          <div class="spec"><span>&le;350MS</span><span>DIM 70%</span><span>SHIMMER SWEEP</span><span>CREW ECHO</span></div>
+        </li>
+        <li class="beat">
+          <span class="node"></span>
+          <div class="t">T+350</div>
+          <div class="nm">FLIP RE-SORT</div>
+          <p>first / last / invert / play — cards travel to new positions. position only, no size morph. top three stagger.</p>
+          <div class="spec"><span>450MS</span><span>CUBIC-BEZIER(.22,1,.36,1)</span><span>TOP-3 STAGGER 40MS</span><span>POSITION ONLY</span></div>
+        </li>
+        <li class="beat plat">
+          <span class="node"></span>
+          <div class="t">T+700</div>
+          <div class="nm">WHY + PLATINUM</div>
+          <p>why-chips crossfade to their new reasons, then the platinum #1 border lands last on the top card.</p>
+          <div class="spec"><span>CROSSFADE 200MS</span><span>PLATINUM LANDS LAST</span><span>TICKS ~1.7S</span></div>
+        </li>
+      </ol>
+
+      <div class="rules">
+        <h3>INVARIANTS</h3>
+        <ul>
+          <li>interruptible: a new toggle restarts from T+80, never queues.</li>
+          <li>low-confidence (&lt;2 taste-connected): no platinum #1, why-chips generalize to crowd reasons, flat rank weights &mdash; and we never say we're less sure.</li>
+          <li>reduced-motion: the whole moment collapses to a 200ms crossfade re-order.</li>
+          <li>movement ticks show &#9650;/&#9660; with the rank delta beside moved cards, ~1.7s, then fade.</li>
+        </ul>
+      </div>
+    </aside>
+  </div>
+
+  <div class="globalfoot">RECOMMENDATION INPUT &middot; NOT AN INVITE</div>
+</main>
+
+<script>
+(function(){
+  "use strict";
+
+  var TAG_LABEL = {
+    wine:"natural wine", jazz:"listening bars", techno:"techno", late:"late doors",
+    dining:"omakase", intimate:"intimate rooms", hiphop:"hip-hop", bottles:"bottle service",
+    rooftop:"rooftop", cocktails:"cocktails", art:"the art crowd"
+  };
+
+  var crew = [
+    { id:"nadia",  name:"nadia",  taste:"WINE · JAZZ",      tags:["wine","jazz"],       on:true  },
+    { id:"sol",    name:"sol",    taste:"WINE · ART",       tags:["wine","art"],        on:true  },
+    { id:"priya",  name:"priya",  taste:"OMAKASE · QUIET",  tags:["dining","intimate"], on:true  },
+    { id:"theo",   name:"theo",   taste:"TECHNO · LATE",    tags:["techno","late"],     on:false },
+    { id:"marcus", name:"marcus", taste:"HIP-HOP · BOTTLES",tags:["hiphop","bottles"],  on:false },
+    { id:"lena",   name:"lena",   taste:"ROOFTOP · DRINKS", tags:["rooftop","cocktails"],on:false }
+  ];
+
+  var venues = [
+    { id:"meridian", name:"Meridian Room", tags:["wine","jazz","intimate"], min:150000, cap:6, base:60, crowd:"a listening-bar favourite" },
+    { id:"kestrel",  name:"Kestrel",       tags:["rooftop","cocktails","late"], min:120000, cap:8, base:72, crowd:"trending this friday" },
+    { id:"vault",    name:"The Vault",     tags:["techno","late","bottles"], min:200000, cap:10, base:55, crowd:"big-table friendly" },
+    { id:"osaka",    name:"Osaka Bar",     tags:["dining","intimate","wine"], min:90000, cap:4, base:48, crowd:"it fills fast" },
+    { id:"lantern",  name:"Lantern",       tags:["hiphop","bottles","late"], min:180000, cap:8, base:66, crowd:"packed most nights" },
+    { id:"halcyon",  name:"Halcyon",       tags:["art","wine","cocktails"], min:140000, cap:6, base:50, crowd:"close to you" }
+  ];
+
+  var listEl  = document.getElementById("list");
+  var chipsEl = document.getElementById("chips");
+  var echoEl  = document.getElementById("echo");
+  var countEl = document.getElementById("crewCount");
+  var cardById = {};
+  var currentOrder = [];
+  var timers = [];
+  var pending = null;
+
+  function reduced(){ return window.matchMedia("(prefers-reduced-motion: reduce)").matches; }
+  function money(c){ return "$" + (c/100).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  function clearTimers(){ timers.forEach(clearTimeout); timers = []; }
+
+  function ranking(){
+    var sel = crew.filter(function(c){ return c.on; });
+    var size = Math.max(sel.length, 1);
+    var connected = 0;
+    sel.forEach(function(m){
+      var linked = sel.some(function(o){
+        return o.id !== m.id && o.tags.some(function(t){ return m.tags.indexOf(t) > -1; });
+      });
+      if (linked) connected++;
+    });
+    var low = connected < 2;
+    var scored = venues.map(function(v){
+      var score = v.base, matches = [];
+      if (!low) {
+        sel.forEach(function(m){
+          m.tags.forEach(function(t){
+            if (v.tags.indexOf(t) > -1) { score += 30; matches.push({ name:m.name, tag:t }); }
+          });
+        });
+      }
+      return { v:v, score:score, matches:matches };
+    });
+    scored.sort(function(a,b){ return (b.score - a.score) || a.v.name.localeCompare(b.v.name); });
+    return { scored:scored, size:size, low:low };
+  }
+
+  function whyText(entry, low){
+    if (low || entry.matches.length === 0) return entry.v.crowd;
+    var byTag = {};
+    entry.matches.forEach(function(m){
+      (byTag[m.tag] = byTag[m.tag] || []);
+      if (byTag[m.tag].indexOf(m.name) === -1) byTag[m.tag].push(m.name);
+    });
+    var best = null;
+    Object.keys(byTag).forEach(function(t){
+      if (!best || byTag[t].length > best.names.length) best = { tag:t, names:byTag[t] };
+    });
+    var label = TAG_LABEL[best.tag];
+    if (best.names.length >= 2) return best.names.slice(0,2).join(" + ") + " · " + label;
+    return best.names[0] + " · " + label;
+  }
+
+  function perHead(v, size){ return Math.round(v.min / size); }
+
+  /* ---------- build ---------- */
+  function buildChips(){
+    crew.forEach(function(c){
+      var b = document.createElement("button");
+      b.className = "chip" + (c.on ? " on" : "");
+      b.type = "button";
+      b.setAttribute("aria-pressed", c.on ? "true" : "false");
+      b.innerHTML = '<span class="dot"></span><span>' + c.name + '</span><span class="taste">' + c.taste + '</span>';
+      b.addEventListener("click", function(){ toggle(c, b); });
+      chipsEl.appendChild(b);
+      c.el = b;
+    });
+  }
+
+  function buildList(){
+    var r = ranking();
+    currentOrder = r.scored.map(function(s){ return s.v.id; });
+    r.scored.forEach(function(entry, i){
+      var v = entry.v;
+      var li = document.createElement("li");
+      li.className = "rec-card";
+      li.dataset.id = v.id;
+      li.innerHTML =
+        '<div class="rank"></div>' +
+        '<div class="rec-main">' +
+          '<div class="vname">' + v.name + '</div>' +
+          '<div class="vmeta">UP TO ' + v.cap + ' · ' + money(v.min) + ' MINIMUM</div>' +
+          '<span class="why"></span>' +
+        '</div>' +
+        '<div class="rec-right">' +
+          '<div class="perhead"></div>' +
+          '<div class="perhead-l">PER HEAD</div>' +
+        '</div>' +
+        '<span class="tick"></span>';
+      listEl.appendChild(li);
+      cardById[v.id] = li;
+    });
+    updateRanks();
+    updatePerHead(r.size);
+    r.scored.forEach(function(entry){
+      cardById[entry.v.id].querySelector(".why").textContent = whyText(entry, r.low);
+    });
+    if (!r.low) { var t = cardById[r.scored[0].v.id]; t.classList.add("platinum","landed"); }
+  }
+
+  function updateRanks(){
+    currentOrder.forEach(function(id, i){
+      cardById[id].querySelector(".rank").textContent = (i+1 < 10 ? "0" : "") + (i+1);
+    });
+  }
+  function updatePerHead(size){
+    venues.forEach(function(v){
+      cardById[v.id].querySelector(".perhead").textContent = money(perHead(v, size));
+    });
+  }
+
+  function renderEcho(newId){
+    var sel = crew.filter(function(c){ return c.on; });
+    countEl.textContent = sel.length + (sel.length === 1 ? " OUT" : " OUT");
+    if (sel.length === 0){ echoEl.innerHTML = "reading the room"; return; }
+    var names = sel.map(function(c){
+      return c.id === newId ? '<span class="newname">' + c.name + '</span>' : '<b>' + c.name + '</b>';
+    });
+    echoEl.innerHTML = "reading " + names.join(" · ");
+  }
+
+  /* ---------- interaction ---------- */
+  function toggle(c, btn){
+    c.on = !c.on;
+    btn.classList.toggle("on", c.on);
+    btn.setAttribute("aria-pressed", c.on ? "true" : "false");
+    if (!reduced()){
+      btn.classList.remove("commit");
+      void btn.offsetWidth;
+      btn.classList.add("commit");
+    }
+    startRerank(c.id);
+  }
+
+  function startRerank(newId){
+    if (reduced()){ reducedReorder(); return; }
+    clearTimers();
+    // T+80 THINK
+    timers.push(setTimeout(function(){
+      listEl.classList.add("thinking");
+      echoEl.classList.add("flash");
+      renderEcho(newId);
+    }, 80));
+    // T+350 FLIP
+    timers.push(setTimeout(function(){
+      listEl.classList.remove("thinking");
+      echoEl.classList.remove("flash");
+      doFlip();
+    }, 350));
+    // T+700 WHY + PLATINUM
+    timers.push(setTimeout(function(){
+      crossfade();
+    }, 700));
+  }
+
+  function doFlip(){
+    var cards = currentOrder.map(function(id){ return cardById[id]; });
+    var first = {};
+    cards.forEach(function(el){ first[el.dataset.id] = el.getBoundingClientRect().top; });
+
+    var r = ranking();
+    pending = r;
+    var oldIndex = {};
+    currentOrder.forEach(function(id, i){ oldIndex[id] = i; });
+    var newOrder = r.scored.map(function(s){ return s.v.id; });
+
+    // reset transforms, reorder DOM
+    cards.forEach(function(el){ el.style.transition = "none"; el.style.transform = ""; });
+    newOrder.forEach(function(id){ listEl.appendChild(cardById[id]); });
+    currentOrder = newOrder;
+    updateRanks();
+    updatePerHead(r.size);
+
+    // invert
+    newOrder.forEach(function(id){
+      var el = cardById[id];
+      var last = el.getBoundingClientRect().top;
+      var dy = first[id] - last;
+      el.style.transform = "translateY(" + dy + "px)";
+    });
+
+    // play
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){
+      newOrder.forEach(function(id, i){
+        var el = cardById[id];
+        var delay = i < 3 ? i * 40 : 0;
+        el.style.transition = "transform 450ms cubic-bezier(0.22,1,0.36,1) " + delay + "ms";
+        el.style.transform = "translateY(0)";
+      });
+    }); });
+
+    showTicks(oldIndex, newOrder);
+  }
+
+  function showTicks(oldIndex, newOrder){
+    newOrder.forEach(function(id, newI){
+      var el = cardById[id];
+      var tick = el.querySelector(".tick");
+      var delta = oldIndex[id] - newI;
+      if (delta !== 0){
+        tick.textContent = (delta > 0 ? "▲ " : "▼ ") + Math.abs(delta);
+        tick.className = "tick show " + (delta > 0 ? "up" : "down");
+        clearTimeout(el._tickT);
+        el._tickT = setTimeout(function(){ tick.classList.remove("show"); }, 1700);
+      } else {
+        tick.classList.remove("show");
+      }
+    });
+  }
+
+  function crossfade(){
+    var r = pending || ranking();
+    r.scored.forEach(function(entry, i){
+      var el = cardById[entry.v.id];
+      var chip = el.querySelector(".why");
+      var text = whyText(entry, r.low);
+      chip.style.transition = "opacity 200ms ease";
+      chip.style.opacity = "0";
+      setTimeout(function(){ chip.textContent = text; chip.style.opacity = ""; }, 200);
+    });
+    // clear all platinum, land last on new #1 (high-confidence only)
+    venues.forEach(function(v){ cardById[v.id].classList.remove("platinum","landed"); });
+    if (!r.low){
+      var top = cardById[r.scored[0].v.id];
+      top.classList.add("platinum");
+      requestAnimationFrame(function(){ setTimeout(function(){ top.classList.add("landed"); }, 120); });
+    }
+  }
+
+  function reducedReorder(){
+    clearTimers();
+    listEl.style.transition = "opacity 200ms ease";
+    listEl.style.opacity = "0";
+    setTimeout(function(){
+      var r = ranking();
+      currentOrder = r.scored.map(function(s){ return s.v.id; });
+      currentOrder.forEach(function(id){ listEl.appendChild(cardById[id]); });
+      updateRanks();
+      updatePerHead(r.size);
+      r.scored.forEach(function(entry){
+        cardById[entry.v.id].querySelector(".why").textContent = whyText(entry, r.low);
+      });
+      venues.forEach(function(v){ cardById[v.id].classList.remove("platinum","landed"); });
+      if (!r.low){ var t = cardById[r.scored[0].v.id]; t.classList.add("platinum","landed"); }
+      renderEcho(null);
+      listEl.style.opacity = "";
+    }, 200);
+  }
+
+  /* ---------- init ---------- */
+  buildChips();
+  buildList();
+  renderEcho(null);
+})();
+</script>
+</body>
+</html>

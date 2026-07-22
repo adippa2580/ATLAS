@@ -21,13 +21,16 @@ import { OpsModule } from './modules/ops/ops.module';
 import { MarketingModule } from './modules/marketing/marketing.module';
 import { McpModule } from './modules/mcp/mcp.module';
 import { IntegrationsModule } from './integrations/integrations.module';
+import { HomeModule } from './home/home.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { OutcomesModule } from './outcomes/outcomes.module';
+import { DeliverablesModule } from './deliverables/deliverables.module';
 import { StatsModule } from './stats/stats.module';
 import { GraphInsightsModule } from './insights/graph/graph-insights.module';
 import { RevenueInsightsModule } from './insights/revenue/revenue-insights.module';
 import { OpsInsightsModule } from './insights/ops/ops-insights.module';
 import { TalentModule } from './insights/talent/talent.module';
+import { ProjectionModule } from './modules/guest/projection/projection.module';
 
 @Module({
   imports: [
@@ -48,13 +51,19 @@ import { TalentModule } from './insights/talent/talent.module';
     OpsModule,
     MarketingModule,
     McpModule,
+    // Platform home / menu at the site root, linking every surface.
+    HomeModule,
     DashboardModule,
     OutcomesModule,
+    // Static design deliverables (Atlas v3.1 + A-List surfaces) at /deliverables.
+    DeliverablesModule,
     StatsModule,
     GraphInsightsModule,
     RevenueInsightsModule,
     OpsInsightsModule,
     TalentModule,
+    // Per-venue consented projection of a guest's cross-tenant affinity (spine).
+    ProjectionModule,
     // Public venue-link (class 1b) surface — tenant resolved from the link code.
     VenueLinkModule,
   ],

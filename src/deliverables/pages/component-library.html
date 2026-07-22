@@ -1,0 +1,789 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atlas Component Library</title>
+<style>
+  :root{
+    /* surfaces */
+    --s0:#04050A; --s1:#0B0E17; --s2:#111524;
+    /* text */
+    --hi:#F5F7FF; --mid:#B8C0D4; --lo:#6B7280;
+    /* accents */
+    --violet:#A78BFA; --cyan:#22D3EE; --electric:#60A5FA; --amber:#FBBF24;
+    /* hub wayfinding */
+    --guest:#34D399; --ops:#A78BFA; --mkt:#FBBF24; --mint:#34D399;
+    /* hairlines */
+    --hair-chrome:rgba(255,255,255,.12);
+    --hair-card:rgba(255,255,255,.08);
+    --hair-row:rgba(255,255,255,.05);
+    /* glass */
+    --glass-fill:rgba(255,255,255,.05);
+    --glass-fill-2:rgba(255,255,255,.08);
+    --mono:Menlo,Monaco,"Courier New",monospace;
+    --sans:"Helvetica Neue",Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  html,body{margin:0}
+  body{
+    background:var(--s0); color:var(--mid);
+    font-family:var(--sans); font-weight:300;
+    -webkit-font-smoothing:antialiased;
+    padding-top:52px;
+    line-height:1.55;
+  }
+  a{color:inherit; text-decoration:none}
+  ::selection{background:rgba(34,211,238,.24)}
+
+  /* focus — keyboard only */
+  :focus-visible{outline:2px solid var(--cyan); outline-offset:2px; border-radius:2px}
+
+  /* fixed back-link */
+  .backlink{
+    position:fixed; top:0; left:0; right:0; z-index:50;
+    height:52px; display:flex; align-items:center; gap:8px;
+    padding:0 24px;
+    font-family:var(--mono); font-size:11px; letter-spacing:.2em; text-transform:uppercase;
+    color:var(--lo);
+    background:rgba(4,5,10,.82); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--hair-chrome);
+    transition:color .12s ease-out;
+  }
+  .backlink:hover{color:var(--mid)}
+
+  /* mono conventions */
+  .kicker{font-family:var(--mono); text-transform:uppercase; letter-spacing:.24em; font-size:10px; color:var(--lo)}
+
+  /* ===== layout: left index + right panels ===== */
+  .shell{display:grid; grid-template-columns:236px 1fr; gap:0; max-width:1280px; margin:0 auto}
+
+  /* left section index */
+  .nav{
+    position:sticky; top:52px; align-self:start;
+    height:calc(100vh - 52px); overflow-y:auto;
+    padding:34px 20px 40px 24px;
+    border-right:1px solid var(--hair-card);
+  }
+  .nav .brand{font-weight:200; font-size:19px; color:var(--hi); letter-spacing:-.01em; margin-bottom:2px}
+  .nav .brandsub{font-family:var(--mono); font-size:9.5px; letter-spacing:.22em; color:var(--lo); text-transform:uppercase; margin-bottom:26px}
+  .nav a{
+    display:flex; align-items:baseline; gap:10px;
+    font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--lo); padding:7px 10px; border-radius:7px;
+    border-left:2px solid transparent;
+    transition:color .12s ease-out, background .12s ease-out, border-color .12s ease-out;
+  }
+  .nav a:hover{color:var(--mid); background:var(--glass-fill)}
+  .nav a.active{color:var(--hi); border-left-color:var(--violet); background:var(--glass-fill)}
+  .nav a .idx{color:var(--violet); font-size:10px; min-width:14px}
+  .nav .grp{margin-top:22px; padding:0 10px 8px; font-family:var(--mono); font-size:9px; letter-spacing:.24em; color:#454a58; text-transform:uppercase}
+
+  /* right column */
+  main{padding:34px 40px 120px; min-width:0}
+
+  .lede-wrap{border-bottom:1px solid var(--hair-card); padding-bottom:28px; margin-bottom:8px}
+  .lede-wrap h1{margin:12px 0 0; font-weight:200; font-size:34px; color:var(--hi); letter-spacing:-.01em}
+  .lede-wrap p{margin:14px 0 0; max-width:640px; font-size:13.5px; line-height:1.7; color:var(--mid)}
+  .lede-wrap .code{font-family:var(--mono); font-size:12px; color:var(--cyan)}
+
+  /* section */
+  section{padding:44px 0 8px; border-bottom:1px solid var(--hair-row)}
+  section:last-of-type{border-bottom:0}
+  .sec-head{display:flex; align-items:baseline; gap:16px; margin-bottom:6px}
+  .sec-head .letter{font-family:var(--mono); font-size:12px; color:var(--violet); letter-spacing:.2em}
+  .sec-head h2{margin:0; font-weight:200; font-size:23px; color:var(--hi); letter-spacing:-.01em}
+  .sec-head .most{font-family:var(--mono); font-size:9px; letter-spacing:.2em; text-transform:uppercase; color:var(--s0); background:var(--cyan); padding:3px 7px; border-radius:20px; align-self:center}
+  .sec-intro{max-width:660px; font-size:13px; line-height:1.7; color:var(--mid); margin:0 0 26px}
+
+  /* sample panel — a single documented component */
+  .panel{
+    background:var(--s1); border:1px solid var(--hair-card); border-radius:12px;
+    padding:22px 24px 20px; margin-bottom:16px;
+  }
+  .panel .p-title{font-family:var(--mono); font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--mid); margin-bottom:16px; display:flex; justify-content:space-between; align-items:baseline; gap:12px}
+  .panel .p-title .tok{color:var(--lo); font-size:9.5px; letter-spacing:.1em}
+  /* the live stage */
+  .stage{
+    display:flex; flex-wrap:wrap; gap:14px; align-items:center;
+    padding:22px; border-radius:10px;
+    background:
+      linear-gradient(rgba(255,255,255,.015),rgba(255,255,255,.015)),
+      repeating-linear-gradient(45deg, transparent 0 9px, rgba(255,255,255,.014) 9px 10px);
+    border:1px solid var(--hair-row);
+  }
+  .stage.col{flex-direction:column; align-items:stretch}
+  /* usage rule caption = acceptance spec */
+  .rule{
+    margin-top:14px; padding-left:14px; border-left:2px solid rgba(255,255,255,.14);
+    font-size:12px; line-height:1.65; color:var(--mid);
+  }
+  .rule b{color:var(--hi); font-weight:400}
+  .rule .must{font-family:var(--mono); font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--amber); margin-right:6px}
+  .rule.never .must{color:var(--amber)}
+
+  .two{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+  @media (max-width:920px){ .two{grid-template-columns:1fr} }
+
+  /* ============ A · STATUS SYSTEM ============ */
+  .chip{
+    display:inline-flex; align-items:center; gap:7px;
+    font-family:var(--mono); font-size:10px; letter-spacing:.16em; text-transform:uppercase;
+    padding:5px 11px; border-radius:20px; white-space:nowrap;
+    border:1px solid transparent;
+  }
+  .chip .dot{width:7px; height:7px; border-radius:50%; flex:none}
+  /* HELD — dashed MID chip + pulsing hollow dot */
+  .chip.held{color:var(--mid); border:1px dashed rgba(184,192,212,.55); background:transparent}
+  .chip.held .dot{border:1.5px solid var(--mid); background:transparent; animation:pulse 1.6s ease-in-out infinite}
+  /* CONFIRMED — cyan */
+  .chip.confirmed{color:var(--cyan); background:rgba(34,211,238,.10); border-color:rgba(34,211,238,.34)}
+  .chip.confirmed .dot{background:var(--cyan)}
+  /* SEATED / GOOD — mint */
+  .chip.seated{color:var(--mint); background:rgba(52,211,153,.10); border-color:rgba(52,211,153,.34)}
+  .chip.seated .dot{background:var(--mint)}
+  /* CLOSED — gray */
+  .chip.closed{color:var(--lo); background:rgba(107,114,128,.12); border-color:rgba(107,114,128,.32)}
+  .chip.closed .dot{background:var(--lo)}
+  /* CANCELLED — gray + strike */
+  .chip.cancelled{color:var(--lo); background:transparent; border-color:rgba(107,114,128,.3); text-decoration:line-through; text-decoration-thickness:1px}
+  .chip.cancelled .dot{background:var(--lo)}
+
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+  /* alarm weights — amber only */
+  .alarm{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase;
+    padding:7px 13px; border-radius:8px; white-space:nowrap;
+  }
+  .alarm .g{font-size:12px}
+  .alarm.w1{color:var(--amber); border:1px solid rgba(251,191,36,.55); background:transparent}
+  .alarm.w2{color:var(--amber); border:1px solid rgba(251,191,36,.5); background:rgba(251,191,36,.12)}
+  .alarm.w3{color:#1a1405; background:var(--amber); border:1px solid var(--amber); font-weight:400}
+
+  /* ============ B · PRIMITIVES ============ */
+  .btn{
+    font-family:var(--sans); font-weight:400; font-size:13px; letter-spacing:.01em;
+    padding:10px 18px; border-radius:8px; border:1px solid transparent; cursor:pointer;
+    display:inline-flex; align-items:center; gap:8px; background:transparent; color:var(--mid);
+    transition:background .12s ease-out, border-color .12s ease-out, color .12s ease-out, transform .1s ease-out;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .btn:active{transform:translateY(1px)}
+  .btn.primary{background:var(--cyan); color:#04191d; border-color:var(--cyan); font-weight:400}
+  .btn.primary:hover{background:#4de2f5}
+  .btn.secondary{border-color:var(--hair-chrome); color:var(--hi); background:var(--glass-fill)}
+  .btn.secondary:hover{border-color:rgba(255,255,255,.24); background:var(--glass-fill-2)}
+  .btn.ghost{color:var(--mid)}
+  .btn.ghost:hover{color:var(--hi); background:var(--glass-fill)}
+  .btn.destructive{color:var(--amber); border-color:rgba(251,191,36,.5); background:transparent}
+  .btn.destructive:hover{background:rgba(251,191,36,.12)}
+  .btn.big{font-size:16px; font-weight:400; padding:14px 22px; width:100%; justify-content:center}
+
+  /* text input */
+  .field{display:flex; flex-direction:column; gap:7px; min-width:220px; flex:1}
+  .field label{font-family:var(--mono); font-size:9.5px; letter-spacing:.2em; text-transform:uppercase; color:var(--lo)}
+  .input{
+    font-family:var(--sans); font-size:14px; color:var(--hi);
+    background:var(--s2); border:1px solid var(--hair-chrome); border-radius:7px;
+    padding:11px 13px; width:100%;
+    transition:border-color .12s ease-out, background .12s ease-out;
+  }
+  .input::placeholder{color:var(--lo)}
+  .input:focus{outline:none; border-color:var(--cyan); background:#141a2e}
+  .input:focus-visible{outline:none}
+
+  /* attribution chip */
+  .attr{
+    display:inline-flex; flex-direction:column; gap:2px;
+    padding:6px 12px; border-left:2px solid var(--mkt); background:var(--glass-fill); border-radius:0 6px 6px 0;
+  }
+  .attr .lbl{font-family:var(--mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--mid)}
+  .attr .sub{font-family:var(--mono); font-size:9px; letter-spacing:.1em; color:var(--lo)}
+  .attr.guest{border-left-color:var(--guest)}
+  .attr.ops{border-left-color:var(--ops)}
+
+  /* ============ C · DATA DISPLAY ============ */
+  .ledger{width:100%; border-collapse:collapse; font-size:13px}
+  .ledger td, .ledger th{padding:11px 12px; border-bottom:1px solid var(--hair-row); text-align:left}
+  .ledger th{font-family:var(--mono); font-size:9px; letter-spacing:.2em; text-transform:uppercase; color:var(--lo); font-weight:400}
+  .ledger td.num{font-family:var(--mono); text-align:right; color:var(--hi); font-size:12.5px}
+  .ledger td.num.neg{color:var(--amber)}
+  .ledger .g{color:var(--hi); font-weight:400}
+  .ledger .m{font-family:var(--mono); font-size:11px; color:var(--lo)}
+  .ledger tr:last-child td{border-bottom:0}
+
+  /* split-pay dots */
+  .splits{display:inline-flex; gap:6px; align-items:center}
+  .sp{width:11px; height:11px; border-radius:50%; flex:none}
+  .sp.locked{background:var(--mint)}
+  .sp.pending{background:transparent; border:1.5px solid var(--lo); animation:pulse 1.6s ease-in-out infinite}
+  .sp.failed{background:var(--amber)}
+  .splitrow{display:flex; align-items:center; gap:12px; flex-wrap:wrap}
+  .splitrow .dep{font-family:var(--mono); font-size:11px; color:var(--mid); display:inline-flex; align-items:center; gap:6px}
+  .splitrow .dep .d{width:7px;height:7px;border-radius:50%;background:var(--mint)}
+
+  /* metric bars */
+  .bars{display:flex; flex-direction:column; gap:12px; width:100%}
+  .bar-row{display:grid; grid-template-columns:120px 1fr 74px; gap:12px; align-items:center}
+  .bar-row .bl{font-family:var(--mono); font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--mid)}
+  .bar-track{height:8px; background:var(--s2); border-radius:5px; overflow:hidden}
+  .bar-fill{height:100%; border-radius:5px}
+  .bar-row .bv{font-family:var(--mono); font-size:11.5px; color:var(--hi); text-align:right}
+  .pc-taste{background:#c55285}.pc-identity{background:#933e92}.pc-crews{background:#6f52b9}
+  .pc-venues{background:#129db0}.pc-bookings{background:#618aeb}.pc-revenue{background:#b48706}.pc-marketing{background:#ac4b06}
+  .single{background:var(--electric)}
+
+  /* stat callout */
+  .stat{padding-left:14px; border-left:2px solid var(--cyan)}
+  .stat .v{font-family:var(--sans); font-weight:200; font-size:30px; color:var(--hi); line-height:1.05; letter-spacing:-.01em}
+  .stat .v.mono{font-family:var(--mono); font-weight:400; font-size:24px}
+  .stat .l{font-family:var(--mono); font-size:9.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--lo); margin-top:6px}
+  .stat.amber{border-left-color:var(--amber)}
+  .stat.mint{border-left-color:var(--mint)}
+
+  /* ============ D · CONTAINERS ============ */
+  .kpi{
+    background:linear-gradient(rgba(255,255,255,.06),rgba(255,255,255,.03));
+    border:1px solid var(--hair-chrome); border-radius:12px; padding:18px 20px;
+    backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+    min-width:170px; flex:1;
+  }
+  .kpi .kl{font-family:var(--mono); font-size:9.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--lo)}
+  .kpi .kv{font-family:var(--mono); font-weight:400; font-size:26px; color:var(--hi); margin-top:10px; letter-spacing:-.01em}
+  .kpi .kf{font-family:var(--mono); font-size:9px; letter-spacing:.14em; text-transform:uppercase; color:var(--amber); margin-top:8px; display:inline-flex; gap:5px; align-items:center}
+
+  .empty{
+    width:100%; text-align:center; padding:40px 24px;
+    border:1px dashed var(--hair-chrome); border-radius:10px; background:transparent;
+  }
+  .empty .eg{font-size:22px; color:var(--lo); line-height:1}
+  .empty .et{font-family:var(--sans); font-weight:300; font-size:15px; color:var(--mid); margin-top:14px}
+  .empty .es{font-family:var(--mono); font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--lo); margin-top:8px}
+
+  /* blocking banner — solid amber, dark text, max one per view */
+  .banner{
+    width:100%; display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    background:var(--amber); color:#1a1405; border-radius:10px; padding:14px 18px;
+  }
+  .banner .bmsg{flex:1; min-width:240px; font-family:var(--mono); font-size:12px; letter-spacing:.04em; line-height:1.5}
+  .banner .bmsg b{font-weight:700}
+  .banner .btn.b-solid{background:#1a1405; color:var(--amber); border-color:#1a1405}
+  .banner .btn.b-solid:hover{background:#2a2109}
+  .banner .btn.b-ghost{color:#1a1405; border-color:rgba(26,20,5,.4)}
+  .banner .btn.b-ghost:hover{background:rgba(26,20,5,.1)}
+
+  /* modal shell */
+  .modal-demo{position:relative; min-height:220px; width:100%; border-radius:10px; overflow:hidden; border:1px solid var(--hair-row); background:var(--s0)}
+  .scrim{position:absolute; inset:0; background:rgba(4,5,10,.72); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; padding:20px; opacity:0; pointer-events:none; transition:opacity .2s ease-out}
+  .scrim.open{opacity:1; pointer-events:auto}
+  .modal{
+    width:100%; max-width:400px;
+    background:linear-gradient(rgba(255,255,255,.07),rgba(255,255,255,.04)), var(--s1);
+    border:1px solid var(--hair-chrome); border-radius:12px; padding:22px;
+    backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+    transform:translateY(8px); transition:transform .2s ease-out;
+  }
+  .scrim.open .modal{transform:translateY(0)}
+  .modal .mk{font-family:var(--mono); font-size:9.5px; letter-spacing:.2em; text-transform:uppercase; color:var(--lo)}
+  .modal .mt{font-weight:200; font-size:21px; color:var(--hi); margin:8px 0 10px}
+  .modal .mb{font-size:13px; color:var(--mid); line-height:1.6}
+  .modal .mrow{display:flex; gap:10px; margin-top:20px; justify-content:flex-end}
+
+  /* ============ E · NAVIGATION ============ */
+  .rail{
+    width:200px; background:linear-gradient(rgba(255,255,255,.05),rgba(255,255,255,.03));
+    border:1px solid var(--hair-chrome); border-radius:12px; padding:14px 10px;
+    backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+    display:flex; flex-direction:column; gap:2px;
+  }
+  .rail-item{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    padding:9px 12px; border-radius:8px; cursor:pointer;
+    font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--lo);
+    border-left:2px solid transparent;
+    transition:color .12s ease-out, background .12s ease-out;
+  }
+  .rail-item:hover{color:var(--mid); background:var(--glass-fill)}
+  .rail-item.active{color:var(--hi); background:var(--glass-fill); border-left-color:var(--violet)}
+  .rail-item .cnt{font-size:10px; color:var(--lo)}
+  .rail-item.active .cnt{color:var(--violet)}
+
+  .hubrule{display:flex; flex-direction:column; gap:14px; width:100%}
+  .hubrule .hr-item{display:flex; align-items:center; gap:12px}
+  .hubrule .swatch{width:3px; height:34px; border-radius:2px; flex:none}
+  .hubrule .hr-t{font-family:var(--mono); font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--hi)}
+  .hubrule .hr-s{font-family:var(--mono); font-size:9.5px; letter-spacing:.1em; color:var(--lo); margin-top:2px}
+
+  /* view header */
+  .vhead{
+    width:100%;
+    background:linear-gradient(rgba(255,255,255,.05),rgba(255,255,255,.03));
+    border:1px solid var(--hair-chrome); border-radius:12px; padding:16px 20px;
+    backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+    display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap;
+  }
+  .vhead .vk{font-family:var(--mono); font-size:9.5px; letter-spacing:.22em; text-transform:uppercase; color:var(--lo)}
+  .vhead .vt{font-weight:200; font-size:22px; color:var(--hi); margin-top:4px; letter-spacing:-.01em}
+  .vhead .vkpis{display:flex; gap:26px}
+  .vhead .vkpi .vv{font-family:var(--mono); font-size:16px; color:var(--hi)}
+  .vhead .vkpi .vl{font-family:var(--mono); font-size:8.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--lo); margin-top:3px}
+
+  .palette-swatches{display:flex; flex-wrap:wrap; gap:8px}
+  .sw{display:flex; flex-direction:column; gap:6px; align-items:center}
+  .sw .chip-c{width:52px; height:36px; border-radius:7px; border:1px solid var(--hair-card)}
+  .sw .cn{font-family:var(--mono); font-size:8px; letter-spacing:.08em; color:var(--lo); text-transform:uppercase}
+
+  @media (max-width:820px){
+    .shell{grid-template-columns:1fr}
+    .nav{display:none}
+    main{padding:28px 20px 100px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none !important; animation:none !important; scroll-behavior:auto !important}
+  }
+</style>
+</head>
+<body>
+
+<a class="backlink" href="/deliverables">← DELIVERABLES</a>
+
+<div class="shell">
+
+  <!-- ============ LEFT SECTION INDEX ============ -->
+  <nav class="nav" aria-label="Section index">
+    <div class="brand">Component Library</div>
+    <div class="brandsub">Atlas v3.1&nbsp;·&nbsp;shared kit</div>
+
+    <a href="#status" class="active"><span class="idx">A</span> Status system</a>
+    <a href="#primitives"><span class="idx">B</span> Primitives</a>
+    <a href="#data"><span class="idx">C</span> Data display</a>
+    <a href="#containers"><span class="idx">D</span> Containers</a>
+    <a href="#navigation"><span class="idx">E</span> Navigation</a>
+
+    <div class="grp">Doctrine</div>
+    <a href="#status">Never red · amber only</a>
+    <a href="#data">Money from cents</a>
+    <a href="#data">⚑ take-rate placeholder</a>
+  </nav>
+
+  <!-- ============ RIGHT SAMPLE PANELS ============ -->
+  <main>
+    <div class="lede-wrap">
+      <div class="kicker">ATLAS V3.1&nbsp;&nbsp;·&nbsp;&nbsp;D6&nbsp;&nbsp;·&nbsp;&nbsp;REFERENCE-GRADE KIT</div>
+      <h1>One kit. Five sections. Every rule inline.</h1>
+      <p>The single component vocabulary shared across Floor, Bookings, Door, Closeout, Outcomes and Promoter surfaces. Each sample below is live and carries its usage rule as caption text — treat that caption as the component's acceptance spec. Dark-only, red-free, hub colors semantic. Money renders from integer cents; take-rate is a <span class="code">⚑</span> placeholder.</p>
+    </div>
+
+    <!-- ========================================================= A -->
+    <section id="status">
+      <div class="sec-head">
+        <span class="letter">A</span>
+        <h2>Status system</h2>
+        <span class="most">DOCUMENTED FIRST</span>
+      </div>
+      <p class="sec-intro">The ratified, red-free answer to "what color is this state?". Booking lifecycle chips plus the three-weight amber alarm ladder. This is the most load-bearing decision in the system — everything else defers to it.</p>
+
+      <!-- lifecycle chips -->
+      <div class="panel">
+        <div class="p-title"><span>Lifecycle status chips</span><span class="tok">160ms color-only · position never moves</span></div>
+        <div class="stage">
+          <span class="chip held"><span class="dot"></span>Held</span>
+          <span class="chip confirmed"><span class="dot"></span>Confirmed</span>
+          <span class="chip seated"><span class="dot"></span>Seated</span>
+          <span class="chip seated"><span class="dot"></span>Good</span>
+          <span class="chip closed"><span class="dot"></span>Closed</span>
+          <span class="chip cancelled"><span class="dot"></span>Cancelled</span>
+        </div>
+        <div class="rule">
+          <span class="must">Spec</span><b>HELD</b> = dashed MID chip + pulsing hollow dot (awaiting deposit). <b>CONFIRMED</b> = cyan. <b>SEATED / GOOD</b> = mint #34D399. <b>CLOSED</b> = gray. <b>CANCELLED</b> = gray with line-through. State changes animate color only over 160ms — the chip never changes position or size.
+        </div>
+      </div>
+
+      <!-- amber alarm ladder -->
+      <div class="panel">
+        <div class="p-title"><span>Amber alarm ladder — three weights</span><span class="tok">outline -&gt; tinted fill -&gt; solid</span></div>
+        <div class="stage">
+          <span class="alarm w1"><span class="g">△</span>Attention</span>
+          <span class="alarm w2"><span class="g">⊘</span>Failed</span>
+          <span class="alarm w3"><span class="g">⚑</span>Blocking</span>
+        </div>
+        <div class="rule">
+          <span class="must">Spec</span>Escalate by weight, never by hue. <b>W1 outline</b> (attention) -&gt; <b>W2 tinted fill</b> rgba(251,191,36,.12) (failed) -&gt; <b>W3 solid amber, dark text</b> (blocking — max one per view). Negative money is amber and parenthesised.
+        </div>
+        <div class="rule never">
+          <span class="must">Never</span><b>Red is never used</b> — not for errors, declines, or destructive actions. Alarm severity is carried entirely by amber weight. This is the rule the whole system is built to protect.
+        </div>
+      </div>
+
+      <!-- status reference table -->
+      <div class="panel">
+        <div class="p-title"><span>Token reference</span><span class="tok">semantic -&gt; hex</span></div>
+        <div class="stage">
+          <div class="palette-swatches">
+            <div class="sw"><span class="chip-c" style="background:#B8C0D4"></span><span class="cn">held · mid</span></div>
+            <div class="sw"><span class="chip-c" style="background:#22D3EE"></span><span class="cn">confirmed</span></div>
+            <div class="sw"><span class="chip-c" style="background:#34D399"></span><span class="cn">seated · good</span></div>
+            <div class="sw"><span class="chip-c" style="background:#6B7280"></span><span class="cn">closed · cxl</span></div>
+            <div class="sw"><span class="chip-c" style="background:#FBBF24"></span><span class="cn">alarm · amber</span></div>
+          </div>
+        </div>
+        <div class="rule"><span class="must">Use</span>These five are the only status colors. Hub wayfinding colors (E) are separate and never stand in for status.</div>
+      </div>
+    </section>
+
+    <!-- ========================================================= B -->
+    <section id="primitives">
+      <div class="sec-head"><span class="letter">B</span><h2>Primitives</h2></div>
+      <p class="sec-intro">Interactive controls and labels. Buttons carry live hover and press. Destructive paths are amber, never red — consistent with A.</p>
+
+      <div class="two">
+        <!-- buttons -->
+        <div class="panel">
+          <div class="p-title"><span>Buttons</span><span class="tok">120ms ease-out · press translateY(1px)</span></div>
+          <div class="stage col">
+            <div style="display:flex; gap:10px; flex-wrap:wrap">
+              <button class="btn primary">Seat party</button>
+              <button class="btn secondary">Confirm</button>
+              <button class="btn ghost">Dismiss</button>
+              <button class="btn destructive">Cancel booking</button>
+            </div>
+            <button class="btn primary big">Seat party — 16px / 500 · night density</button>
+          </div>
+          <div class="rule"><span class="must">Spec</span><b>Primary</b> = solid cyan, one per context. <b>Secondary</b> = glass + hairline. <b>Ghost</b> = text only. <b>Destructive</b> is <b>amber-outline</b>, never red — it reads as caution, not danger. Big variant (16px/500, full-width) for NIGHT density targets &gt;=48px (host stand, door).</div>
+        </div>
+
+        <!-- text input -->
+        <div class="panel">
+          <div class="p-title"><span>Text input</span><span class="tok">SURFACE-2 · focus -&gt; cyan border</span></div>
+          <div class="stage col">
+            <div class="field">
+              <label for="ci-name">Guest name</label>
+              <input id="ci-name" class="input" type="text" placeholder="Search or type a name...">
+            </div>
+            <div class="field">
+              <label for="ci-party">Party size</label>
+              <input id="ci-party" class="input" type="text" value="6" inputmode="numeric">
+            </div>
+          </div>
+          <div class="rule"><span class="must">Spec</span>Filled on SURFACE-2 #111524 with a chrome hairline; label is a mono kicker above. On focus the border goes cyan (matching the focus-visible ring). Placeholder is LO.</div>
+        </div>
+      </div>
+
+      <div class="two">
+        <!-- kicker / label -->
+        <div class="panel">
+          <div class="p-title"><span>Mono kicker / label</span><span class="tok">uppercase · .16-.28em · · delimiter</span></div>
+          <div class="stage col">
+            <div class="kicker">FLOOR&nbsp;&nbsp;·&nbsp;&nbsp;LIVE&nbsp;&nbsp;·&nbsp;&nbsp;NIGHT 1</div>
+            <div class="kicker" style="color:var(--mid); letter-spacing:.16em">DEPOSIT&nbsp;&nbsp;·&nbsp;&nbsp;COUNTS TOWARD MINIMUM</div>
+          </div>
+          <div class="rule"><span class="must">Spec</span>Menlo, uppercase, tracked .16-.28em. Segments joined with a middle-dot <b>·</b> flanked by double spaces — <b>never</b> a slash. Smaller labels track wider.</div>
+        </div>
+
+        <!-- attribution chip -->
+        <div class="panel">
+          <div class="p-title"><span>Attribution chip</span><span class="tok">2px hub-color left rule + mono label</span></div>
+          <div class="stage col">
+            <div class="attr"><span class="lbl">Promoter · Mara K.</span><span class="sub">venue-link · mkt</span></div>
+            <div class="attr guest"><span class="lbl">Guest · direct</span><span class="sub">walk-in · guest</span></div>
+            <div class="attr ops"><span class="lbl">Ops · host stand</span><span class="sub">manual seat · ops</span></div>
+          </div>
+          <div class="rule"><span class="must">Spec</span>2px hub-colored left rule + mono label naming the source path. Hub color is semantic: Marketing amber, Guest mint, Ops violet (E). Attribution is wayfinding, not status.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================= C -->
+    <section id="data">
+      <div class="sec-head"><span class="letter">C</span><h2>Data display</h2></div>
+      <p class="sec-intro">Flat SURFACE-1, no backdrop-filter — anything past ~8 data points drops the glass. All money renders from integer cents; take-rate stays a ⚑ placeholder (venue reporting only, never marketing UI).</p>
+
+      <!-- ledger row -->
+      <div class="panel">
+        <div class="p-title"><span>Ledger row</span><span class="tok">flat · money = Menlo from cents</span></div>
+        <div class="stage col" style="padding:0; background:none; border:none">
+          <table class="ledger">
+            <thead><tr><th>Date</th><th>Guest · table</th><th>State</th><th style="text-align:right">Tab</th><th style="text-align:right">Take ⚑</th></tr></thead>
+            <tbody>
+              <tr><td class="m">07-21</td><td><span class="g">Beaulieu</span> <span class="m">· T-09</span></td><td><span class="chip closed"><span class="dot"></span>Closed</span></td><td class="num">$1,500.00</td><td class="num">⚑</td></tr>
+              <tr><td class="m">07-21</td><td><span class="g">Okonkwo</span> <span class="m">· T-14</span></td><td><span class="chip seated"><span class="dot"></span>Seated</span></td><td class="num">$842.50</td><td class="num">⚑</td></tr>
+              <tr><td class="m">07-21</td><td class="g" style="text-decoration:line-through; color:var(--lo)">Vance · T-03</td><td><span class="chip cancelled"><span class="dot"></span>Cancelled</span></td><td class="num neg">($300.00)</td><td class="num">—</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="rule"><span class="must">Spec</span>Guest name HI/regular, meta mono/LO, numbers right-aligned Menlo. <b>$1,500.00 is rendered from 150000 cents.</b> Negative amounts are amber and parenthesised. Cancelled rows strike the guest cell. Take column is a <b>⚑</b> placeholder — never a live rate in operator UI.</div>
+      </div>
+
+      <div class="two">
+        <!-- split-pay dots -->
+        <div class="panel">
+          <div class="p-title"><span>Split-pay dots</span><span class="tok">filled mint · hollow gray · amber</span></div>
+          <div class="stage col">
+            <div class="splitrow">
+              <span class="dep"><span class="d"></span>DEP</span>
+              <span class="splits">
+                <span class="sp locked"></span><span class="sp locked"></span><span class="sp locked"></span>
+                <span class="sp pending"></span><span class="sp failed"></span>
+              </span>
+              <span class="kicker" style="color:var(--mid)">3 LOCKED · 1 PENDING · 1 FAILED</span>
+            </div>
+          </div>
+          <div class="rule"><span class="must">Spec</span><b>Filled mint</b> = share locked. <b>Hollow gray</b> (pulsing) = pending. <b>Amber</b> = failed. A leading DEP badge marks the deposit share. Failed shares escalate to the D blocking banner.</div>
+        </div>
+
+        <!-- stat callout -->
+        <div class="panel">
+          <div class="p-title"><span>Stat callout</span><span class="tok">2px left rule · Light display</span></div>
+          <div class="stage" style="gap:26px">
+            <div class="stat"><div class="v mono">$18,420</div><div class="l">Total tab · tonight</div></div>
+            <div class="stat mint"><div class="v mono">92%</div><div class="l">Show-up rate</div></div>
+            <div class="stat amber"><div class="v mono">⚑</div><div class="l">Take · rate placeholder</div></div>
+          </div>
+          <div class="rule"><span class="must">Spec</span>Big Light-weight value over a mono kicker, 2px left rule. Rule color is semantic: cyan (neutral headline), mint (good), amber (attention or ⚑ placeholder). Money is Menlo from cents.</div>
+        </div>
+      </div>
+
+      <!-- metric bars -->
+      <div class="panel">
+        <div class="p-title"><span>Metric bars</span><span class="tok">categorical = fixed 7-slot PC palette</span></div>
+        <div class="stage col">
+          <div class="bars">
+            <div class="bar-row"><span class="bl">Taste</span><span class="bar-track"><span class="bar-fill pc-taste" style="width:82%"></span></span><span class="bv">82</span></div>
+            <div class="bar-row"><span class="bl">Identity</span><span class="bar-track"><span class="bar-fill pc-identity" style="width:64%"></span></span><span class="bv">64</span></div>
+            <div class="bar-row"><span class="bl">Crews</span><span class="bar-track"><span class="bar-fill pc-crews" style="width:71%"></span></span><span class="bv">71</span></div>
+            <div class="bar-row"><span class="bl">Venues</span><span class="bar-track"><span class="bar-fill pc-venues" style="width:58%"></span></span><span class="bv">58</span></div>
+            <div class="bar-row"><span class="bl">Bookings</span><span class="bar-track"><span class="bar-fill pc-bookings" style="width:90%"></span></span><span class="bv">90</span></div>
+            <div class="bar-row"><span class="bl">Revenue</span><span class="bar-track"><span class="bar-fill single" style="width:47%"></span></span><span class="bv">47</span></div>
+          </div>
+        </div>
+        <div class="rule"><span class="must">Spec</span>Single-series bars use ELECTRIC #60A5FA. Categorical bars use the fixed 7-slot PC palette in <b>locked order</b> (taste · identity · crews · venues · bookings · revenue · marketing) — the order never changes so a color always means the same pillar.</div>
+      </div>
+    </section>
+
+    <!-- ========================================================= D -->
+    <section id="containers">
+      <div class="sec-head"><span class="letter">D</span><h2>Containers</h2></div>
+      <p class="sec-intro">Glass is reserved for chrome — KPI heroes, modals, headers. Empty states and the blocking banner set the tone when something is missing or wrong.</p>
+
+      <!-- glass KPI card -->
+      <div class="panel">
+        <div class="p-title"><span>Glass KPI card</span><span class="tok">glass fill .05-.08 · blur 12px · chrome only</span></div>
+        <div class="stage">
+          <div class="kpi"><div class="kl">Bookings tonight</div><div class="kv">24</div></div>
+          <div class="kpi"><div class="kl">Total tab</div><div class="kv">$18,420</div></div>
+          <div class="kpi"><div class="kl">Take</div><div class="kv">⚑</div><div class="kf"><span>⚑</span>RATE PLACEHOLDER</div></div>
+          <div class="kpi"><div class="kl">Post-visit sent</div><div class="kv">18</div></div>
+        </div>
+        <div class="rule"><span class="must">Spec</span>Glass (rgba(255,255,255,.05-.08) fill, .12 hairline, 12px blur) — permitted only for chrome heroes. The take card shows <b>⚑ + "RATE PLACEHOLDER"</b>, never a computed rate. Money from cents.</div>
+      </div>
+
+      <div class="two">
+        <!-- empty state -->
+        <div class="panel">
+          <div class="p-title"><span>Empty state</span><span class="tok">dashed border · night-one default</span></div>
+          <div class="stage">
+            <div class="empty">
+              <div class="eg">○</div>
+              <div class="et">No arrivals yet</div>
+              <div class="es">NIGHT 1 · ALL TABLES AVAILABLE</div>
+            </div>
+          </div>
+          <div class="rule"><span class="must">Spec</span>Dashed chrome border, hollow glyph, plain-language line, mono status subline. Used for night-one and zero-data panels; money zeroes read as $0.00, never blank.</div>
+        </div>
+
+        <!-- modal shell -->
+        <div class="panel">
+          <div class="p-title"><span>Modal shell</span><span class="tok">scrim + glass · 200ms panel</span></div>
+          <div class="stage col">
+            <button class="btn secondary" id="openModal">Open modal shell</button>
+            <div class="modal-demo" id="modalHost">
+              <div class="scrim" id="scrim">
+                <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mtitle">
+                  <div class="mk">MINT A LINK · STEP 1 OF 2</div>
+                  <div class="mt" id="mtitle">Attribute this link</div>
+                  <div class="mb">Pick the promoter and an optional campaign. The minted venue-link carries this attribution through checkout.</div>
+                  <div class="mrow">
+                    <button class="btn ghost" id="closeModal">Cancel</button>
+                    <button class="btn primary" id="confirmModal">Continue</button>
+                  </div>
+                </div>
+              </div>
+              <div style="padding:20px; font-family:var(--mono); font-size:10px; letter-spacing:.14em; color:var(--lo); text-transform:uppercase">Surface behind scrim</div>
+            </div>
+          </div>
+          <div class="rule"><span class="must">Spec</span>Dimmed blurred scrim over a glass panel; panel rises 8px-&gt;0 over 200ms. Kicker · title · body · right-aligned actions (ghost cancel + primary confirm). Esc and scrim-click close.</div>
+        </div>
+      </div>
+
+      <!-- blocking banner -->
+      <div class="panel">
+        <div class="p-title"><span>Blocking banner</span><span class="tok">solid amber · dark text · max one per view</span></div>
+        <div class="stage" id="bannerStage">
+          <div class="banner" id="banner">
+            <span class="g" style="font-size:15px">⊘</span>
+            <span class="bmsg"><b>BLOCKING · T-09 Beaulieu</b> — 2 of 5 split-pay shares failed. Table held pending payment.</span>
+            <button class="btn b-solid" id="reRequest">Re-request payment</button>
+            <button class="btn b-ghost" id="dismissBanner">Dismiss</button>
+          </div>
+        </div>
+        <div class="rule never"><span class="must">Spec</span>The heaviest amber weight (A W3): solid amber ground, dark text. Reserved for a hard block a human must clear — <b>max one per view</b>. Still amber, still never red. Dark-text buttons invert inside.</div>
+      </div>
+    </section>
+
+    <!-- ========================================================= E -->
+    <section id="navigation">
+      <div class="sec-head"><span class="letter">E</span><h2>Navigation</h2></div>
+      <p class="sec-intro">Wayfinding chrome. The nav-rail active state uses a violet rule; hub colors label who owns a path (Guest / Ops / Marketing) and appear only on rails, left-rules and attribution chips — never as status.</p>
+
+      <div class="two">
+        <!-- nav-rail item -->
+        <div class="panel">
+          <div class="p-title"><span>Nav-rail item</span><span class="tok">active = violet left rule + count</span></div>
+          <div class="stage">
+            <div class="rail" role="tablist" aria-label="Ops views">
+              <div class="rail-item active" role="tab" aria-selected="true">Floor <span class="cnt">24</span></div>
+              <div class="rail-item" role="tab" aria-selected="false">Bookings <span class="cnt">31</span></div>
+              <div class="rail-item" role="tab" aria-selected="false">Door <span class="cnt">18</span></div>
+              <div class="rail-item" role="tab" aria-selected="false">Closeout <span class="cnt">—</span></div>
+            </div>
+          </div>
+          <div class="rule"><span class="must">Spec</span>Mono uppercase items with right-aligned counts. Active carries a 2px <b>Ops-violet</b> left rule + glass wash; hover lifts color only. Click a row to move the active state (live below).</div>
+        </div>
+
+        <!-- hub rules -->
+        <div class="panel">
+          <div class="p-title"><span>Hub rules</span><span class="tok">Guest mint · Ops violet · Marketing amber</span></div>
+          <div class="stage">
+            <div class="hubrule">
+              <div class="hr-item"><span class="swatch" style="background:var(--guest)"></span><div><div class="hr-t">Guest</div><div class="hr-s">#34D399 · walk-in · direct</div></div></div>
+              <div class="hr-item"><span class="swatch" style="background:var(--ops)"></span><div><div class="hr-t">Ops</div><div class="hr-s">#A78BFA · host stand · manual</div></div></div>
+              <div class="hr-item"><span class="swatch" style="background:var(--mkt)"></span><div><div class="hr-t">Marketing</div><div class="hr-s">#FBBF24 · venue-link · promoter</div></div></div>
+            </div>
+          </div>
+          <div class="rule"><span class="must">Spec</span>Semantic wayfinding colors for rails, left-rules and attribution chips <b>only</b>. Marketing amber and alarm amber share #FBBF24 — disambiguated by position (a left-rule vs an alarm chip), never confused with status.</div>
+        </div>
+      </div>
+
+      <!-- view header -->
+      <div class="panel">
+        <div class="p-title"><span>View header</span><span class="tok">glass · title + mono kicker · KPIs right</span></div>
+        <div class="stage">
+          <div class="vhead">
+            <div>
+              <div class="vk">OPS CONSOLE&nbsp;&nbsp;·&nbsp;&nbsp;LIVE</div>
+              <div class="vt">Floor</div>
+            </div>
+            <div class="vkpis">
+              <div class="vkpi"><div class="vv">24</div><div class="vl">Seated</div></div>
+              <div class="vkpi"><div class="vv">$18,420</div><div class="vl">Tab</div></div>
+              <div class="vkpi"><div class="vv">⚑</div><div class="vl">Take</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="rule"><span class="must">Spec</span>Glass header: view title (Light) over a mono kicker on the left, up to three KPIs right-aligned. Money from cents; take stays ⚑. One header per view.</div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // scroll-spy on left index
+  var links = Array.prototype.slice.call(document.querySelectorAll('.nav a[href^="#"]'));
+  var byId = {};
+  links.forEach(function(a){
+    var id = a.getAttribute('href').slice(1);
+    (byId[id] = byId[id] || []).push(a);
+  });
+  var sections = Array.prototype.slice.call(document.querySelectorAll('section[id]'));
+  if ('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if (e.isIntersecting){
+          links.forEach(function(a){ a.classList.remove('active'); });
+          (byId[e.target.id]||[]).forEach(function(a){ a.classList.add('active'); });
+        }
+      });
+    }, { rootMargin: '-45% 0px -50% 0px', threshold: 0 });
+    sections.forEach(function(s){ io.observe(s); });
+  }
+
+  // nav-rail active toggle (real interaction)
+  var railItems = Array.prototype.slice.call(document.querySelectorAll('.rail-item'));
+  railItems.forEach(function(item){
+    item.addEventListener('click', function(){
+      railItems.forEach(function(i){ i.classList.remove('active'); i.setAttribute('aria-selected','false'); });
+      item.classList.add('active');
+      item.setAttribute('aria-selected','true');
+    });
+  });
+
+  // modal shell open/close
+  var scrim = document.getElementById('scrim');
+  var openBtn = document.getElementById('openModal');
+  var closeBtn = document.getElementById('closeModal');
+  var confirmBtn = document.getElementById('confirmModal');
+  function openModal(){ scrim.classList.add('open'); }
+  function closeModal(){ scrim.classList.remove('open'); openBtn.focus(); }
+  openBtn.addEventListener('click', openModal);
+  closeBtn.addEventListener('click', closeModal);
+  confirmBtn.addEventListener('click', closeModal);
+  scrim.addEventListener('click', function(e){ if (e.target === scrim) closeModal(); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && scrim.classList.contains('open')) closeModal(); });
+
+  // blocking banner — re-request cycles to a resolved (glass) state; dismiss clears
+  var banner = document.getElementById('banner');
+  var stage = document.getElementById('bannerStage');
+  var reRequest = document.getElementById('reRequest');
+  var dismissBtn = document.getElementById('dismissBanner');
+  function resetBanner(){
+    stage.innerHTML = '';
+    var b = banner.cloneNode(true);
+    stage.appendChild(b);
+    wireBanner(b);
+  }
+  function wireBanner(b){
+    var rr = b.querySelector('#reRequest');
+    var dm = b.querySelector('#dismissBanner');
+    if (rr) rr.addEventListener('click', function(){
+      var msg = b.querySelector('.bmsg');
+      if (msg) msg.innerHTML = '<b>RE-REQUEST SENT</b> — 2 shares re-invited. Awaiting payment on T-09 Beaulieu.';
+    });
+    if (dm) dm.addEventListener('click', function(){
+      var note = document.createElement('div');
+      note.className = 'kicker';
+      note.style.color = 'var(--lo)';
+      note.textContent = 'BANNER DISMISSED · click to restore';
+      note.style.cursor = 'pointer';
+      note.tabIndex = 0;
+      note.setAttribute('role','button');
+      function restore(){ resetBanner(); }
+      note.addEventListener('click', restore);
+      note.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); restore(); }});
+      stage.innerHTML = '';
+      stage.appendChild(note);
+    });
+  }
+  wireBanner(banner);
+
+  // buttons give a subtle live acknowledgement without leaving the doc
+  Array.prototype.slice.call(document.querySelectorAll('.stage .btn:not(#openModal):not(.b-solid):not(.b-ghost)')).forEach(function(btn){
+    if (btn.id === 'closeModal' || btn.id === 'confirmModal') return;
+    btn.addEventListener('click', function(){
+      if (btn.dataset.busy) return;
+      btn.dataset.busy = '1';
+      var orig = btn.textContent;
+      btn.textContent = '● ' + orig;
+      setTimeout(function(){ btn.textContent = orig; delete btn.dataset.busy; }, 700);
+    });
+  });
+})();
+</script>
+</body>
+</html>

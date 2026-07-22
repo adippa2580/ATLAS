@@ -36,16 +36,18 @@ model Tenant {
 // Guest hub — Identity & Profile
 // ---------------------------------------------------------------------------
 model Guest {
-  id           String   @id @default(uuid())
-  tenantId     String
-  primaryPhone String? // E.164
-  email        String?
-  displayName  String?
-  provisional  Boolean  @default(true)
-  walletPassId String?  @unique
-  createdAt    DateTime @default(now())
+  id            String   @id @default(uuid())
+  tenantId      String
+  primaryPhone  String? // E.164
+  email         String?
+  displayName   String?
+  provisional   Boolean  @default(true)
+  walletPassId  String?  @unique
+  globalGuestId String? // resolves this per-tenant guest to the cross-tenant identity spine
+  createdAt     DateTime @default(now())
 
   tenant       Tenant             @relation(fields: [tenantId], references: [id])
+  globalGuest  GlobalGuest?       @relation(fields: [globalGuestId], references: [id])
   links        IdentityLink[]
   consents     ConsentGrant[]
   evidence     AffinityEvidence[]
@@ -57,6 +59,7 @@ model Guest {
   @@index([tenantId])
   @@index([tenantId, primaryPhone])
   @@index([tenantId, email])
+  @@index([globalGuestId])
 }
 
 enum IdentityLinkKind {
@@ -521,4 +524,57 @@ model IdempotencyRecord {
 
   @@unique([tenantId, key])
   @@index([tenantId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Identity spine (P1) — the cross-tenant identity of a real person, independent
+// of any tenant. Per-tenant Guest rows resolve to a GlobalGuest via verified
+// identifiers. This is the object the "venues see rich guest intelligence" moat
+// needs: a venue never reads another tenant's guest rows — it reads a CONSENTED,
+// scoped PROJECTION derived through the spine (see VenueProjectionGrant).
+// ---------------------------------------------------------------------------
+model GlobalGuest {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  guests      Guest[]
+  projections VenueProjectionGrant[]
+}
+
+// A guest (via their global spine) consents to a specific venue tenant seeing a
+// SCOPED projection of their cross-tenant affinity. Enforced at read time by the
+// projection service — the only sanctioned path for cross-tenant intelligence.
+model VenueProjectionGrant {
+  id              String    @id @default(uuid())
+  globalGuestId   String
+  granteeTenantId String // the venue tenant allowed to read the projection
+  scope           String    @default("affinity:summary") // what may be projected
+  grantedAt       DateTime  @default(now())
+  revokedAt       DateTime?
+
+  globalGuest GlobalGuest @relation(fields: [globalGuestId], references: [id])
+
+  @@unique([globalGuestId, granteeTenantId, scope])
+  @@index([granteeTenantId])
+  @@index([globalGuestId])
+}
+
+// ---------------------------------------------------------------------------
+// Durable evidence outbox (P1) — transactional outbox. The evidence row and an
+// outbox row are written in the SAME transaction; a relay delivers outbox rows
+// to the bus/Pub/Sub at-least-once and survives restarts. Replaces the
+// fire-and-forget in-memory publish (which was at-most-once with silent loss).
+// ---------------------------------------------------------------------------
+model EvidenceOutbox {
+  id          String    @id @default(uuid())
+  tenantId    String
+  topic       String    @default("evidence")
+  payload     Json
+  dedupeKey   String
+  attempts    Int       @default(0)
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([publishedAt, createdAt])
+  @@index([tenantId])
 }
