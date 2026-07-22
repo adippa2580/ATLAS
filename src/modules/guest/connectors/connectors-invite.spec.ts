@@ -18,13 +18,16 @@ describe('ConnectorsService (invite tokens)', () => {
   }
 
   it('signs and verifies an invite roundtrip', () => {
-    const svc = make({ connectInviteSecret: 's3cret', env: 'production' });
+    const svc = make({
+      'connectors.connectInviteSecret': 's3cret',
+      env: 'production',
+    });
     const token = svc.signInvite('guest-123');
     expect(svc.verifyInvite(token)).toBe('guest-123');
   });
 
   it('rejects tampered and malformed tokens', () => {
-    const svc = make({ connectInviteSecret: 's3cret' });
+    const svc = make({ 'connectors.connectInviteSecret': 's3cret' });
     const token = svc.signInvite('guest-123');
     const [b64, sig] = token.split('.');
     const other = Buffer.from(
@@ -43,7 +46,7 @@ describe('ConnectorsService (invite tokens)', () => {
   });
 
   it('rejects expired invites', () => {
-    const svc = make({ connectInviteSecret: 's3cret' });
+    const svc = make({ 'connectors.connectInviteSecret': 's3cret' });
     const token = svc.signInvite('guest-123', -10);
     expect(() => svc.verifyInvite(token)).toThrow('Invite expired');
   });

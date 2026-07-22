@@ -74,7 +74,7 @@ export class ConnectorsService {
 
   /** Invite tokens: HMAC-signed { guestId, exp } — the ONLY way into /connect. */
   private inviteSecret(): string {
-    return this.config.get<string>('connectInviteSecret') ?? '';
+    return this.config.get<string>('connectors.connectInviteSecret') ?? '';
   }
 
   signInvite(guestId: string, ttlSeconds = 900): string {
