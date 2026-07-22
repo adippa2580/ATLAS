@@ -1,0 +1,639 @@
+<title>Atlas — Hospitality Outcomes Intelligence</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --paper:#F6F5F8; --panel:#FFFFFF; --sunk:#F1EFF4; --raise:#FBFAFC;
+    --ink:#1A151F; --ink2:#443C4C; --muted:#6E6579; --faint:#9C93A6;
+    --line:#E7E3EC; --line-soft:#EFECF3;
+    --brand:#8A3A83; --brand-ink:#6E2A68; --brand-wash:#F4E9F2;
+    --good:#12864B; --good-wash:#E3F3E9; --warn:#B7791F; --warn-wash:#FBF0DC; --crit:#C8422F; --crit-wash:#F9E7E2;
+    --info:#2B6CB0;
+    --hub-guest:#8A3A83; --hub-ops:#0E7490; --hub-mkt:#4C51BF;
+    /* validated 7-slot categorical palette (light steps) — no green/red (reserved status hues) */
+    --pc-taste:#d16091; --pc-identity:#832f83; --pc-crews:#6649af; --pc-venues:#05b9cf;
+    --pc-bookings:#78a1ff; --pc-revenue:#d29f0a; --pc-marketing:#a44602;
+    --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --serif:"Iowan Old Style",Georgia,"Times New Roman",serif;
+    --r:12px; --r-sm:8px; --shadow:0 1px 2px rgba(26,21,31,.05),0 8px 24px -16px rgba(26,21,31,.28);
+  }
+  :root[data-theme="dark"]{
+    --paper:#100C14; --panel:#191320; --sunk:#120E18; --raise:#1E1727;
+    --ink:#EDE8F1; --ink2:#C6BDCF; --muted:#928AA0; --faint:#61596E;
+    --line:#2A2233; --line-soft:#221A2B;
+    --brand:#CE93C6; --brand-ink:#DDA9D5; --brand-wash:#2A1A29;
+    --good:#4ED08A; --good-wash:#122a1f; --warn:#E3B25B; --warn-wash:#2c2415; --crit:#F0836E; --crit-wash:#2e1a17;
+    --info:#6AA5E0;
+    --hub-guest:#D19BCB; --hub-ops:#4FB6C9; --hub-mkt:#9098EC;
+    /* validated 7-slot categorical palette (dark steps for surface #191320) */
+    --pc-taste:#c55285; --pc-identity:#933e92; --pc-crews:#6f52b9; --pc-venues:#129db0;
+    --pc-bookings:#618aeb; --pc-revenue:#b48706; --pc-marketing:#ac4b06;
+    --shadow:0 1px 2px rgba(0,0,0,.45),0 10px 30px -18px rgba(0,0,0,.75);
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme]){
+    --paper:#100C14; --panel:#191320; --sunk:#120E18; --raise:#1E1727;
+    --ink:#EDE8F1; --ink2:#C6BDCF; --muted:#928AA0; --faint:#61596E;
+    --line:#2A2233; --line-soft:#221A2B;
+    --brand:#CE93C6; --brand-ink:#DDA9D5; --brand-wash:#2A1A29;
+    --good:#4ED08A; --good-wash:#122a1f; --warn:#E3B25B; --warn-wash:#2c2415; --crit:#F0836E; --crit-wash:#2e1a17;
+    --info:#6AA5E0;
+    --hub-guest:#D19BCB; --hub-ops:#4FB6C9; --hub-mkt:#9098EC;
+    --pc-taste:#c55285; --pc-identity:#933e92; --pc-crews:#6f52b9; --pc-venues:#129db0;
+    --pc-bookings:#618aeb; --pc-revenue:#b48706; --pc-marketing:#ac4b06;
+    --shadow:0 1px 2px rgba(0,0,0,.45),0 10px 30px -18px rgba(0,0,0,.75);
+  }}
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--paper); color:var(--ink); font-family:var(--sans); -webkit-font-smoothing:antialiased; line-height:1.5}
+  .num{font-family:var(--mono); font-variant-numeric:tabular-nums}
+  a{color:var(--brand-ink); text-decoration:none}
+  .wrap{max-width:1340px; margin:0 auto; padding:20px 22px 60px}
+
+  /* header */
+  header{display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:2px 0 18px}
+  .logo{display:flex; align-items:center; gap:12px}
+  .mark{width:32px; height:32px; border-radius:9px; background:linear-gradient(150deg,var(--brand),var(--brand-ink)); display:grid; place-items:center; color:#fff; font-family:var(--serif); font-weight:700; font-size:17px}
+  .logo h1{font-family:var(--serif); font-size:21px; margin:0; font-weight:600; letter-spacing:-.01em}
+  .logo .t{font-family:var(--mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-top:2px}
+  header .sp{flex:1}
+  .seg{display:inline-flex; border:1px solid var(--line); border-radius:9px; overflow:hidden; background:var(--panel)}
+  .seg button{appearance:none; border:0; background:transparent; color:var(--muted); font:inherit; font-size:12.5px; font-weight:560; padding:7px 13px; cursor:pointer}
+  .seg button.on{background:var(--brand-wash); color:var(--brand-ink)}
+  .ic{appearance:none; cursor:pointer; border:1px solid var(--line); background:var(--panel); color:var(--muted); border-radius:9px; padding:7px 11px; font:inherit; font-size:12.5px}
+
+  /* pillar strip */
+  .pillhead{display:flex; align-items:baseline; gap:10px; margin:2px 2px 9px}
+  .pillhead h2{font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-weight:680; margin:0}
+  .pillhead .hint{font-size:11.5px; color:var(--faint)}
+  .pillars{display:grid; grid-template-columns:repeat(7,1fr); gap:8px; margin-bottom:18px}
+  @media(max-width:1040px){.pillars{grid-template-columns:repeat(4,1fr)}}
+  @media(max-width:640px){.pillars{grid-template-columns:repeat(2,1fr)}}
+  .pl{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:11px 11px 10px; cursor:pointer; text-align:left; box-shadow:var(--shadow); transition:border-color .15s; font:inherit; color:var(--ink)}
+  .pl:hover{border-color:var(--brand)}
+  .pl.on{border-color:var(--brand); box-shadow:0 0 0 1px var(--brand),var(--shadow)}
+  .pl:focus-visible{outline:2px solid var(--brand); outline-offset:2px}
+  .pl .top{display:flex; align-items:center; gap:8px}
+  .pl .g{width:22px; height:22px; border-radius:7px; display:grid; place-items:center; font-size:12px; flex:none; font-weight:700}
+  .pl .nm{font-size:11.5px; font-weight:640; line-height:1.15; letter-spacing:-.005em}
+  .pl .hub{font-size:8.5px; font-family:var(--mono); letter-spacing:.1em; text-transform:uppercase; margin-top:2px}
+  .pl .cov{display:flex; align-items:center; gap:7px; margin-top:10px}
+  .pl .covbar{flex:1; height:5px; border-radius:3px; background:var(--sunk); overflow:hidden}
+  .pl .covbar i{display:block; height:100%; border-radius:3px}
+  .pl .covn{font-family:var(--mono); font-size:11px; font-weight:680}
+  .pl .cd{font-family:var(--mono); font-size:9.5px; font-weight:600}
+  .pl .sig{font-size:10px; color:var(--muted); margin-top:7px; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+
+  /* summary */
+  .summary{display:grid; grid-template-columns:repeat(4,1fr) 1.4fr; gap:12px; margin-bottom:16px}
+  @media(max-width:860px){.summary{grid-template-columns:repeat(2,1fr)}}
+  .sc{background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:14px 15px; box-shadow:var(--shadow)}
+  .sc .k{font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); font-weight:600}
+  .sc .v{font-family:var(--mono); font-size:28px; font-weight:680; margin-top:5px; letter-spacing:-.02em; display:flex; align-items:baseline; gap:8px}
+  .sc .v small{font-size:12px; font-weight:600}
+  .delta{font-family:var(--mono); font-size:12px; font-weight:600}
+  .up{color:var(--good)} .down{color:var(--crit)} .flat{color:var(--muted)}
+  .dist{display:flex; align-items:center; gap:10px}
+  .distbar{flex:1; display:flex; height:12px; border-radius:6px; overflow:hidden; border:1px solid var(--line)}
+  .distbar i{display:block; height:100%}
+  .distlgd{display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--muted)}
+  .distlgd span{display:flex; align-items:center; gap:6px} .distlgd b{color:var(--ink); font-family:var(--mono)}
+  .sw{width:9px; height:9px; border-radius:3px; display:inline-block}
+
+  /* toolbar */
+  .toolbar{display:flex; align-items:flex-end; gap:10px; flex-wrap:wrap; padding:12px 14px; background:var(--panel); border:1px solid var(--line); border-radius:var(--r); margin-bottom:14px; box-shadow:var(--shadow)}
+  .field{display:flex; flex-direction:column; gap:3px}
+  .field label{font-size:9.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--faint); font-weight:600; padding-left:2px}
+  select,.search input{appearance:none; font:inherit; font-size:12.5px; color:var(--ink); background:var(--sunk); border:1px solid var(--line); border-radius:8px; padding:7px 26px 7px 10px; cursor:pointer}
+  select{background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%); background-position:calc(100% - 15px) 15px,calc(100% - 10px) 15px; background-size:5px 5px,5px 5px; background-repeat:no-repeat}
+  .search{margin-left:auto} .search input{cursor:text; padding-right:10px; min-width:170px}
+  .toolbar .count{font-family:var(--mono); font-size:11.5px; color:var(--muted)}
+
+  /* layout */
+  .cols{display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start}
+  @media(max-width:1040px){.cols{grid-template-columns:1fr}}
+  .listwrap{display:flex; flex-direction:column; gap:10px}
+
+  /* outcome card */
+  .oc{background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:14px; cursor:pointer; box-shadow:var(--shadow); transition:border-color .15s, transform .05s}
+  .oc:hover{border-color:var(--brand)} .oc.sel{border-color:var(--brand); box-shadow:0 0 0 1px var(--brand), var(--shadow)}
+  .oc:focus-visible{outline:2px solid var(--brand); outline-offset:2px}
+  .oc .r1{display:flex; align-items:flex-start; gap:12px}
+  .score{width:52px; height:52px; border-radius:11px; flex:none; display:grid; place-items:center; position:relative; font-family:var(--mono); font-weight:700; font-size:18px}
+  .oc .nm{font-family:var(--serif); font-weight:600; font-size:15.5px; letter-spacing:-.005em; line-height:1.28}
+  .oc .meta{font-size:11.5px; color:var(--muted); margin-top:4px; display:flex; gap:7px; flex-wrap:wrap; align-items:center}
+  .ptag{font-size:10.5px; font-weight:640; padding:2px 8px 2px 7px; border-radius:999px; display:inline-flex; align-items:center; gap:5px; border:1px solid var(--line)}
+  .ptag i{width:7px; height:7px; border-radius:50%; display:inline-block}
+  .pill{font-size:10.5px; font-weight:640; padding:2px 8px; border-radius:999px; border:1px solid transparent; white-space:nowrap}
+  .pill.good{color:var(--good); background:var(--good-wash)} .pill.warn{color:var(--warn); background:var(--warn-wash)}
+  .pill.crit{color:var(--crit); background:var(--crit-wash)} .pill.info{color:var(--info); background:color-mix(in srgb,var(--info) 12%,transparent)}
+  .pri{font-family:var(--mono); font-size:10px; font-weight:700; color:var(--muted); border:1px solid var(--line); border-radius:5px; padding:1px 5px}
+  .oc .r2{display:flex; align-items:center; gap:14px; margin-top:12px}
+  .spark{flex:1}
+  .oc .conf{font-size:11px; color:var(--muted); white-space:nowrap} .oc .conf b{color:var(--ink); font-family:var(--mono)}
+
+  /* detail */
+  .detail{position:sticky; top:14px; background:var(--panel); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow); overflow:hidden}
+  .dhead{padding:16px 18px 14px; border-bottom:1px solid var(--line-soft)}
+  .dhead .nm{font-family:var(--serif); font-size:19px; font-weight:600; letter-spacing:-.01em; line-height:1.25}
+  .dhead .sub{font-size:12px; color:var(--muted); margin-top:5px; display:flex; gap:7px; flex-wrap:wrap; align-items:center}
+  .dbody{padding:16px 18px; display:flex; flex-direction:column; gap:20px}
+  .dsec > h3{font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-weight:680; margin:0 0 11px; display:flex; align-items:center; gap:8px}
+  .dsec > h3 .hint{font-weight:500; letter-spacing:0; text-transform:none; color:var(--faint); font-size:11px}
+
+  /* score composition */
+  .scorerow{display:flex; align-items:center; gap:16px; margin-bottom:14px}
+  .ring{width:88px; height:88px; border-radius:50%; flex:none; display:grid; place-items:center; position:relative}
+  .ring .inner{width:66px; height:66px; border-radius:50%; background:var(--panel); display:grid; place-items:center; text-align:center}
+  .ring .inner b{font-family:var(--mono); font-size:24px; font-weight:700; line-height:1}
+  .ring .inner span{font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em}
+  .comp{flex:1; display:flex; flex-direction:column; gap:8px}
+  .comp .row{display:grid; grid-template-columns:118px 1fr auto; gap:9px; align-items:center; font-size:12px}
+  .comp .row .lab{color:var(--ink2)}
+  .comp .row .bar{height:7px; border-radius:5px; background:var(--sunk); overflow:hidden}
+  .comp .row .bar i{display:block; height:100%; border-radius:5px; background:var(--brand)}
+  .comp .row .n{font-family:var(--mono); color:var(--muted); font-size:11.5px; text-align:right}
+
+  /* pillar mix */
+  .plbar{display:flex; height:15px; border-radius:6px; overflow:hidden; border:1px solid var(--line)}
+  .plbar i{height:100%}
+  .pllgd{display:flex; flex-direction:column; gap:7px; margin-top:11px}
+  .pllgd .row{display:grid; grid-template-columns:13px 1fr auto; gap:9px; align-items:center; font-size:12px}
+  .pllgd .row .dot{width:10px; height:10px; border-radius:3px}
+  .pllgd .row .pn b{font-weight:600} .pllgd .row .pn .hub{font-family:var(--mono); font-size:9.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--faint); margin-left:6px}
+  .pllgd .row .pct{font-family:var(--mono); color:var(--muted); font-size:11.5px}
+
+  /* health grid */
+  .hgrid{display:grid; grid-template-columns:1fr 1fr; gap:9px}
+  .hc{border:1px solid var(--line); border-radius:var(--r-sm); padding:10px 11px; background:var(--raise)}
+  .hc .t{font-size:11px; color:var(--muted); display:flex; align-items:center; justify-content:space-between}
+  .hc .b{display:flex; align-items:baseline; gap:7px; margin-top:5px}
+  .hc .b .n{font-family:var(--mono); font-size:20px; font-weight:700}
+  .hc .b .d{font-family:var(--mono); font-size:11px; font-weight:600}
+  .stat{width:7px; height:7px; border-radius:50%}
+
+  /* forces / drivers */
+  .force{display:grid; grid-template-columns:22px 1fr auto; gap:11px; align-items:start; padding:9px 0; border-top:1px solid var(--line-soft)}
+  .force:first-child{border-top:0}
+  .force .ico{width:22px; height:22px; border-radius:6px; display:grid; place-items:center; font-size:11px; margin-top:1px}
+  .force .txt{font-size:12.5px} .force .txt .h{font-weight:600} .force .txt .s{color:var(--muted); font-size:11.5px; margin-top:1px}
+  .force .imp{font-size:10px; font-weight:700; padding:2px 7px; border-radius:5px; white-space:nowrap; margin-top:1px}
+
+  /* actions */
+  .act{border:1px solid var(--line); border-radius:var(--r-sm); padding:11px 12px; background:var(--raise); margin-bottom:9px}
+  .act .top{display:flex; align-items:center; gap:8px}
+  .act .top .h{font-weight:620; font-size:13px} .act .top .imp{margin-left:auto}
+  .act .s{font-size:12px; color:var(--muted); margin-top:4px}
+  .act .lk{margin-top:8px; display:flex; gap:12px; align-items:center; font-size:12px; flex-wrap:wrap}
+  .act .lk .go{font-weight:640}
+  .tagpair{font-family:var(--mono); font-size:10.5px; color:var(--muted)}
+
+  .trendbox{border:1px solid var(--line); border-radius:var(--r-sm); padding:12px; background:var(--raise)}
+  .empty{padding:60px 20px; text-align:center; color:var(--muted)}
+  .foot{margin-top:22px; color:var(--faint); font-size:11.5px; display:flex; gap:14px; flex-wrap:wrap}
+
+  /* stacked-bar segment gaps — 2px surface-colored separator between adjacent fills */
+  .plbar i + i, .distbar i + i{box-shadow:inset 2px 0 0 var(--panel)}
+
+  /* hover tooltip */
+  .tip{position:fixed; z-index:60; left:0; top:0; pointer-events:none; background:var(--ink); color:var(--panel);
+    font-family:var(--sans); font-size:11px; font-weight:560; line-height:1.35; padding:5px 8px; border-radius:7px;
+    box-shadow:0 6px 18px -6px rgba(0,0,0,.5); max-width:230px; white-space:nowrap;
+    opacity:0; transform:translateY(2px); transition:opacity .1s ease, transform .1s ease}
+  .tip.on{opacity:1; transform:translateY(0)}
+  [data-tip]{cursor:default}
+  .plbar i[data-tip], .distbar i[data-tip]{cursor:pointer}
+
+  /* trend sparkline crosshair */
+  .tspark{position:relative; cursor:crosshair}
+  .tspark svg{display:block}
+  .tspark .cross{position:absolute; top:0; bottom:0; width:1px; background:var(--muted); opacity:0; pointer-events:none}
+  .tspark .cdot{position:absolute; width:8px; height:8px; border-radius:50%; border:2px solid var(--panel); box-shadow:0 0 0 1px var(--line); transform:translate(-50%,-50%); opacity:0; pointer-events:none}
+  .tspark.act .cross{opacity:.65} .tspark.act .cdot{opacity:1}
+
+  @media (prefers-reduced-motion:reduce){*{transition:none !important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="logo"><div class="mark">A</div><div><h1>Outcomes Intelligence</h1><div class="t">Atlas · A-List Group · hospitality</div></div></div>
+    <div class="sp"></div>
+    <div class="seg" id="view"><button class="on" data-v="portfolio">Portfolio</button><button data-v="mine">My outcomes</button></div>
+    <button class="ic" id="tt">☾ Theme</button>
+  </header>
+
+  <div class="pillhead"><h2>Data pillars</h2><span class="hint">Every outcome below is derived from the evidence these seven pillars produce. Select one to lens the portfolio.</span></div>
+  <div class="pillars" id="pillars"></div>
+
+  <div class="summary" id="summary"></div>
+
+  <div class="toolbar">
+    <div class="field"><label>Pillar</label><select id="f-pillar"></select></div>
+    <div class="field"><label>Hub</label><select id="f-hub"></select></div>
+    <div class="field"><label>Owner</label><select id="f-owner"></select></div>
+    <div class="field"><label>Status</label><select id="f-status"></select></div>
+    <div class="field"><label>Priority</label><select id="f-priority"></select></div>
+    <div class="field"><label>Horizon</label><select id="f-horizon"></select></div>
+    <div class="field"><label>Sort by</label><select id="sort">
+      <option value="score">Relative success</option><option value="risk">Risk level</option>
+      <option value="confidence">Confidence</option><option value="change">Recent change</option>
+    </select></div>
+    <div class="field search"><label>Search</label><input id="q" placeholder="Filter outcomes…"></div>
+  </div>
+  <div style="display:flex; align-items:center; gap:10px; margin:-6px 2px 12px"><span class="count" id="count"></span></div>
+
+  <div class="cols">
+    <div class="listwrap" id="list"></div>
+    <div class="detail" id="detail"></div>
+  </div>
+
+  <div class="foot">
+    <span>Relative success = target progress · confidence · timeline health · peer &amp; historical comparison, normalized 0–100.</span>
+    <span>Insights derived across seven Atlas data pillars. Sample tenant (A-List Group) for demonstration.</span>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var $=function(s,r){return (r||document).querySelector(s)};
+
+  // ---- hover tooltip (shared, positioned div) ----
+  var tip=document.createElement("div"); tip.className="tip"; tip.setAttribute("role","tooltip"); document.body.appendChild(tip);
+  function positionTip(x,y){
+    var pad=10, r=tip.getBoundingClientRect(), tx=x+14, ty=y+16;
+    if(tx+r.width>window.innerWidth-pad) tx=x-14-r.width;
+    if(ty+r.height>window.innerHeight-pad) ty=y-16-r.height;
+    tip.style.left=Math.max(pad,tx)+"px"; tip.style.top=Math.max(pad,ty)+"px";
+  }
+  function showTip(text,x,y){ tip.textContent=text; tip.classList.add("on"); positionTip(x,y); }
+  function hideTip(){ tip.classList.remove("on"); }
+  // delegation for any [data-tip] mark (stacked-bar segments, pillar coverage bars)
+  document.addEventListener("mousemove",function(e){
+    var el=e.target.closest?e.target.closest("[data-tip]"):null;
+    if(el){ showTip(el.getAttribute("data-tip"), e.clientX, e.clientY); }
+  });
+  document.addEventListener("mouseout",function(e){
+    var el=e.target.closest?e.target.closest("[data-tip]"):null;
+    if(!el) return;
+    if(e.relatedTarget && el.contains(e.relatedTarget)) return;
+    hideTip();
+  });
+
+  // ---- data pillars: the foundations Atlas evidence builds from ----
+  var PILLARS=[
+    {id:"taste",     name:"Taste Graph",            hub:"Guest",     glyph:"◆", col:"var(--pc-taste)", coverage:78, delta:+6, signal:"1.24M affinity signals", insight:"Evidence density rising — Spotify + POS enrichment live across venues."},
+    {id:"identity",  name:"Identity & Consent",     hub:"Guest",     glyph:"⬡", col:"var(--pc-identity)", coverage:64, delta:+3, signal:"58.2k consented guests", insight:"Identity match rate 71%; entry-QR consent lifting the addressable base."},
+    {id:"crews",     name:"Crews & Social",         hub:"Guest",     glyph:"⬢", col:"var(--pc-crews)", coverage:52, delta:+4, signal:"9.7k active crews", insight:"Group demand concentrating in the top 8% of crews; blend affinity maturing."},
+    {id:"venues",    name:"Venues & Inventory",     hub:"Ops",       glyph:"▮", col:"var(--pc-venues)", coverage:81, delta:+2, signal:"6 venues · 312 tables", insight:"Weekend inventory near ceiling; midweek yield the open opportunity."},
+    {id:"bookings",  name:"Bookings",               hub:"Ops",       glyph:"▤", col:"var(--pc-bookings)", coverage:73, delta:+5, signal:"14.6k bookings / 90d", insight:"Conversion improving as instant-confirm rolls out; lead-time shortening."},
+    {id:"revenue",   name:"Revenue & Spend",        hub:"Ops",       glyph:"$", col:"var(--pc-revenue)", coverage:69, delta:+4, signal:"$3.1M tabs / 90d", insight:"Average tab climbing on VIP + bottle-service mix; midweek spend soft."},
+    {id:"marketing", name:"Marketing & Attribution",hub:"Marketing", glyph:"◈", col:"var(--pc-marketing)", coverage:61, delta:+2, signal:"142 campaigns tracked", insight:"Attributed ROAS steady; paid CAC inflation is the pressure to watch."}
+  ];
+  var PMAP={}; PILLARS.forEach(function(p){PMAP[p.id]=p});
+  var HUBCOL={Guest:"var(--hub-guest)",Ops:"var(--hub-ops)",Marketing:"var(--hub-mkt)"};
+
+  // ---- outcomes, each derived against the pillars ----
+  var H=function(a){return a};
+  var DATA=[
+    {id:"o1",name:"Grow taste-graph coverage to 80% of active guests",hub:"Guest",owner:"Priya N.",status:"on-track",priority:"P0",horizon:"Q3 2026",
+     pillar:"taste", mix:[["taste",60],["identity",25],["marketing",15]],
+     score:81,delta:+7,confidence:77,targetProgress:70,timelineHealth:86,peerIndex:+12,risk:"low",
+     health:{"Signal coverage":{v:78,d:+6},"Guest reach":{v:66,d:+4},"Demand momentum":{v:71,d:+3},"Conversion":{v:68,d:+2},"Spend health":{v:72,d:+5}},
+     drivers:[{n:"Spotify connect enrichment",c:+14,s:"Music-taste signals now on 41% of profiles"},{n:"POS receipt-level signals",c:+9,s:"Menu affinities inferred from tabs"},{n:"Walk-in identity gap",c:-6,s:"Door traffic still under-instrumented"}],
+     external:[{t:"Nightlife trends",dir:"up",imp:"pos",h:"Afro-house + amapiano surging in market",s:"Fresh genre affinities to capture while demand peaks"},
+       {t:"Reservation demand",dir:"up",imp:"pos",h:"Inbound interest +19% MoM",s:"More first-touch guests to enrich"},
+       {t:"Competitor venues",dir:"up",imp:"watch",h:"Rival launched a loyalty app",s:"Signal-capture parity risk at the door"}],
+     actions:[{h:"Instrument door / walk-in capture",imp:"High",eff:"2 sprints",s:"Close the largest negative driver — un-enriched walk-ins.",lk:"Coverage gap analysis"},
+       {h:"Prompt Spotify connect at booking",imp:"High",eff:"1 sprint",s:"Scale the strongest positive driver into the booking flow.",lk:"Enrichment funnel"},
+       {h:"Backfill menu affinities from POS",imp:"Med",eff:"1 sprint",s:"Turn historical tabs into taste evidence.",lk:"POS signal spec"}],
+     hist:H([68,70,71,73,75,77,79,81])},
+
+    {id:"o2",name:"Lift repeat-visit rate to 45% within 60 days",hub:"Ops",owner:"Marcus L.",status:"at-risk",priority:"P0",horizon:"Q3 2026",
+     pillar:"bookings", mix:[["bookings",45],["taste",30],["identity",25]],
+     score:58,delta:-3,confidence:53,targetProgress:48,timelineHealth:55,peerIndex:-7,risk:"high",
+     health:{"Signal coverage":{v:64,d:-1},"Guest reach":{v:60,d:-3},"Demand momentum":{v:52,d:-5},"Conversion":{v:57,d:-2},"Spend health":{v:61,d:-2}},
+     drivers:[{n:"Lapsed-VIP decay",c:-12,s:"High-affinity guests 90+ days dormant"},{n:"Taste-matched invites",c:+11,s:"Reactivation opens 2.3x baseline"},{n:"Crew re-bookings",c:+6,s:"Groups return at higher rate"}],
+     external:[{t:"Seasonality",dir:"down",imp:"neg",h:"Post-festival demand trough",s:"Baseline foot-traffic softening city-wide"},
+       {t:"Local events",dir:"up",imp:"pos",h:"Two arena shows next month",s:"Natural re-engagement window for lapsed guests"},
+       {t:"Competitor venues",dir:"up",imp:"neg",h:"New rooftop drawing regulars",s:"Churn pressure on the mid-tier segment"}],
+     actions:[{h:"Trigger lapsed-VIP win-back",imp:"High",eff:"Now",s:"Address the sharpest negative driver with taste-matched offers.",lk:"Dormancy cohort"},
+       {h:"Time offers to arena shows",imp:"High",eff:"2 weeks",s:"Ride the local-events tailwind for reactivation.",lk:"Event calendar model"},
+       {h:"Expand crew re-booking nudges",imp:"Med",eff:"1 sprint",s:"Lean on the group return-rate advantage.",lk:"Crew retention brief"}],
+     hist:H([66,65,64,63,61,60,60,58])},
+
+    {id:"o3",name:"Raise average tab to $180 per guest",hub:"Ops",owner:"Marcus L.",status:"on-track",priority:"P0",horizon:"H2 2026",
+     pillar:"revenue", mix:[["revenue",55],["taste",25],["venues",20]],
+     score:76,delta:+5,confidence:71,targetProgress:63,timelineHealth:78,peerIndex:+6,risk:"medium",
+     health:{"Signal coverage":{v:70,d:+3},"Guest reach":{v:67,d:+2},"Demand momentum":{v:73,d:+4},"Conversion":{v:72,d:+3},"Spend health":{v:75,d:+6}},
+     drivers:[{n:"Bottle-service attach",c:+13,s:"Attach rate 18%→26% on VIP tables"},{n:"VIP guest mix",c:+8,s:"Taste graph routing high-value segments"},{n:"Midweek spend softness",c:-6,s:"Tue–Wed tabs 30% below weekend"}],
+     external:[{t:"Local events",dir:"up",imp:"pos",h:"Convention season inbound",s:"Higher-spend corporate crowd in market"},
+       {t:"Weather",dir:"down",imp:"watch",h:"Wet weekends forecast",s:"Rooftop covers at risk — shift to indoor upsell"},
+       {t:"Competitor venues",dir:"up",imp:"neg",h:"Rival aggressive happy-hour",s:"Price pressure on early-evening spend"}],
+     actions:[{h:"Launch midweek taste-matched menus",imp:"High",eff:"2 weeks",s:"Attack the only negative driver — soft Tue–Wed spend.",lk:"Midweek spend teardown"},
+       {h:"Scale bottle-service attach prompts",imp:"Med",eff:"1 sprint",s:"Extend the top positive lever to more tables.",lk:"Attach model"}],
+     hist:H([68,69,70,71,72,74,75,76])},
+
+    {id:"o4",name:"Push table-booking conversion to 38%",hub:"Ops",owner:"Dana R.",status:"on-track",priority:"P1",horizon:"Q3 2026",
+     pillar:"bookings", mix:[["bookings",50],["venues",30],["taste",20]],
+     score:72,delta:+4,confidence:69,targetProgress:61,timelineHealth:75,peerIndex:+4,risk:"medium",
+     health:{"Signal coverage":{v:72,d:+3},"Guest reach":{v:64,d:+2},"Demand momentum":{v:74,d:+4},"Conversion":{v:70,d:+5},"Spend health":{v:66,d:+2}},
+     drivers:[{n:"Instant-confirm flow",c:+12,s:"Removed manual approval on 60% of tables"},{n:"Inventory release timing",c:+6,s:"Staggered drops smooth peak demand"},{n:"Deposit friction",c:-7,s:"Drop-off at deposit step for new guests"}],
+     external:[{t:"Reservation demand",dir:"up",imp:"pos",h:"Weekend requests +24%",s:"Ample demand to convert if friction drops"},
+       {t:"Nightlife trends",dir:"up",imp:"pos",h:"Bottle-table culture resurgent",s:"Aligns with premium inventory"},
+       {t:"Competitor venues",dir:"flat",imp:"watch",h:"Incumbent no-deposit policy",s:"Watch deposit-abandonment gap"}],
+     actions:[{h:"Soften deposit for known guests",imp:"High",eff:"2 weeks",s:"Remove the one negative driver for identity-matched guests.",lk:"Deposit funnel"},
+       {h:"Extend instant-confirm coverage",imp:"Med",eff:"1 sprint",s:"Widen the strongest positive driver to remaining tables.",lk:"Confirm rollout"}],
+     hist:H([64,66,67,68,69,70,71,72])},
+
+    {id:"o5",name:"Hit 82% Fri/Sat capacity yield",hub:"Ops",owner:"Dana R.",status:"off-track",priority:"P1",horizon:"Q3 2026",
+     pillar:"venues", mix:[["venues",60],["bookings",30],["crews",10]],
+     score:47,delta:-6,confidence:44,targetProgress:35,timelineHealth:42,peerIndex:-14,risk:"high",
+     health:{"Signal coverage":{v:74,d:-2},"Guest reach":{v:52,d:-4},"Demand momentum":{v:44,d:-7},"Conversion":{v:48,d:-5},"Spend health":{v:55,d:-3}},
+     drivers:[{n:"No-show rate spike",c:-16,s:"Weekend no-shows 19% vs 9% target"},{n:"Dynamic table release",c:+9,s:"Recovered seats resold same night"},{n:"Overbooking guardrails",c:-8,s:"Conservative caps leaving seats empty"}],
+     external:[{t:"Weather",dir:"down",imp:"neg",h:"Storm front two weekends out",s:"Amplifies no-show risk on booked tables"},
+       {t:"Local events",dir:"up",imp:"pos",h:"Festival after-parties in demand",s:"Late-night fill opportunity if released"},
+       {t:"Competitor venues",dir:"up",imp:"neg",h:"New venue opening Friday",s:"Splits the weekend crowd near-term"}],
+     actions:[{h:"Deploy deposit-backed holds",imp:"High",eff:"Now",s:"No-shows are the dominant negative driver — add skin in the game.",lk:"No-show analysis"},
+       {h:"Loosen overbooking guardrails",imp:"High",eff:"1 week",s:"Recover empty seats the caps are leaving behind.",lk:"Yield model"},
+       {h:"Release late-night after-party inventory",imp:"Med",eff:"1 week",s:"Convert festival demand into weekend fill.",lk:"Inventory drop plan"}],
+     hist:H([57,55,53,52,50,49,48,47])},
+
+    {id:"o6",name:"Drive 30% of covers from crews",hub:"Guest",owner:"Priya N.",status:"on-track",priority:"P2",horizon:"H2 2026",
+     pillar:"crews", mix:[["crews",55],["bookings",25],["taste",20]],
+     score:68,delta:+4,confidence:64,targetProgress:57,timelineHealth:71,peerIndex:+3,risk:"medium",
+     health:{"Signal coverage":{v:58,d:+4},"Guest reach":{v:62,d:+3},"Demand momentum":{v:69,d:+4},"Conversion":{v:66,d:+3},"Spend health":{v:72,d:+4}},
+     drivers:[{n:"Crew group offers",c:+11,s:"Bundle pricing lifting group bookings"},{n:"Blended crew affinity",c:+7,s:"Consensus taste boost improving recs"},{n:"Crew onboarding friction",c:-6,s:"Adding members mid-booking is clunky"}],
+     external:[{t:"Nightlife trends",dir:"up",imp:"pos",h:"Group-outing culture strong",s:"Crews are the growth unit of demand"},
+       {t:"Reservation demand",dir:"up",imp:"pos",h:"Large-party requests rising",s:"Feeds the crew booking motion"},
+       {t:"Seasonality",dir:"up",imp:"watch",h:"Graduation / birthday season",s:"Occasion-led crews spike — capacity watch"}],
+     actions:[{h:"Streamline add-a-member flow",imp:"Med",eff:"1 sprint",s:"Remove the one negative driver in crew onboarding.",lk:"Crew funnel audit"},
+       {h:"Templatize crew group offers",imp:"Med",eff:"1 sprint",s:"Scale the strongest driver across occasions.",lk:"Group offer kit"}],
+     hist:H([61,62,63,64,65,66,67,68])},
+
+    {id:"o7",name:"Grow consented reachable base to 60k guests",hub:"Guest",owner:"Sofia K.",status:"on-track",priority:"P1",horizon:"Q3 2026",
+     pillar:"identity", mix:[["identity",65],["marketing",20],["taste",15]],
+     score:74,delta:+6,confidence:70,targetProgress:64,timelineHealth:79,peerIndex:+8,risk:"low",
+     health:{"Signal coverage":{v:69,d:+5},"Guest reach":{v:73,d:+7},"Demand momentum":{v:66,d:+3},"Conversion":{v:71,d:+4},"Spend health":{v:64,d:+3}},
+     drivers:[{n:"Entry-QR consent",c:+15,s:"Door check-in capturing opt-in at scale"},{n:"Double opt-in flow",c:+7,s:"Higher-quality, durable consent grants"},{n:"Walk-in blind spots",c:-6,s:"Cash walk-ins still unidentified"}],
+     external:[{t:"Reservation demand",dir:"up",imp:"pos",h:"More booked (identified) guests",s:"Bookings are the cleanest consent channel"},
+       {t:"Regulatory",dir:"flat",imp:"watch",h:"Privacy rules tightening",s:"Keep consent purpose-scoped and revocable"},
+       {t:"Nightlife trends",dir:"up",imp:"pos",h:"Guests expect personalization",s:"Consent easier to earn with clear value"}],
+     actions:[{h:"Extend entry-QR to all venues",imp:"High",eff:"2 sprints",s:"Roll the top positive driver across the estate.",lk:"Consent capture map"},
+       {h:"Add walk-in identity moment",imp:"Med",eff:"1 sprint",s:"Close the blind spot on cash walk-ins.",lk:"Walk-in flow"},
+       {h:"Audit consent purpose scopes",imp:"Med",eff:"1 week",s:"Stay ahead of tightening privacy rules.",lk:"Consent register"}],
+     hist:H([62,64,66,68,70,71,73,74])},
+
+    {id:"o8",name:"Reach 4.5x campaign-attributed ROAS",hub:"Marketing",owner:"Sofia K.",status:"at-risk",priority:"P1",horizon:"Q3 2026",
+     pillar:"marketing", mix:[["marketing",60],["taste",25],["revenue",15]],
+     score:61,delta:+2,confidence:57,targetProgress:52,timelineHealth:60,peerIndex:-3,risk:"medium",
+     health:{"Signal coverage":{v:63,d:+2},"Guest reach":{v:66,d:+2},"Demand momentum":{v:59,d:+1},"Conversion":{v:60,d:+3},"Spend health":{v:56,d:-2}},
+     drivers:[{n:"Taste-segment targeting",c:+12,s:"Affinity audiences beat broad by 2.1x"},{n:"Paid CAC inflation",c:-12,s:"Channel auction pressure lifting cost"},{n:"Attribution coverage",c:+5,s:"POS-to-campaign linkage improving"}],
+     external:[{t:"Competitor venues",dir:"up",imp:"neg",h:"Rival outspending on paid social",s:"Auction pressure lifting CAC"},
+       {t:"Nightlife trends",dir:"up",imp:"pos",h:"Organic buzz on two residencies",s:"Earned reach to lean into"},
+       {t:"Reservation demand",dir:"up",imp:"pos",h:"Category demand rising",s:"Efficiency upside if targeting holds"}],
+     actions:[{h:"Shift spend to taste-segments",imp:"High",eff:"2 weeks",s:"Escape CAC inflation via the top positive driver.",lk:"Audience performance"},
+       {h:"Amplify organic residency buzz",imp:"Med",eff:"1 week",s:"Convert earned reach before paid.",lk:"Channel mix"}],
+     hist:H([57,58,58,59,60,60,60,61])},
+
+    {id:"o9",name:"Lift personalization uplift to +22% spend",hub:"Guest",owner:"Priya N.",status:"achieved",priority:"P2",horizon:"Q2 2026",
+     pillar:"taste", mix:[["taste",50],["revenue",30],["bookings",20]],
+     score:89,delta:+1,confidence:86,targetProgress:100,timelineHealth:94,peerIndex:+17,risk:"low",
+     health:{"Signal coverage":{v:84,d:+2},"Guest reach":{v:80,d:+1},"Demand momentum":{v:82,d:+2},"Conversion":{v:85,d:+1},"Spend health":{v:88,d:+3}},
+     drivers:[{n:"Taste-matched offers",c:+15,s:"Uplift +24% vs control cohort"},{n:"Recommendation coverage",c:+6,s:"Recs on 88% of active guests"},{n:"Cold-start guests",c:-5,s:"New guests lack enough signal"}],
+     external:[{t:"Reservation demand",dir:"up",imp:"pos",h:"Guests act on recs at booking",s:"Personalization compounding at point of intent"},
+       {t:"Nightlife trends",dir:"flat",imp:"watch",h:"Taste cycles shifting fast",s:"Keep the graph fresh to hold uplift"}],
+     actions:[{h:"Solve cold-start with crew blend",imp:"Med",eff:"2 sprints",s:"Use crew affinity to seed new-guest recs.",lk:"Cold-start brief"},
+       {h:"Bank the personalization pattern",imp:"Low",eff:"2 days",s:"Document the winning offer model for reuse.",lk:"Playbook"}],
+     hist:H([82,84,85,87,88,88,88,89])}
+  ];
+
+  var STATE={pillar:"All",hub:"All",owner:"All",status:"All",priority:"All",horizon:"All",sort:"score",q:"",view:"portfolio",sel:"o1",me:"Priya N."};
+
+  // ---- helpers ----
+  function scoreColor(v){ if(v>=75) return "var(--good)"; if(v>=55) return "var(--warn)"; return "var(--crit)"; }
+  function scoreWash(v){ if(v>=75) return "var(--good-wash)"; if(v>=55) return "var(--warn-wash)"; return "var(--crit-wash)"; }
+  function statusPill(s){ var m={"on-track":["good","On track"],"at-risk":["warn","At risk"],"off-track":["crit","Off track"],"achieved":["info","Achieved"]}; return '<span class="pill '+m[s][0]+'">'+m[s][1]+'</span>'; }
+  function riskRank(r){ return {high:3,medium:2,low:1}[r]||0; }
+  function hstat(v){ return v>=70?"var(--good)":v>=50?"var(--warn)":"var(--crit)"; }
+  function delta(n){ var c=n>0?"up":n<0?"down":"flat"; var a=n>0?"▲":n<0?"▼":"■"; return '<span class="delta '+c+'">'+a+' '+(n>0?"+":"")+n+'</span>'; }
+  function sign(n){ return (n>0?"+":"")+n; }
+  function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
+
+  function spark(hist,w,h,stroke){
+    w=w||150; h=h||34; var min=Math.min.apply(null,hist), max=Math.max.apply(null,hist), rng=(max-min)||1, pad=3;
+    var pts=hist.map(function(v,i){ var x=pad+i*((w-2*pad)/(hist.length-1)); var y=h-pad-((v-min)/rng)*(h-2*pad); return [x,y]; });
+    var d=pts.map(function(p,i){return (i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)}).join(" ");
+    var area=d+" L"+pts[pts.length-1][0].toFixed(1)+" "+(h-pad)+" L"+pad+" "+(h-pad)+" Z";
+    var last=pts[pts.length-1];
+    var col=stroke||"var(--brand)";
+    return '<svg viewBox="0 0 '+w+' '+h+'" width="'+w+'" height="'+h+'" preserveAspectRatio="none" aria-hidden="true">'+
+      '<path d="'+area+'" fill="'+col+'" opacity="0.10"/>'+
+      '<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/>'+
+      '<circle cx="'+last[0].toFixed(1)+'" cy="'+last[1].toFixed(1)+'" r="2.6" fill="'+col+'"/></svg>';
+  }
+
+  // trend sparkline for the detail drawer — valid scaling viewBox + hover crosshair
+  var TS_W=320, TS_H=56, TS_PAD=4;
+  function trendSpark(hist,col){
+    var min=Math.min.apply(null,hist), max=Math.max.apply(null,hist), rng=(max-min)||1;
+    var pts=hist.map(function(v,i){ var x=TS_PAD+i*((TS_W-2*TS_PAD)/(hist.length-1)); var y=TS_H-TS_PAD-((v-min)/rng)*(TS_H-2*TS_PAD); return [x,y]; });
+    var d=pts.map(function(p,i){return (i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)}).join(" ");
+    var area=d+" L"+pts[pts.length-1][0].toFixed(1)+" "+(TS_H-TS_PAD)+" L"+TS_PAD+" "+(TS_H-TS_PAD)+" Z";
+    var last=pts[pts.length-1];
+    return '<div class="tspark" data-hist="'+hist.join(",")+'">'+
+      '<svg viewBox="0 0 '+TS_W+' '+TS_H+'" width="100%" height="'+TS_H+'" preserveAspectRatio="none" aria-hidden="true">'+
+        '<path d="'+area+'" fill="'+col+'" opacity="0.10"/>'+
+        '<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/>'+
+        '<circle cx="'+last[0].toFixed(1)+'" cy="'+last[1].toFixed(1)+'" r="2.6" fill="'+col+'"/></svg>'+
+      '<div class="cross"></div><div class="cdot" style="background:'+col+'"></div></div>';
+  }
+  function wireTrend(){
+    var ts=$(".tspark",$("#detail")); if(!ts) return;
+    var hist=ts.getAttribute("data-hist").split(",").map(Number);
+    var n=hist.length, min=Math.min.apply(null,hist), max=Math.max.apply(null,hist), rng=(max-min)||1;
+    var cross=$(".cross",ts), dot=$(".cdot",ts);
+    ts.addEventListener("mousemove",function(e){
+      var r=ts.getBoundingClientRect();
+      var frac=(e.clientX-r.left)/r.width; frac=frac<0?0:frac>1?1:frac;
+      var idx=Math.round(frac*(n-1));
+      var xv=(TS_PAD+idx*((TS_W-2*TS_PAD)/(n-1)))/TS_W;
+      var yv=(TS_H-TS_PAD-((hist[idx]-min)/rng)*(TS_H-2*TS_PAD))/TS_H;
+      cross.style.left=(xv*100)+"%";
+      dot.style.left=(xv*100)+"%"; dot.style.top=(yv*100)+"%";
+      ts.classList.add("act");
+      showTip("Period "+(idx+1)+" · "+hist[idx], e.clientX, e.clientY);
+    });
+    ts.addEventListener("mouseleave",function(){ ts.classList.remove("act"); hideTip(); });
+  }
+
+  // ---- pillar strip ----
+  function renderPillars(){
+    $("#pillars").innerHTML=PILLARS.map(function(p){
+      return '<button class="pl'+(p.id===STATE.pillar?" on":"")+'" data-p="'+p.id+'" title="'+esc(p.insight)+'">'+
+        '<div class="top"><span class="g" style="background:color-mix(in srgb,'+p.col+' 15%,transparent);color:'+p.col+'">'+p.glyph+'</span>'+
+          '<div><div class="nm">'+p.name+'</div><div class="hub" style="color:'+HUBCOL[p.hub]+'">'+p.hub+' hub</div></div></div>'+
+        '<div class="cov" data-tip="'+esc(p.name)+' coverage '+p.coverage+'% · '+(p.delta>0?"+":"")+p.delta+' vs last period"><span class="covbar"><i style="width:'+p.coverage+'%;background:'+p.col+'"></i></span>'+
+          '<span class="covn">'+p.coverage+'%</span><span class="cd '+(p.delta>0?"up":"down")+'">'+(p.delta>0?"▲":"▼")+sign(p.delta)+'</span></div>'+
+        '<div class="sig">'+esc(p.signal)+'</div></button>';
+    }).join("");
+    $("#pillars").querySelectorAll(".pl").forEach(function(el){
+      el.addEventListener("click",function(){ STATE.pillar = (STATE.pillar===el.dataset.p ? "All" : el.dataset.p); render(); });
+    });
+  }
+
+  // ---- filters ----
+  function uniq(k){ var s={}; DATA.forEach(function(o){s[o[k]]=1}); return Object.keys(s); }
+  function fillSelect(id,vals,label){ var el=$(id); el.innerHTML='<option value="All">'+label+'</option>'+vals.map(function(v){return '<option>'+v+'</option>'}).join(""); }
+  function setupFilters(){
+    $("#f-pillar").innerHTML='<option value="All">All pillars</option>'+PILLARS.map(function(p){return '<option value="'+p.id+'">'+p.name+'</option>'}).join("");
+    fillSelect("#f-hub",uniq("hub"),"All hubs");
+    fillSelect("#f-owner",uniq("owner"),"All owners");
+    fillSelect("#f-status",["on-track","at-risk","off-track","achieved"],"Any status");
+    fillSelect("#f-priority",["P0","P1","P2"],"Any priority");
+    fillSelect("#f-horizon",uniq("horizon"),"Any horizon");
+    var map={"#f-pillar":"pillar","#f-hub":"hub","#f-owner":"owner","#f-status":"status","#f-priority":"priority","#f-horizon":"horizon","#sort":"sort"};
+    Object.keys(map).forEach(function(sel){ $(sel).addEventListener("change",function(){ STATE[map[sel]]=this.value; render(); }); });
+    $("#q").addEventListener("input",function(){ STATE.q=this.value.toLowerCase(); render(); });
+    $("#view").querySelectorAll("button").forEach(function(b){ b.addEventListener("click",function(){ $("#view").querySelectorAll("button").forEach(function(x){x.classList.remove("on")}); b.classList.add("on"); STATE.view=b.dataset.v; render(); }); });
+    $("#tt").addEventListener("click",function(){ var c=document.documentElement.getAttribute("data-theme"); document.documentElement.setAttribute("data-theme", c==="dark"?"light":(c==="light"?"dark":(matchMedia("(prefers-color-scheme:dark)").matches?"light":"dark"))); render(); });
+  }
+
+  function inPillar(o,pid){ if(o.pillar===pid) return true; return o.mix.some(function(m){return m[0]===pid}); }
+
+  function filtered(){
+    var list=DATA.filter(function(o){
+      if(STATE.view==="mine" && o.owner!==STATE.me) return false;
+      if(STATE.pillar!=="All" && !inPillar(o,STATE.pillar)) return false;
+      if(STATE.hub!=="All" && o.hub!==STATE.hub) return false;
+      if(STATE.owner!=="All" && o.owner!==STATE.owner) return false;
+      if(STATE.status!=="All" && o.status!==STATE.status) return false;
+      if(STATE.priority!=="All" && o.priority!==STATE.priority) return false;
+      if(STATE.horizon!=="All" && o.horizon!==STATE.horizon) return false;
+      if(STATE.q && o.name.toLowerCase().indexOf(STATE.q)<0 && o.hub.toLowerCase().indexOf(STATE.q)<0 && PMAP[o.pillar].name.toLowerCase().indexOf(STATE.q)<0) return false;
+      return true;
+    });
+    list.sort(function(a,b){
+      if(STATE.sort==="score") return b.score-a.score;
+      if(STATE.sort==="risk") return riskRank(b.risk)-riskRank(a.risk) || a.score-b.score;
+      if(STATE.sort==="confidence") return b.confidence-a.confidence;
+      if(STATE.sort==="change") return b.delta-a.delta;
+      return 0;
+    });
+    return list;
+  }
+
+  // ---- summary ----
+  function renderSummary(){
+    var all=DATA;
+    var avg=Math.round(all.reduce(function(s,o){return s+o.score},0)/all.length);
+    var risk=all.filter(function(o){return o.risk==="high"}).length;
+    var improving=all.filter(function(o){return o.delta>0}).length;
+    var declining=all.filter(function(o){return o.delta<0}).length;
+    var g=all.filter(function(o){return o.score>=75}).length, a=all.filter(function(o){return o.score>=55&&o.score<75}).length, c=all.filter(function(o){return o.score<55}).length;
+    $("#summary").innerHTML=
+      sc("Portfolio score",'<span class="num" style="color:'+scoreColor(avg)+'">'+avg+'</span><small class="num" style="color:var(--muted)">/100</small>',"avg relative success")+
+      sc("Outcomes at risk",'<span class="num">'+risk+'</span><small style="color:var(--muted)">high risk</small>',(risk?"needs intervention":"all clear"))+
+      sc("Improving",'<span class="num" style="color:var(--good)">'+improving+'</span><span class="delta '+(improving-declining>=0?"up":"down")+'">'+(improving-declining>=0?"▲":"▼")+' '+sign(improving-declining)+'</span>',"vs "+declining+" declining")+
+      sc("Total outcomes",'<span class="num">'+all.length+'</span>',"across "+PILLARS.length+" pillars")+
+      '<div class="sc"><div class="k">Health distribution</div><div class="dist" style="margin-top:11px">'+
+        '<div class="distbar">'+
+          '<i style="width:'+(g/all.length*100)+'%;background:var(--good)" data-tip="Strong · '+g+' of '+all.length+' outcomes ('+Math.round(g/all.length*100)+'%)"></i>'+
+          '<i style="width:'+(a/all.length*100)+'%;background:var(--warn)" data-tip="Watch · '+a+' of '+all.length+' outcomes ('+Math.round(a/all.length*100)+'%)"></i>'+
+          '<i style="width:'+(c/all.length*100)+'%;background:var(--crit)" data-tip="Critical · '+c+' of '+all.length+' outcomes ('+Math.round(c/all.length*100)+'%)"></i></div>'+
+        '<div class="distlgd"><span><i class="sw" style="background:var(--good)"></i>Strong <b>'+g+'</b></span><span><i class="sw" style="background:var(--warn)"></i>Watch <b>'+a+'</b></span><span><i class="sw" style="background:var(--crit)"></i>Critical <b>'+c+'</b></span></div>'+
+      '</div></div>';
+  }
+  function sc(k,v,sub){ return '<div class="sc"><div class="k">'+k+'</div><div class="v">'+v+'</div>'+(sub?'<div style="font-size:11px;color:var(--muted);margin-top:4px">'+sub+'</div>':'')+'</div>'; }
+
+  function pillarTag(pid){ var p=PMAP[pid]; return '<span class="ptag" style="color:'+p.col+'"><i style="background:'+p.col+'"></i>'+p.name+'</span>'; }
+
+  // ---- list ----
+  function renderList(list){
+    $("#count").textContent=list.length+" of "+DATA.length+" outcomes"+(STATE.pillar!=="All"?" · lensed on "+PMAP[STATE.pillar].name:"");
+    if(!list.length){ $("#list").innerHTML='<div class="empty">No outcomes match these filters.</div>'; return; }
+    $("#list").innerHTML=list.map(function(o){
+      var hchips=Object.keys(o.health).slice(0,4).map(function(k){return '<span class="stat" title="'+k+' '+o.health[k].v+'" style="background:'+hstat(o.health[k].v)+'"></span>'}).join(" ");
+      return '<div class="oc'+(o.id===STATE.sel?" sel":"")+'" tabindex="0" data-id="'+o.id+'">'+
+        '<div class="r1"><div class="score" style="background:'+scoreWash(o.score)+';color:'+scoreColor(o.score)+'">'+o.score+'</div>'+
+          '<div style="flex:1;min-width:0"><div class="nm">'+esc(o.name)+'</div>'+
+          '<div class="meta">'+pillarTag(o.pillar)+'<span class="pri">'+o.priority+'</span>'+statusPill(o.status)+'<span>'+o.owner+'</span><span>·</span><span>'+o.horizon+'</span></div></div>'+
+          '<div style="text-align:right">'+delta(o.delta)+'</div></div>'+
+        '<div class="r2"><span style="display:flex;gap:4px;align-items:center">'+hchips+'</span>'+
+          '<span class="spark">'+spark(o.hist,150,30,scoreColor(o.score))+'</span>'+
+          '<span class="conf">conf <b>'+o.confidence+'</b> · <b>'+o.targetProgress+'%</b> to target</span></div></div>';
+    }).join("");
+    $("#list").querySelectorAll(".oc").forEach(function(el){
+      el.addEventListener("click",function(){ STATE.sel=el.dataset.id; render(); });
+      el.addEventListener("keydown",function(e){ if(e.key==="Enter"||e.key===" "){e.preventDefault(); STATE.sel=el.dataset.id; render();} });
+    });
+  }
+
+  // ---- detail ----
+  function renderDetail(list){
+    var o=DATA.filter(function(x){return x.id===STATE.sel})[0];
+    if(!o || (list.length && list.indexOf(o)<0)) o=list[0];
+    if(!o){ $("#detail").innerHTML='<div class="empty">Select an outcome to see its pillars, drivers, forces, and actions.</div>'; return; }
+    STATE.sel=o.id;
+    var comp=[["Target progress",o.targetProgress],["Confidence",o.confidence],["Timeline health",o.timelineHealth],["Peer comparison",50+o.peerIndex*2]];
+    var ring='conic-gradient('+scoreColor(o.score)+' '+(o.score*3.6)+'deg, var(--sunk) 0)';
+    var fIco={ "Local events":["♪","var(--brand)"],"Weather":["☂","var(--info)"],"Seasonality":["◷","var(--warn)"],"Competitor venues":["◎","var(--crit)"],"Nightlife trends":["✦","var(--brand)"],"Reservation demand":["◍","var(--good)"],"Regulatory":["§","var(--warn)"] };
+    var impMap={pos:["good","Tailwind"],neg:["crit","Headwind"],watch:["warn","Watch"]};
+    var dirA={up:"▲",down:"▼",flat:"■"};
+
+    $("#detail").innerHTML=
+      '<div class="dhead"><div class="nm">'+esc(o.name)+'</div>'+
+        '<div class="sub">'+pillarTag(o.pillar)+'<span class="pri">'+o.priority+'</span>'+statusPill(o.status)+'<span>'+o.hub+' hub</span><span>·</span><span>'+o.owner+'</span><span>·</span><span>'+o.horizon+'</span><span>·</span><span>risk '+o.risk+'</span></div></div>'+
+      '<div class="dbody">'+
+
+      // score composition
+      '<div class="dsec"><h3>Relative success score <span class="hint">normalized vs peers &amp; history</span></h3>'+
+        '<div class="scorerow"><div class="ring" style="background:'+ring+'"><div class="inner"><b style="color:'+scoreColor(o.score)+'">'+o.score+'</b><span>score</span></div></div>'+
+        '<div class="comp">'+comp.map(function(r){var v=Math.max(0,Math.min(100,Math.round(r[1])));return '<div class="row"><span class="lab">'+r[0]+'</span><span class="bar"><i style="width:'+v+'%"></i></span><span class="n">'+v+'</span></div>'}).join("")+'</div></div>'+
+        '<div style="font-size:12px;color:var(--muted)">'+delta(o.delta)+' vs last period · '+(o.peerIndex>=0?"+":"")+o.peerIndex+' vs peer median</div></div>'+
+
+      // pillar contribution
+      '<div class="dsec"><h3>Pillar signal contribution <span class="hint">where this outcome&rsquo;s evidence comes from</span></h3>'+
+        '<div class="plbar">'+o.mix.map(function(m){var p=PMAP[m[0]];return '<i style="width:'+m[1]+'%;background:'+p.col+'" data-tip="'+esc(p.name)+' · '+m[1]+'% of signal contribution"></i>'}).join("")+'</div>'+
+        '<div class="pllgd">'+o.mix.map(function(m){var p=PMAP[m[0]];return '<div class="row"><span class="dot" style="background:'+p.col+'"></span><span class="pn"><b>'+p.name+'</b><span class="hub">'+p.hub+'</span></span><span class="pct">'+m[1]+'%</span></div>'}).join("")+'</div></div>'+
+
+      // health overview
+      '<div class="dsec"><h3>Outcome health · leading indicators</h3><div class="hgrid">'+
+        Object.keys(o.health).map(function(k){var x=o.health[k];return '<div class="hc"><div class="t">'+k+'<span class="stat" style="background:'+hstat(x.v)+'"></span></div><div class="b"><span class="n">'+x.v+'</span><span class="d '+(x.d>0?"up":x.d<0?"down":"flat")+'">'+(x.d>0?"▲":x.d<0?"▼":"■")+' '+sign(x.d)+'</span></div></div>'}).join("")+
+      '</div></div>'+
+
+      // drivers
+      '<div class="dsec"><h3>Recommended drill-downs · top score drivers</h3>'+
+        o.drivers.map(function(d){var pos=d.c>=0;return '<div class="force"><div class="ico" style="background:'+(pos?"var(--good-wash)":"var(--crit-wash)")+';color:'+(pos?"var(--good)":"var(--crit)")+'">'+(pos?"↑":"↓")+'</div>'+
+          '<div class="txt"><div class="h">'+esc(d.n)+'</div><div class="s">'+esc(d.s)+'</div></div>'+
+          '<div class="imp" style="background:'+(pos?"var(--good-wash)":"var(--crit-wash)")+';color:'+(pos?"var(--good)":"var(--crit)")+'">'+sign(d.c)+' pts</div></div>'}).join("")+'</div>'+
+
+      // external forces
+      '<div class="dsec"><h3>External market forces <span class="hint">local demand context</span></h3>'+
+        o.external.map(function(f){var ic=fIco[f.t]||["•","var(--muted)"];var im=impMap[f.imp];return '<div class="force"><div class="ico" style="background:color-mix(in srgb,'+ic[1]+' 14%,transparent);color:'+ic[1]+'">'+ic[0]+'</div>'+
+          '<div class="txt"><div class="h">'+esc(f.h)+' <span class="tagpair" style="color:var(--faint)">'+f.t+' '+dirA[f.dir]+'</span></div><div class="s">'+esc(f.s)+'</div></div>'+
+          '<div class="imp pill '+im[0]+'">'+im[1]+'</div></div>'}).join("")+'</div>'+
+
+      // actions
+      '<div class="dsec"><h3>Action guidance · next best steps</h3>'+
+        o.actions.map(function(a){var ic={High:"crit",Med:"warn",Low:"info"}[a.imp]||"info";return '<div class="act"><div class="top"><span class="h">'+esc(a.h)+'</span><span class="imp pill '+ic+'">'+a.imp+' impact</span></div>'+
+          '<div class="s">'+esc(a.s)+'</div><div class="lk"><a class="go" href="#" onclick="return false">'+esc(a.lk)+' ↗</a><span class="tagpair">effort · '+a.eff+'</span></div></div>'}).join("")+'</div>'+
+
+      // trend
+      '<div class="dsec"><h3>Relative success over time <span class="hint">last 8 periods</span></h3>'+
+        '<div class="trendbox">'+trendSpark(o.hist,scoreColor(o.score))+
+        '<div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:4px"><span>'+o.hist[0]+'</span><span>now '+o.score+'</span></div></div></div>'+
+
+      '</div>';
+
+    wireTrend();
+  }
+
+  function render(){
+    var list=filtered();
+    $("#f-pillar").value=STATE.pillar; $("#f-hub").value=STATE.hub; $("#f-owner").value=STATE.owner;
+    $("#f-status").value=STATE.status; $("#f-priority").value=STATE.priority; $("#f-horizon").value=STATE.horizon;
+    renderPillars(); renderSummary(); renderList(list); renderDetail(list);
+  }
+  setupFilters(); render();
+})();
+</script>

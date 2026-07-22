@@ -5,7 +5,9 @@ import {
   Module,
   Param,
   Post,
+  UnauthorizedException,
 } from '@nestjs/common';
+import { randomBytes } from 'crypto';
 import { ApiTags } from '@nestjs/swagger';
 import { IsArray, IsOptional, IsString } from 'class-validator';
 import { PrismaService } from '../../../common/prisma/prisma.service';
@@ -22,8 +24,14 @@ class AuthorizeDto {
   @IsString() guestId!: string;
 }
 class CallbackDto {
-  @IsString() guestId!: string;
-  @IsOptional() @IsString() accessToken?: string;
+  // CSRF: the opaque state nonce issued by /authorize must round-trip back here.
+  @IsString() state!: string;
+  // Retained for the provider redirect payload; the authoritative guestId is the
+  // one bound to the state nonce server-side, not this client-supplied value.
+  @IsOptional() @IsString() guestId?: string;
+  // NOTE: an access token is intentionally NOT accepted from the client body —
+  // the real flow exchanges the provider `code` for a token server-side.
+  @IsOptional() @IsString() code?: string;
 }
 class QuizDto {
   @IsString() guestId!: string;
@@ -44,8 +52,25 @@ export class ConnectorsService {
     private readonly instagram: InstagramAdapter,
   ) {}
 
+  /**
+   * Pending OAuth state nonces → the request that issued them. Guards against
+   * CSRF / login-fixation on the callback (P1). In-memory is per-instance and
+   * lost on restart — TODO: move to Redis with a short TTL so this survives
+   * horizontal scaling and expires abandoned flows.
+   */
+  private readonly pendingStates = new Map<
+    string,
+    { provider: string; guestId: string; createdAt: number }
+  >();
+
   authorize(provider: string, dto: AuthorizeDto) {
-    const state = `${provider}:${dto.guestId}`;
+    // Unpredictable, single-use nonce instead of the guessable `provider:guestId`.
+    const state = randomBytes(32).toString('hex');
+    this.pendingStates.set(state, {
+      provider,
+      guestId: dto.guestId,
+      createdAt: Date.now(),
+    });
     const url =
       provider === 'instagram'
         ? this.instagram.authorizeUrl(state)
@@ -55,10 +80,24 @@ export class ConnectorsService {
 
   /** Complete OAuth → record consent → sync taste into evidence. */
   async callback(ctx: TenantContext, provider: string, dto: CallbackDto) {
+    // Validate the CSRF state nonce and bind guestId to the issuing request.
+    const pending = this.pendingStates.get(dto.state);
+    if (!pending || pending.provider !== provider) {
+      throw new UnauthorizedException('Invalid or expired OAuth state');
+    }
+    this.pendingStates.delete(dto.state); // single-use
+    const guestId = pending.guestId;
+
+    // TODO: real server-side code→token exchange belongs here — POST the
+    // provider's OAuth `code` (dto.code) to its token endpoint with the client
+    // secret and receive the access token. We must NEVER accept an access token
+    // from the client body. Until that is wired, adapters run against a stub.
+    const accessToken = 'stub';
+
     const consent = await this.prisma.consentGrant.create({
       data: {
         tenantId: ctx.tenantId,
-        guestId: dto.guestId,
+        guestId,
         scope: `taste:${provider}`,
         basis: ConsentBasis.connector_oauth,
         connector: provider,
@@ -67,12 +106,12 @@ export class ConnectorsService {
 
     const signals =
       provider === 'instagram'
-        ? await this.instagram.fetchTaste(dto.accessToken ?? 'stub')
-        : await this.spotify.fetchTaste(dto.accessToken ?? 'stub');
+        ? await this.instagram.fetchTaste(accessToken)
+        : await this.spotify.fetchTaste(accessToken);
 
     for (const s of signals) {
       await this.taste.appendEvidence(ctx, {
-        guestId: dto.guestId,
+        guestId,
         subjectType: s.subjectType as any,
         subjectRef: s.subjectRef,
         signal:

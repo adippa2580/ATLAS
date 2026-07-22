@@ -10,7 +10,7 @@ import {
   Put,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString } from 'class-validator';
 import { InventoryKind } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { Scopes } from '../../common/auth/scopes.decorator';
@@ -26,9 +26,10 @@ class UpsertInventoryDto {
   @IsOptional() @IsString() venueId?: string;
   @IsOptional() @IsEnum(InventoryKind) kind?: InventoryKind;
   @IsOptional() @IsString() label?: string;
-  @IsOptional() @IsNumber() capacity?: number;
-  @IsOptional() @IsNumber() minSpend?: number;
-  @IsOptional() @IsNumber() deposit?: number;
+  @IsOptional() @IsInt() capacity?: number;
+  // Money is integer minor units (cents).
+  @IsOptional() @IsInt() minSpend?: number;
+  @IsOptional() @IsInt() deposit?: number;
 }
 
 /**

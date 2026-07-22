@@ -1,5 +1,4 @@
 import {
-  Body,
   Controller,
   Get,
   Headers,
@@ -8,6 +7,8 @@ import {
   NotFoundException,
   Param,
   Post,
+  RawBody,
+  Req,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Prisma, Provenance, Signal, SubjectType } from '@prisma/client';
@@ -19,9 +20,33 @@ import { evidenceDedupeKey } from '../../common/util/hash';
 import { SquareAdapter } from '../../integrations/square.adapter';
 
 /**
+ * Normalize a raw POS line-item name into a coarse SKU/category key so that
+ * spend can be fanned into the taste graph at product grain (§4.2, insight H).
+ * Lowercases, maps obvious keywords, and returns a `product:<category>`
+ * subjectRef. Ordering matters — the first matching bucket wins.
+ */
+export function categorizeSku(name: string): string {
+  const n = (name ?? '').toLowerCase();
+  const has = (...kws: string[]) => kws.some((k) => n.includes(k));
+
+  let category: string;
+  if (has('champagne', 'prosecco')) category = 'champagne';
+  else if (has('tequila', 'mezcal')) category = 'tequila';
+  else if (has('vodka', 'gin', 'whisk', 'rum')) category = 'spirit';
+  else if (has('wine')) category = 'wine';
+  else if (has('beer')) category = 'beer';
+  else if (has('espresso', 'cocktail', 'martini')) category = 'cocktail';
+  else if (has('water', 'soda', 'na')) category = 'na';
+  else category = 'other';
+
+  return `product:${category}`;
+}
+
+/**
  * Tab / POS Sync (#13) — the Square POS webhook closes the loop from booking →
  * spend → CRM. Each line item on the tab becomes a `spend` signal (provenance
- * `pos`) against the venue in the guest's taste graph.
+ * `pos`) against the venue AND, per §4.2, against a normalized product/SKU
+ * category in the guest's taste graph.
  */
 @Injectable()
 export class TabService {
@@ -32,13 +57,28 @@ export class TabService {
   ) {}
 
   /**
-   * Signed Square webhook. Authenticated by signature (no scope); the tenant is
-   * resolved from the referenced booking rather than a token.
+   * Signed Square webhook. Authenticated by the Square signature over the RAW
+   * body (no scope); the tenant is resolved from the referenced booking rather
+   * than a token. Spend is recorded in integer minor units (cents).
    */
-  async handleWebhook(payload: any, signature?: string) {
-    if (!this.square.verifyWebhook(payload, signature)) {
+  async handleWebhook(
+    rawBody: Buffer | undefined,
+    signature?: string,
+    notificationUrl?: string,
+  ) {
+    if (!this.square.verifyWebhook(rawBody, signature, notificationUrl)) {
       return { received: false };
     }
+
+    // Act on exactly the verified bytes.
+    let payload: any;
+    try {
+      payload = rawBody ? JSON.parse(rawBody.toString('utf8')) : undefined;
+    } catch {
+      return { received: false };
+    }
+    if (!payload) return { received: true, matched: 0 };
+
     const bookingId: string | undefined =
       payload?.bookingId ?? payload?.reference ?? payload?.referenceId;
     if (!bookingId) return { received: true, matched: 0 };
@@ -68,6 +108,7 @@ export class TabService {
 
     // Each line item is revealed spend — publish it into the taste graph.
     for (const [i, item] of tab.lineItems.entries()) {
+      // Venue-grain spend (unchanged): the whole tab weighs against the venue.
       await this.bus.publish({
         tenantId: booking.tenantId,
         guestId: booking.guestId,
@@ -79,6 +120,28 @@ export class TabService {
         dedupeKey: evidenceDedupeKey(
           'pos',
           `${tab.externalTabId}:${i}`,
+          'spend',
+        ),
+        observedAt: new Date().toISOString(),
+      });
+
+      // §4.2 product-grain fan-out: the SAME line ALSO lands as `product`
+      // evidence keyed to a normalized SKU/category, so per-SKU taste becomes
+      // derived affinity (insight H). The dedupeKey is distinct from the
+      // venue-grain key above and unique per booking + line index + category,
+      // so at-least-once redelivery never double-counts either grain.
+      const productRef = categorizeSku(item.name);
+      await this.bus.publish({
+        tenantId: booking.tenantId,
+        guestId: booking.guestId,
+        subjectType: SubjectType.product,
+        subjectRef: productRef,
+        signal: Signal.spend,
+        weight: Number(item.amount) || 1,
+        provenance: Provenance.pos,
+        dedupeKey: evidenceDedupeKey(
+          'pos',
+          `product:${bookingId}:${i}:${productRef}`,
           'spend',
         ),
         observedAt: new Date().toISOString(),
@@ -102,13 +165,20 @@ export class TabService {
 export class SquareWebhookController {
   constructor(private readonly svc: TabService) {}
 
-  // No @Scopes — authenticated by Square signature, tenant resolved from booking.
+  // No @Scopes — authenticated by Square signature over the raw body, tenant
+  // resolved from the referenced booking.
   @Post('square')
   webhook(
-    @Body() payload: any,
-    @Headers('x-square-signature') signature?: string,
+    @Req() req: any,
+    @RawBody() rawBody: Buffer,
+    @Headers('x-square-hmacsha256-signature') signature?: string,
   ) {
-    return this.svc.handleWebhook(payload, signature);
+    // Square signs over the exact notification URL it POSTed to. Prefer an
+    // explicit configured URL; otherwise reconstruct it from the request.
+    const notificationUrl =
+      process.env.SQUARE_WEBHOOK_URL ??
+      `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+    return this.svc.handleWebhook(rawBody, signature, notificationUrl);
   }
 }
 

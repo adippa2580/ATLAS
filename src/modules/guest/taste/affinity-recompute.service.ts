@@ -4,18 +4,22 @@ import {
   EvidenceBus,
   EvidenceMessage,
 } from '../../../common/evidence/evidence-bus';
-import { Signal } from '@prisma/client';
+import { Signal, SubjectType } from '@prisma/client';
 
 /**
- * Recompute worker: subscribes to the evidence stream and folds each record into
- * the derived GuestAffinity, applying the graph rules
+ * Recompute worker: subscribes to the evidence stream and rebuilds the derived
+ * GuestAffinity for a subject by folding DETERMINISTICALLY over the immutable
+ * AffinityEvidence log, applying the graph rules
  * (docs/architecture/atlas-system-design.md §3.3):
- *   - mutes override all
+ *   - mutes override (latest mute vs. positive signal wins → un-mute path)
  *   - bookings/spend weigh most
- *   - recent signal beats old (time-decay, applied incrementally here)
  *
- * MVP does incremental recompute on the hot path; a nightly full pass (not in
- * this build) reconciles decay. In prod this is a separate Pub/Sub subscriber.
+ * The fold is a pure function of the evidence log, so an at-least-once
+ * redelivery is harmless and a full replay reproduces the same state (P0-6).
+ * Evidence gated by a REVOKED consent is excluded from the fold (P0-8), so
+ * revoking consent purges the derived taste it contributed.
+ *
+ * In prod this is a separate Pub/Sub subscriber.
  */
 @Injectable()
 export class AffinityRecomputeService implements OnModuleInit {
@@ -41,53 +45,74 @@ export class AffinityRecomputeService implements OnModuleInit {
     this.bus.subscribe((msg) => this.apply(msg));
   }
 
+  /** Stream handler — a redelivery just recomputes the same subject. */
   async apply(msg: EvidenceMessage): Promise<void> {
-    const muted = msg.signal === Signal.mute;
-    const contribution =
-      (msg.weight ?? 1) * AffinityRecomputeService.SIGNAL_WEIGHT[msg.signal];
-
-    const existing = await this.prisma.guestAffinity.findUnique({
-      where: {
-        tenantId_guestId_subjectType_subjectRef: {
-          tenantId: msg.tenantId,
-          guestId: msg.guestId,
-          subjectType: msg.subjectType,
-          subjectRef: msg.subjectRef,
-        },
-      },
-    });
-
-    // Simple exponential-ish blend: decay prior toward recent signal.
-    const priorScore = existing?.score ?? 0;
-    const decayedPrior = priorScore * 0.9;
-    const nextScore = muted ? priorScore : decayedPrior + contribution;
-
-    await this.prisma.guestAffinity.upsert({
-      where: {
-        tenantId_guestId_subjectType_subjectRef: {
-          tenantId: msg.tenantId,
-          guestId: msg.guestId,
-          subjectType: msg.subjectType,
-          subjectRef: msg.subjectRef,
-        },
-      },
-      create: {
-        tenantId: msg.tenantId,
-        guestId: msg.guestId,
-        subjectType: msg.subjectType,
-        subjectRef: msg.subjectRef,
-        score: nextScore,
-        muted,
-      },
-      update: {
-        score: nextScore,
-        muted: muted || existing?.muted || false,
-        decayedAt: new Date(),
-      },
-    });
-
-    this.logger.debug(
-      `affinity ${msg.guestId} ${msg.subjectType}:${msg.subjectRef} -> ${nextScore.toFixed(2)}${muted ? ' (muted)' : ''}`,
+    await this.recomputeSubject(
+      msg.tenantId,
+      msg.guestId,
+      msg.subjectType,
+      msg.subjectRef,
     );
+  }
+
+  /**
+   * Deterministically rebuild the derived affinity for one
+   * (tenantId, guestId, subjectType, subjectRef) key by folding over its
+   * immutable evidence log. Idempotent and replay-safe.
+   *
+   * Excludes evidence gated by a revoked consent (no consent, or a consent
+   * whose revokedAt is null). Mute/un-mute is resolved by time order: the
+   * latest mute suppresses; a later positive signal clears it.
+   */
+  async recomputeSubject(
+    tenantId: string,
+    guestId: string,
+    subjectType: SubjectType,
+    subjectRef: string,
+  ): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      const evidence = await tx.affinityEvidence.findMany({
+        where: {
+          tenantId,
+          guestId,
+          subjectType,
+          subjectRef,
+          // Consent revocation purges derived taste (P0-8): fold only over
+          // evidence with no consent or a still-active consent.
+          OR: [{ consentId: null }, { consent: { revokedAt: null } }],
+        },
+        orderBy: { observedAt: 'asc' },
+      });
+
+      let score = 0;
+      let muted = false;
+      for (const e of evidence) {
+        if (e.signal === Signal.mute) {
+          muted = true;
+        } else {
+          // A later positive signal clears a prior mute (un-mute path).
+          muted = false;
+          score +=
+            (e.weight ?? 1) * AffinityRecomputeService.SIGNAL_WEIGHT[e.signal];
+        }
+      }
+
+      await tx.guestAffinity.upsert({
+        where: {
+          tenantId_guestId_subjectType_subjectRef: {
+            tenantId,
+            guestId,
+            subjectType,
+            subjectRef,
+          },
+        },
+        create: { tenantId, guestId, subjectType, subjectRef, score, muted },
+        update: { score, muted, decayedAt: new Date() },
+      });
+
+      this.logger.debug(
+        `affinity ${guestId} ${subjectType}:${subjectRef} -> ${score.toFixed(2)}${muted ? ' (muted)' : ''}`,
+      );
+    });
   }
 }

@@ -43,6 +43,7 @@ export class AvailabilityService {
     if (opts.crewId) {
       const crewAff = await this.prisma.crewAffinity.findFirst({
         where: {
+          tenantId: ctx.tenantId,
           crewId: opts.crewId,
           subjectType: 'venue',
           subjectRef: venueId,

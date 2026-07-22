@@ -6,10 +6,17 @@ import { AppModule } from './app.module';
 import { ScopesGuard } from './common/auth/scopes.guard';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  // rawBody enables webhook handlers to verify provider signatures over the
+  // exact bytes received (Stripe / Square HMAC) — see the ops webhook modules.
+  const app = await NestFactory.create(AppModule, {
+    rawBody: true,
+    bufferLogs: true,
+  });
   app.useLogger(app.get(Logger));
 
-  app.setGlobalPrefix('v1', { exclude: ['health'] });
+  app.setGlobalPrefix('v1', {
+    exclude: ['health', 'dashboard', 'outcomes'],
+  });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.useGlobalGuards(new ScopesGuard(app.get(Reflector)));
 
