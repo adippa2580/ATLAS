@@ -39,6 +39,10 @@ spec:
               value: https://atlas-4je5vwjoha-uc.a.run.app/v1/connectors/spotify/callback
             - name: SPOTIFY_CLIENT_SECRET
               value: '__SPOTIFY_CLIENT_SECRET__'
+            # Eventbrite demand connector. Empty (no repo secret) → adapter stays
+            # in STUB mode; set the EVENTBRITE_API_TOKEN repo secret to go live.
+            - name: EVENTBRITE_API_TOKEN
+              value: '__EVENTBRITE_API_TOKEN__'
             - name: ALIST_FEED_URL
               value: https://ofjcnikfebfgopytsgbm.supabase.co
             - name: ALIST_FEED_KEY
