@@ -23,6 +23,7 @@ import { McpModule } from './modules/mcp/mcp.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { OutcomesModule } from './outcomes/outcomes.module';
+import { DeliverablesModule } from './deliverables/deliverables.module';
 import { StatsModule } from './stats/stats.module';
 import { GraphInsightsModule } from './insights/graph/graph-insights.module';
 import { RevenueInsightsModule } from './insights/revenue/revenue-insights.module';
@@ -51,6 +52,8 @@ import { ProjectionModule } from './modules/guest/projection/projection.module';
     McpModule,
     DashboardModule,
     OutcomesModule,
+    // Static design deliverables (Atlas v3.1 + A-List surfaces) at /deliverables.
+    DeliverablesModule,
     StatsModule,
     GraphInsightsModule,
     RevenueInsightsModule,
