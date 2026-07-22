@@ -5,6 +5,12 @@ import { SpotifyAdapter } from './spotify.adapter';
 import { InstagramAdapter } from './instagram.adapter';
 import { KlaviyoAdapter } from './klaviyo.adapter';
 import { LightspeedAdapter } from './lightspeed.adapter';
+import { ToastAdapter } from './toast.adapter';
+import { SevenroomsAdapter } from './sevenrooms.adapter';
+import { ResyAdapter } from './resy.adapter';
+import { TockAdapter } from './tock.adapter';
+import { EventbriteAdapter } from './eventbrite.adapter';
+import { GoogleCalendarAdapter } from './gcal.adapter';
 import { EventsFeedAdapter } from './eventsfeed.adapter';
 
 /**
@@ -23,6 +29,12 @@ import { EventsFeedAdapter } from './eventsfeed.adapter';
     KlaviyoAdapter,
     LightspeedAdapter,
     EventsFeedAdapter,
+    ToastAdapter,
+    SevenroomsAdapter,
+    ResyAdapter,
+    TockAdapter,
+    EventbriteAdapter,
+    GoogleCalendarAdapter,
   ],
   exports: [
     StripeAdapter,
@@ -32,6 +44,12 @@ import { EventsFeedAdapter } from './eventsfeed.adapter';
     KlaviyoAdapter,
     LightspeedAdapter,
     EventsFeedAdapter,
+    ToastAdapter,
+    SevenroomsAdapter,
+    ResyAdapter,
+    TockAdapter,
+    EventbriteAdapter,
+    GoogleCalendarAdapter,
   ],
 })
 export class IntegrationsModule {}
