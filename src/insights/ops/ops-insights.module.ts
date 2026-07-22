@@ -109,7 +109,7 @@ export function riskScore(f: NoShowFeatures): number {
 }
 
 /** Map a risk score to a deposit tier the floor can auto-apply on held->confirmed. */
-function depositTier(score: number): 'waive' | 'standard' | 'full' {
+export function depositTier(score: number): 'waive' | 'standard' | 'full' {
   if (score < 25) return 'waive';
   if (score < 60) return 'standard';
   return 'full';

@@ -7,6 +7,7 @@ import { TabModule } from './tab.module';
 import { RoutingModule } from './routing.module';
 import { DoorModule } from './door.module';
 import { CloseoutModule } from './closeout.module';
+import { PosBackfillModule } from './pos-backfill.module';
 
 /** Ops hub — the 8 primitives that run BOOK & PAY, LIVE and WRAP. */
 @Module({
@@ -19,6 +20,7 @@ import { CloseoutModule } from './closeout.module';
     RoutingModule,
     DoorModule,
     CloseoutModule,
+    PosBackfillModule,
   ],
   exports: [
     BookingsModule,

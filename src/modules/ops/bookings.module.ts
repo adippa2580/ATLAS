@@ -26,6 +26,10 @@ import {
   SubjectType,
 } from '@prisma/client';
 import { AvailabilityService } from './availability.service';
+import {
+  riskScore,
+  NoShowFeatures,
+} from '../../insights/ops/ops-insights.module';
 
 class CreateBookingDto {
   @IsString() venueId!: string;
@@ -247,6 +251,132 @@ export class BookingsService {
     });
     return cancelled;
   }
+
+  /**
+   * Instant-confirm coverage extension: auto-confirm a HELD booking WITHOUT a
+   * deposit gate when the guest is "known and low-risk" — identity-matched
+   * (`Guest.provisional === false`) AND low no-show risk (reusing the exported
+   * `riskScore` model, Insight D). Policy: confirm iff `!provisional &&
+   * riskScore < 35`. The `held → confirmed` status write lands in the SAME
+   * transaction as its §4.1 ledger row, exactly mirroring the `create` confirm
+   * path (which then publishes `book` evidence + meters a `usage_event`).
+   *
+   * Idempotent: re-running on an already-confirmed (or later) booking is a safe
+   * no-op — it neither re-transitions nor re-publishes/re-meters.
+   */
+  async autoConfirm(ctx: TenantContext, id: string) {
+    const booking = await this.prisma.booking.findFirst({
+      where: { id, tenantId: ctx.tenantId },
+      include: {
+        guest: { select: { provisional: true } },
+        inventory: { select: { deposit: true } },
+      },
+    });
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    // Idempotent no-op: only a HELD booking is a candidate. An already-confirmed
+    // (or seated/closed) booking returns `confirmed:true` without re-metering; a
+    // cancelled booking is not eligible.
+    if (booking.status !== BookingStatus.held) {
+      if (booking.status === BookingStatus.cancelled) {
+        return {
+          confirmed: false as const,
+          riskScore: null,
+          reason: 'booking is cancelled',
+        };
+      }
+      return { confirmed: true as const, riskScore: null, booking };
+    }
+
+    // Grounded no-show features (Insight D): trustNet where a `no_show` erodes
+    // and every other TrustEvent builds; priorCancelled from this guest's
+    // cancelled bookings; leadTimeHours from `date - createdAt`; hasDeposit from
+    // the booked inventory; partySize + provisional from the booking/guest.
+    const [trustEvents, priorCancelled] = await Promise.all([
+      this.prisma.trustEvent.findMany({
+        where: { tenantId: ctx.tenantId, guestId: booking.guestId },
+        select: { kind: true, weight: true },
+      }),
+      this.prisma.booking.count({
+        where: {
+          tenantId: ctx.tenantId,
+          guestId: booking.guestId,
+          status: 'cancelled',
+        },
+      }),
+    ]);
+    const trustNet = trustEvents.reduce(
+      (sum, ev) =>
+        sum +
+        (ev.kind === 'no_show' ? -Math.abs(ev.weight) : Math.abs(ev.weight)),
+      0,
+    );
+    const provisional = booking.guest?.provisional ?? true;
+    const features: NoShowFeatures = {
+      trustNet,
+      priorCancelled,
+      leadTimeHours:
+        (booking.date.getTime() - booking.createdAt.getTime()) /
+        (60 * 60 * 1000),
+      hasDeposit: (booking.inventory?.deposit ?? 0) > 0,
+      partySize: booking.partySize,
+      provisional,
+    };
+    const score = riskScore(features);
+
+    // Gate: known (identity-matched) AND low-risk. Not eligible → DO NOT confirm.
+    if (provisional || score >= 35) {
+      return {
+        confirmed: false as const,
+        riskScore: score,
+        reason: provisional
+          ? 'guest identity is provisional'
+          : 'no-show risk too high',
+      };
+    }
+
+    // Eligible: `held → confirmed` + its §4.1 ledger row in ONE transaction,
+    // mirroring the `create` confirm path.
+    const confirmed = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.booking.update({
+        where: { id: booking.id },
+        data: { status: 'confirmed' },
+      });
+      await this.recordStatusTransition(tx, {
+        tenantId: ctx.tenantId,
+        bookingId: booking.id,
+        fromStatus: BookingStatus.held,
+        toStatus: BookingStatus.confirmed,
+      });
+      return updated;
+    });
+
+    // Evidence + metering fire exactly once on confirm — a confirmed booking is
+    // the strongest taste signal there is. dedupeKey mirrors the create path
+    // (`booking:<id>:book`) so a duplicate is harmless.
+    await this.bus.publish({
+      tenantId: ctx.tenantId,
+      guestId: booking.guestId,
+      subjectType: SubjectType.venue,
+      subjectRef: booking.venueId,
+      signal: Signal.book,
+      weight: 3,
+      provenance: Provenance.booking,
+      dedupeKey: evidenceDedupeKey('booking', booking.id, 'book'),
+      observedAt: new Date().toISOString(),
+    });
+    await this.prisma.usageEvent.create({
+      data: {
+        tenantId: ctx.tenantId,
+        kind: 'booking',
+        billableAmount: 0,
+        path: 'app',
+        bookingId: booking.id,
+      },
+    });
+
+    return { confirmed: true as const, riskScore: score, booking: confirmed };
+  }
 }
 
 @ApiTags('ops:bookings')
@@ -289,6 +419,17 @@ export class BookingsController {
   @Scopes('ops:bookings:write')
   cancel(@Tenant() ctx: TenantContext, @Param('id') id: string) {
     return this.svc.cancel(ctx, id);
+  }
+
+  /**
+   * Extend instant-confirm coverage — auto-confirm a HELD booking for a known,
+   * low-risk guest (identity-matched + no-show `riskScore < 35`). Not eligible
+   * returns `{ confirmed:false, riskScore, reason }`; idempotent no-op otherwise.
+   */
+  @Post(':id/auto-confirm')
+  @Scopes('ops:bookings:write')
+  autoConfirm(@Tenant() ctx: TenantContext, @Param('id') id: string) {
+    return this.svc.autoConfirm(ctx, id);
   }
 }
 
