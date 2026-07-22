@@ -23,10 +23,26 @@ import { Scopes } from '../../../common/auth/scopes.decorator';
 import { Tenant, TenantContext } from '../../../common/tenancy/tenant-context';
 import { TasteModule } from '../taste/taste.module';
 import { TasteService } from '../taste/taste.service';
-import { SpotifyAdapter } from '../../../integrations/spotify.adapter';
+import {
+  SpotifyAdapter,
+  TasteSignal,
+} from '../../../integrations/spotify.adapter';
+import { SoundcloudAdapter } from '../../../integrations/soundcloud.adapter';
+import { AppleMusicAdapter } from '../../../integrations/applemusic.adapter';
 import { InstagramAdapter } from '../../../integrations/instagram.adapter';
 import { evidenceDedupeKey } from '../../../common/util/hash';
 import { ConsentBasis } from '@prisma/client';
+
+/**
+ * The shared shape of a taste connector. `exchangeCode` is optional: OAuth
+ * connectors (Spotify, SoundCloud) exchange a code server-side; Apple Music
+ * passes its client-minted Music User Token through; Instagram stays stubbed.
+ */
+interface TasteConnector {
+  authorizeUrl(state: string): string;
+  fetchTaste(token: string): Promise<TasteSignal[]>;
+  exchangeCode?(code: string): Promise<string>;
+}
 
 class AuthorizeDto {
   @IsString() guestId!: string;
@@ -57,9 +73,27 @@ export class ConnectorsService {
     private readonly prisma: PrismaService,
     private readonly taste: TasteService,
     private readonly spotify: SpotifyAdapter,
+    private readonly soundcloud: SoundcloudAdapter,
+    private readonly applemusic: AppleMusicAdapter,
     private readonly instagram: InstagramAdapter,
     private readonly config: ConfigService,
   ) {}
+
+  /** Resolve a provider slug to its taste connector (null if unknown). */
+  private adapterFor(provider: string): TasteConnector | null {
+    switch (provider) {
+      case 'spotify':
+        return this.spotify;
+      case 'soundcloud':
+        return this.soundcloud;
+      case 'applemusic':
+        return this.applemusic;
+      case 'instagram':
+        return this.instagram;
+      default:
+        return null;
+    }
+  }
 
   /**
    * Pending OAuth state nonces → the request that issued them. Guards against
@@ -140,6 +174,10 @@ export class ConnectorsService {
   }
 
   authorize(provider: string, dto: AuthorizeDto) {
+    const adapter = this.adapterFor(provider);
+    if (!adapter) {
+      throw new UnauthorizedException(`Unknown connector: ${provider}`);
+    }
     // Unpredictable, single-use nonce instead of the guessable `provider:guestId`.
     const state = randomBytes(32).toString('hex');
     this.pendingStates.set(state, {
@@ -147,11 +185,7 @@ export class ConnectorsService {
       guestId: dto.guestId,
       createdAt: Date.now(),
     });
-    const url =
-      provider === 'instagram'
-        ? this.instagram.authorizeUrl(state)
-        : this.spotify.authorizeUrl(state);
-    return { provider, authorizeUrl: url, state };
+    return { provider, authorizeUrl: adapter.authorizeUrl(state), state };
   }
 
   /** Complete OAuth → record consent → sync taste into evidence. */
@@ -164,12 +198,16 @@ export class ConnectorsService {
     this.pendingStates.delete(dto.state); // single-use
     const guestId = pending.guestId;
 
-    // Server-side code→token exchange (never accept tokens from the client).
-    // Instagram stays stubbed pending a Meta app review; Spotify is live when
-    // SPOTIFY_CLIENT_ID/SECRET/REDIRECT_URL are configured.
+    const adapter = this.adapterFor(provider);
+    if (!adapter) throw new UnauthorizedException('Unknown connector');
+
+    // Server-side code→token exchange where the connector supports it (never
+    // accept a token from the client). Spotify + SoundCloud exchange the OAuth
+    // code; Apple Music passes its Music User Token through; Instagram stays
+    // stubbed pending a Meta app review.
     const accessToken =
-      provider === 'spotify' && dto.code
-        ? await this.spotify.exchangeCode(dto.code)
+      adapter.exchangeCode && dto.code
+        ? await adapter.exchangeCode(dto.code)
         : 'stub';
 
     const consent = await this.prisma.consentGrant.create({
@@ -182,10 +220,7 @@ export class ConnectorsService {
       },
     });
 
-    const signals =
-      provider === 'instagram'
-        ? await this.instagram.fetchTaste(accessToken)
-        : await this.spotify.fetchTaste(accessToken);
+    const signals = await adapter.fetchTaste(accessToken);
 
     for (const s of signals) {
       await this.taste.appendEvidence(ctx, {

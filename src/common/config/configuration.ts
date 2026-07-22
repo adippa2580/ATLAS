@@ -40,6 +40,10 @@ export interface AppConfig {
     spotifyClientId: string;
     spotifyClientSecret: string;
     spotifyRedirectUrl: string;
+    soundcloudClientId: string;
+    soundcloudClientSecret: string;
+    soundcloudRedirectUrl: string;
+    appleMusicDeveloperToken: string;
     connectInviteSecret: string;
     instagramClientId: string;
     instagramClientSecret: string;
@@ -93,6 +97,14 @@ export default (): AppConfig => ({
     spotifyClientId: process.env.SPOTIFY_CLIENT_ID ?? '',
     spotifyClientSecret: process.env.SPOTIFY_CLIENT_SECRET ?? '',
     spotifyRedirectUrl: process.env.SPOTIFY_REDIRECT_URL ?? '',
+    // Phase-02 taste additions. Stub until credentials are set, same as every
+    // other connector. SoundCloud is a standard OAuth2 auth-code flow; Apple
+    // Music authorizes client-side via MusicKit and hands back a Music User
+    // Token, so the server only needs the app-level developer token.
+    soundcloudClientId: process.env.SOUNDCLOUD_CLIENT_ID ?? '',
+    soundcloudClientSecret: process.env.SOUNDCLOUD_CLIENT_SECRET ?? '',
+    soundcloudRedirectUrl: process.env.SOUNDCLOUD_REDIRECT_URL ?? '',
+    appleMusicDeveloperToken: process.env.APPLE_MUSIC_DEVELOPER_TOKEN ?? '',
     // Signs connector invite tokens. Falls back to the Spotify client secret
     // so hardening needs no extra ops step; set CONNECT_INVITE_SECRET to
     // rotate independently.

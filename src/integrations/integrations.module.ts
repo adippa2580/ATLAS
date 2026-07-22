@@ -2,6 +2,8 @@ import { Global, Module } from '@nestjs/common';
 import { StripeAdapter } from './stripe.adapter';
 import { SquareAdapter } from './square.adapter';
 import { SpotifyAdapter } from './spotify.adapter';
+import { SoundcloudAdapter } from './soundcloud.adapter';
+import { AppleMusicAdapter } from './applemusic.adapter';
 import { InstagramAdapter } from './instagram.adapter';
 import { KlaviyoAdapter } from './klaviyo.adapter';
 import { LightspeedAdapter } from './lightspeed.adapter';
@@ -25,6 +27,8 @@ import { EventsFeedAdapter } from './eventsfeed.adapter';
     StripeAdapter,
     SquareAdapter,
     SpotifyAdapter,
+    SoundcloudAdapter,
+    AppleMusicAdapter,
     InstagramAdapter,
     KlaviyoAdapter,
     LightspeedAdapter,
@@ -40,6 +44,8 @@ import { EventsFeedAdapter } from './eventsfeed.adapter';
     StripeAdapter,
     SquareAdapter,
     SpotifyAdapter,
+    SoundcloudAdapter,
+    AppleMusicAdapter,
     InstagramAdapter,
     KlaviyoAdapter,
     LightspeedAdapter,

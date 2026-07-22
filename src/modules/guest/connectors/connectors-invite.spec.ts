@@ -12,6 +12,8 @@ describe('ConnectorsService (invite tokens)', () => {
       {} as any, // prisma — untouched by invite paths
       {} as any, // taste
       {} as any, // spotify
+      {} as any, // soundcloud
+      {} as any, // applemusic
       {} as any, // instagram
       config,
     );

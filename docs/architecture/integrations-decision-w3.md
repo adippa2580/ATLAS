@@ -85,7 +85,7 @@ Adding integration #6+ later = another adapter on this framework, never new infr
 
 - ✅ **Confirmed:** Stripe, Spotify, Instagram, Klaviyo, Square as the first five.
 - ✅ **Confirmed:** build order — Stripe → Spotify → Square (Phase 01), Instagram → Klaviyo (Phase 02).
-- ✅ **Confirmed:** SoundCloud / Apple Music deferred to Phase 02 taste additions.
+- ✅ **Shipped:** SoundCloud + Apple Music taste connectors (Phase-02 additions) — adapters normalise to the same `TasteSignal` shape as Spotify and route through the shared `authorize → callback → consent → evidence` path. Both run in STUB mode until their credentials are set (`SOUNDCLOUD_CLIENT_ID`/`SOUNDCLOUD_CLIENT_SECRET`/`SOUNDCLOUD_REDIRECT_URL`; `APPLE_MUSIC_DEVELOPER_TOKEN`). SoundCloud is a standard OAuth2 auth-code flow; Apple Music authorizes client-side via MusicKit and hands back a Music User Token (no server-side code exchange).
 - ⏳ **Validate at anchor:** Square vs Lightspeed against the first anchor venue's actual POS (does not change the #13 contract).
 - ⏳ **Confirm:** Instagram API access tier / scopes sufficient for the affinity + attribution we need (biggest external-dependency risk of the five).
 
