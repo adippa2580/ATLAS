@@ -46,6 +46,17 @@ export interface AppConfig {
     squareWebhookSignatureKey: string;
     lightspeedApiKey: string;
     lightspeedWebhookSecret: string;
+    toastApiKey: string;
+    toastWebhookSecret: string;
+    sevenroomsApiKey: string;
+    sevenroomsWebhookSecret: string;
+    resyApiKey: string;
+    resyWebhookSecret: string;
+    tockApiKey: string;
+    tockWebhookSecret: string;
+    eventbriteApiToken: string;
+    googleCalendarClientId: string;
+    googleCalendarClientSecret: string;
     ticketmasterApiKey: string;
   };
 }
@@ -86,6 +97,20 @@ export default (): AppConfig => ({
     // stub mode until the anchor conversation assigns credentials.
     lightspeedApiKey: process.env.LIGHTSPEED_API_KEY ?? '',
     lightspeedWebhookSecret: process.env.LIGHTSPEED_WEBHOOK_SECRET ?? '',
+    // POS + reservation + demand connectors. All run in STUB mode until the
+    // matching credential is set; the anchor venue's existing stack decides
+    // which gets real credentials first, never which one exists.
+    toastApiKey: process.env.TOAST_API_KEY ?? '',
+    toastWebhookSecret: process.env.TOAST_WEBHOOK_SECRET ?? '',
+    sevenroomsApiKey: process.env.SEVENROOMS_API_KEY ?? '',
+    sevenroomsWebhookSecret: process.env.SEVENROOMS_WEBHOOK_SECRET ?? '',
+    resyApiKey: process.env.RESY_API_KEY ?? '',
+    resyWebhookSecret: process.env.RESY_WEBHOOK_SECRET ?? '',
+    tockApiKey: process.env.TOCK_API_KEY ?? '',
+    tockWebhookSecret: process.env.TOCK_WEBHOOK_SECRET ?? '',
+    eventbriteApiToken: process.env.EVENTBRITE_API_TOKEN ?? '',
+    googleCalendarClientId: process.env.GOOGLE_CALENDAR_CLIENT_ID ?? '',
+    googleCalendarClientSecret: process.env.GOOGLE_CALENDAR_CLIENT_SECRET ?? '',
     // Class-3 catalog feed (events/venues). Stub slate when unset.
     ticketmasterApiKey: process.env.TICKETMASTER_API_KEY ?? '',
   },
