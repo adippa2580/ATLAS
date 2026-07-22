@@ -44,6 +44,8 @@ export interface AppConfig {
     klaviyoApiKey: string;
     squareAccessToken: string;
     squareWebhookSignatureKey: string;
+    lightspeedApiKey: string;
+    lightspeedWebhookSecret: string;
   };
 }
 
@@ -79,5 +81,9 @@ export default (): AppConfig => ({
     klaviyoApiKey: process.env.KLAVIYO_API_KEY ?? '',
     squareAccessToken: process.env.SQUARE_ACCESS_TOKEN ?? '',
     squareWebhookSignatureKey: process.env.SQUARE_WEBHOOK_SIGNATURE_KEY ?? '',
+    // W3 POS decision (2026-07-21): both POS options ship; Lightspeed runs in
+    // stub mode until the anchor conversation assigns credentials.
+    lightspeedApiKey: process.env.LIGHTSPEED_API_KEY ?? '',
+    lightspeedWebhookSecret: process.env.LIGHTSPEED_WEBHOOK_SECRET ?? '',
   },
 });
