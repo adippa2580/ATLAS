@@ -94,9 +94,7 @@ export async function runWithTenant<T>(
 ): Promise<T> {
   const validated = assertTenantId(tenantId);
   return prisma.$transaction(async (tx) => {
-    await tx.$executeRawUnsafe(
-      `SET LOCAL app.current_tenant = '${validated}'`,
-    );
+    await tx.$executeRawUnsafe(`SET LOCAL app.current_tenant = '${validated}'`);
     return fn(tx);
   });
 }

@@ -28,6 +28,7 @@ import { GraphInsightsModule } from './insights/graph/graph-insights.module';
 import { RevenueInsightsModule } from './insights/revenue/revenue-insights.module';
 import { OpsInsightsModule } from './insights/ops/ops-insights.module';
 import { TalentModule } from './insights/talent/talent.module';
+import { ProjectionModule } from './modules/guest/projection/projection.module';
 
 @Module({
   imports: [
@@ -55,6 +56,8 @@ import { TalentModule } from './insights/talent/talent.module';
     RevenueInsightsModule,
     OpsInsightsModule,
     TalentModule,
+    // Per-venue consented projection of a guest's cross-tenant affinity (spine).
+    ProjectionModule,
     // Public venue-link (class 1b) surface — tenant resolved from the link code.
     VenueLinkModule,
   ],

@@ -33,9 +33,7 @@ describe('tenant-rls (RLS binding)', () => {
       });
 
       expect(result).toBe('ok');
-      expect(rawCalls).toEqual([
-        `SET LOCAL app.current_tenant = '${TENANT}'`,
-      ]);
+      expect(rawCalls).toEqual([`SET LOCAL app.current_tenant = '${TENANT}'`]);
     });
 
     it('binds the tenant before running the callback body', async () => {
@@ -84,7 +82,10 @@ describe('tenant-rls (RLS binding)', () => {
     it.each([
       ['empty string', ''],
       ['not a uuid', 'not-a-uuid'],
-      ['uuid with trailing quote', `${'a'.repeat(8)}-0000-4000-8000-000000000000'`],
+      [
+        'uuid with trailing quote',
+        `${'a'.repeat(8)}-0000-4000-8000-000000000000'`,
+      ],
       ['uuid with embedded space', '11111111-2222-4333-8444-5555 5555555'],
       ['too short', '11111111-2222-4333-8444-5555555555'],
     ])('throws on %s', (_label, value) => {
@@ -92,7 +93,9 @@ describe('tenant-rls (RLS binding)', () => {
     });
 
     it('throws on non-string input', () => {
-      expect(() => assertTenantId(undefined as any)).toThrow(/Invalid tenantId/);
+      expect(() => assertTenantId(undefined as any)).toThrow(
+        /Invalid tenantId/,
+      );
       expect(() => assertTenantId(null as any)).toThrow(/Invalid tenantId/);
     });
   });
