@@ -18,6 +18,11 @@ import { Scopes } from '../../common/auth/scopes.decorator';
 import { Tenant, TenantContext } from '../../common/tenancy/tenant-context';
 import { evidenceDedupeKey } from '../../common/util/hash';
 import { SquareAdapter } from '../../integrations/square.adapter';
+import type { TabPayload } from '../../integrations/square.adapter';
+import {
+  LIGHTSPEED_SIGNATURE_HEADER,
+  LightspeedAdapter,
+} from '../../integrations/lightspeed.adapter';
 
 /**
  * Normalize a raw POS line-item name into a coarse SKU/category key so that
@@ -54,6 +59,7 @@ export class TabService {
     private readonly prisma: PrismaService,
     private readonly bus: EvidenceBus,
     private readonly square: SquareAdapter,
+    private readonly lightspeed: LightspeedAdapter,
   ) {}
 
   /**
@@ -69,7 +75,33 @@ export class TabService {
     if (!this.square.verifyWebhook(rawBody, signature, notificationUrl)) {
       return { received: false };
     }
+    return this.ingestVerifiedTab(rawBody, (payload) =>
+      this.square.normalizeTab(payload),
+    );
+  }
 
+  /**
+   * Signed Lightspeed (K-Series) webhook — same tab pipeline as Square.
+   * Authenticated by the X-Kounta-Signature HMAC over the RAW body; the
+   * tenant is resolved from the referenced booking.
+   */
+  async handleLightspeedWebhook(
+    rawBody: Buffer | undefined,
+    signature?: string,
+  ) {
+    if (!this.lightspeed.verifyWebhook(rawBody, signature)) {
+      return { received: false };
+    }
+    return this.ingestVerifiedTab(rawBody, (payload) =>
+      this.lightspeed.normalizeTab(payload),
+    );
+  }
+
+  /** POS-agnostic tab ingest: parse verified bytes, upsert, publish spend. */
+  private async ingestVerifiedTab(
+    rawBody: Buffer | undefined,
+    normalize: (payload: any) => TabPayload,
+  ) {
     // Act on exactly the verified bytes.
     let payload: any;
     try {
@@ -88,7 +120,7 @@ export class TabService {
     });
     if (!booking) return { received: true, matched: 0 };
 
-    const tab = this.square.normalizeTab(payload);
+    const tab = normalize(payload);
 
     await this.prisma.tab.upsert({
       where: { bookingId },
@@ -179,6 +211,16 @@ export class SquareWebhookController {
       process.env.SQUARE_WEBHOOK_URL ??
       `${req.protocol}://${req.get('host')}${req.originalUrl}`;
     return this.svc.handleWebhook(rawBody, signature, notificationUrl);
+  }
+
+  // Lightspeed K-Series: X-Kounta-Signature = HMAC-SHA256(rawBody, token),
+  // hex (apidoc.kounta.com/webhooks). No scope — signature-authenticated.
+  @Post('lightspeed')
+  lightspeedWebhook(
+    @RawBody() rawBody: Buffer,
+    @Headers(LIGHTSPEED_SIGNATURE_HEADER) signature?: string,
+  ) {
+    return this.svc.handleLightspeedWebhook(rawBody, signature);
   }
 }
 

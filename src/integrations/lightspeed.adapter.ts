@@ -11,12 +11,13 @@ import type { TabPayload } from './square.adapter';
  *
  * STUB mode when LIGHTSPEED_API_KEY is unset.
  *
- * VERIFY against Lightspeed K-Series docs before go-live: the exact webhook
- * signature header + signing base. Implemented here as HMAC-SHA256 over the
- * raw body with the configured secret (fail-closed in production), matching
- * the platform's webhook pattern — adjust the signing base if the docs
- * specify URL-prefixing like Square's.
+ * Signature scheme (verified against the Kounta-by-Lightspeed API docs —
+ * Kounta is the K in K-Series; apidoc.kounta.com/webhooks "Verifying
+ * webhooks"): each event carries an `X-Kounta-Signature` header containing
+ * HMAC-SHA256(rawBody, signatureToken), hex-encoded. No URL prefixing
+ * (unlike Square). Fail-closed in production.
  */
+export const LIGHTSPEED_SIGNATURE_HEADER = 'x-kounta-signature';
 @Injectable()
 export class LightspeedAdapter {
   private readonly logger = new Logger(LightspeedAdapter.name);
