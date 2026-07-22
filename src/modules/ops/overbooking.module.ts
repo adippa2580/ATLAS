@@ -217,7 +217,7 @@ export class OverbookingService {
 }
 
 @ApiTags('ops:overbooking')
-@Controller('v1/ops/overbooking')
+@Controller('ops/overbooking')
 export class OverbookingController {
   constructor(private readonly svc: OverbookingService) {}
 

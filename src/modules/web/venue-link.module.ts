@@ -276,7 +276,7 @@ export class VenueLinkService {
 }
 
 @ApiTags('venue-link')
-@Controller('v1/venue-link')
+@Controller('venue-link')
 export class VenueLinkController {
   constructor(private readonly service: VenueLinkService) {}
 

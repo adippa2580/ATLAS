@@ -141,7 +141,7 @@ export class PromotersService {
 }
 
 @ApiTags('marketing:promoters')
-@Controller('v1/promoters')
+@Controller('promoters')
 export class PromotersController {
   constructor(private readonly service: PromotersService) {}
 

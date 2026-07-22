@@ -418,7 +418,7 @@ export class RecommendationsService {
 }
 
 @ApiTags('marketing:recommendations')
-@Controller('v1/recommendations')
+@Controller('recommendations')
 export class RecommendationsController {
   constructor(private readonly service: RecommendationsService) {}
 

@@ -133,7 +133,7 @@ export class InventoryDropService {
 }
 
 @ApiTags('ops:inventory')
-@Controller('v1/ops/inventory')
+@Controller('ops/inventory')
 export class InventoryDropController {
   constructor(private readonly svc: InventoryDropService) {}
 

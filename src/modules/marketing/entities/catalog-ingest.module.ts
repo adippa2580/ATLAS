@@ -154,7 +154,7 @@ export class CatalogIngestService {
 }
 
 @ApiTags('marketing:catalog')
-@Controller('v1/catalog')
+@Controller('catalog')
 export class CatalogIngestController {
   constructor(private readonly service: CatalogIngestService) {}
 
