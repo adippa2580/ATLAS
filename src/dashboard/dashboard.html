@@ -307,8 +307,10 @@
   <h2 class="sec">Do next · grounded by the graph <span style="font-size:10px; letter-spacing:0; text-transform:none; color:var(--faint)">GET /v1/recommendations · every card names the thing, the date, and who we can reach</span></h2>
   <div class="grid3">
     <div class="card" id="c-recs" style="grid-column:span 3">
-      <h3>Recommendations <span class="plchip" data-pc="taste">taste</span> <span class="plchip" data-pc="venues">venues</span> <span class="plchip" data-pc="marketing">marketing</span></h3>
-      <p class="cap">entity catalog × taste graph × consent — undated events are reported, never narrated</p>
+      <h3>Recommendations <span class="plchip" data-pc="taste">taste</span> <span class="plchip" data-pc="venues">venues</span> <span class="plchip" data-pc="marketing">marketing</span>
+        <button id="syncCat" class="wibtn" style="margin-left:auto">⟳ Sync catalog feed</button></h3>
+      <p class="cap">entity catalog × taste graph × consent — undated events are reported, never narrated · POST /v1/catalog/ingest</p>
+      <div id="catMsg" class="wimsg" hidden></div>
       <div id="recs"><div class="i-empty">loading…</div></div>
     </div>
   </div>
@@ -781,6 +783,19 @@
     if(d.ungrounded&&d.ungrounded.length){var u=document.createElement("div"); u.className="i-empty"; u.textContent="ungrounded (needs a date in catalog): "+d.ungrounded.join(", "); h.appendChild(u);}
   }catch(e){h.innerHTML='<div class="i-empty">recommendations unavailable</div>'}}
 
+  function wireCatalogSync(){
+    var b=document.querySelector("#syncCat"), m=document.querySelector("#catMsg");
+    if(!b) return;
+    b.onclick=async function(){
+      b.disabled=true; m.hidden=false; m.classList.remove("err"); m.textContent="syncing city feed…";
+      try{
+        if(mode!=="live"){ await sleep(600); m.textContent="✓ catalog synced · 3 events, 2 venues (ticketmaster · demo)"; await loadRecs(); return; }
+        var r=await apiCall("POST","/v1/catalog/ingest",A,{city:"Miami"});
+        if(r&&r.ok){var j=r.json||{}; m.textContent="✓ catalog synced · "+j.events+" events, "+j.venues+" venues ("+j.source+(j.stub?" · stub":"")+") · "+j.created+" new, "+j.updated+" updated"; await loadRecs();}
+        else { m.classList.add("err"); m.textContent="✕ "+((r&&r.json&&r.json.message)||"sync failed"); }
+      } finally { b.disabled=false; }
+    };
+  }
   async function iget(path,tenant){
     if(mode!=="live") return undefined;
     var r=await apiCall("GET",path,tenant||A);
@@ -882,7 +897,7 @@
 
   function loadIntel(){
     $("#i-noshow-date").textContent=IDATE;
-    loadRecs();
+    loadRecs(); wireCatalogSync();
     loadDemand(); loadIdent(); loadAtRisk(); loadConnectors(); loadAttr();
     loadMinspend(); loadNoShow(); loadDoorlist(); loadMix(); loadBook(); loadRoi();
   }

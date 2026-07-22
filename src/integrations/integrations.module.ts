@@ -5,6 +5,7 @@ import { SpotifyAdapter } from './spotify.adapter';
 import { InstagramAdapter } from './instagram.adapter';
 import { KlaviyoAdapter } from './klaviyo.adapter';
 import { LightspeedAdapter } from './lightspeed.adapter';
+import { EventsFeedAdapter } from './eventsfeed.adapter';
 
 /**
  * Connector adapters for the first five integrations (W3). Each is a thin
@@ -21,6 +22,7 @@ import { LightspeedAdapter } from './lightspeed.adapter';
     InstagramAdapter,
     KlaviyoAdapter,
     LightspeedAdapter,
+    EventsFeedAdapter,
   ],
   exports: [
     StripeAdapter,
@@ -29,6 +31,7 @@ import { LightspeedAdapter } from './lightspeed.adapter';
     InstagramAdapter,
     KlaviyoAdapter,
     LightspeedAdapter,
+    EventsFeedAdapter,
   ],
 })
 export class IntegrationsModule {}

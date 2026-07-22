@@ -5,6 +5,7 @@ import { LifecycleModule } from './lifecycle/lifecycle.module';
 import { AttributionModule } from './attribution/attribution.module';
 import { PromotersModule } from './promoters/promoters.module';
 import { RecommendationsModule } from './recommendations/recommendations.module';
+import { CatalogIngestModule } from './entities/catalog-ingest.module';
 import { WinbackModule } from './winback/winback.module';
 import { ReportingModule } from './reporting/reporting.module';
 import { EntitiesModule } from './entities/entities.module';
@@ -25,6 +26,7 @@ import { TasteSegmentsModule } from './audiences/taste-segments.module';
     AttributionModule,
     PromotersModule,
     RecommendationsModule,
+    CatalogIngestModule,
     WinbackModule,
     ReportingModule,
     EntitiesModule,
@@ -39,6 +41,7 @@ import { TasteSegmentsModule } from './audiences/taste-segments.module';
     AttributionModule,
     PromotersModule,
     RecommendationsModule,
+    CatalogIngestModule,
     WinbackModule,
     ReportingModule,
     EntitiesModule,

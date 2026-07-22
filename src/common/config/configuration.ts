@@ -46,6 +46,7 @@ export interface AppConfig {
     squareWebhookSignatureKey: string;
     lightspeedApiKey: string;
     lightspeedWebhookSecret: string;
+    ticketmasterApiKey: string;
   };
 }
 
@@ -85,5 +86,7 @@ export default (): AppConfig => ({
     // stub mode until the anchor conversation assigns credentials.
     lightspeedApiKey: process.env.LIGHTSPEED_API_KEY ?? '',
     lightspeedWebhookSecret: process.env.LIGHTSPEED_WEBHOOK_SECRET ?? '',
+    // Class-3 catalog feed (events/venues). Stub slate when unset.
+    ticketmasterApiKey: process.env.TICKETMASTER_API_KEY ?? '',
   },
 });
