@@ -695,7 +695,7 @@
   async function loadBook(){var h=$("#i-book");try{
     var d=await iget("/v1/talent/who-to-book",A); if(d===undefined)d=DEMO_BOOK;
     if(!Array.isArray(d)||!d.length) return iEmpty(h);
-    var rows=d.map(function(r){return '<tr><td>'+esc(r.subjectRef)+'</td><td class="n">'+Number(r.demandScore||0).toFixed(1)+'</td><td class="n">'+(r.guestCount||0)+'</td><td class="n">'+(r.crewReach||0)+'</td></tr>';}).join("");
+    var rows=d.map(function(r){return '<tr><td>'+esc(r.name||r.subjectRef)+'</td><td class="n">'+Number(r.demandScore||0).toFixed(1)+'</td><td class="n">'+(r.guestCount||0)+'</td><td class="n">'+(r.crewReach||0)+'</td></tr>';}).join("");
     h.innerHTML='<table class="itbl"><thead><tr><th>talent</th><th class="rt">demand</th><th class="rt">guests</th><th class="rt">reach</th></tr></thead><tbody>'+rows+'</tbody></table>';
   }catch(e){iEmpty(h);}}
 
@@ -703,7 +703,7 @@
     var d=await iget("/v1/talent/roi",A); if(d===undefined)d=DEMO_ROI;
     if(Array.isArray(d)) d=d[0];
     if(!d||typeof d!=="object") return iEmpty(h);
-    h.innerHTML=tile("Night revenue",moneyC(d.nightRevenueCents))+tile("Baseline",moneyC(d.baselineCents))+tile("Lift",moneyC(d.liftCents))+tile("ROI",Number(d.roi||0).toFixed(2)+"×");
+    h.innerHTML=tile("Artist",esc(d.name||d.entityId))+tile("Night revenue",moneyC(d.nightRevenueCents))+tile("Baseline",moneyC(d.baselineCents))+tile("Lift",moneyC(d.liftCents))+tile("ROI",Number(d.roi||0).toFixed(2)+"×");
   }catch(e){iEmpty(h);}}
 
   function loadIntel(){
