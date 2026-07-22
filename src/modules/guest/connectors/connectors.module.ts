@@ -10,7 +10,8 @@ import {
   Post,
   UnauthorizedException,
 } from '@nestjs/common';
-import { randomBytes } from 'crypto';
+import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
+import { ConfigService } from '@nestjs/config';
 import { ApiTags } from '@nestjs/swagger';
 import type { Response as ExpressResponse } from 'express';
 
@@ -57,6 +58,7 @@ export class ConnectorsService {
     private readonly taste: TasteService,
     private readonly spotify: SpotifyAdapter,
     private readonly instagram: InstagramAdapter,
+    private readonly config: ConfigService,
   ) {}
 
   /**
@@ -69,6 +71,73 @@ export class ConnectorsService {
     string,
     { provider: string; guestId: string; createdAt: number }
   >();
+
+  /** Invite tokens: HMAC-signed { guestId, exp } — the ONLY way into /connect. */
+  private inviteSecret(): string {
+    return this.config.get<string>('connectInviteSecret') ?? '';
+  }
+
+  signInvite(guestId: string, ttlSeconds = 900): string {
+    const secret = this.inviteSecret();
+    const isProd = this.config.get<string>('env') === 'production';
+    if (!secret) {
+      if (isProd) {
+        throw new UnauthorizedException(
+          'Connector invites unavailable: no signing secret configured',
+        );
+      }
+      // dev/stub: unsigned marker token, clearly non-production
+      return (
+        Buffer.from(
+          JSON.stringify({
+            guestId,
+            exp: Math.floor(Date.now() / 1000) + ttlSeconds,
+          }),
+        ).toString('base64url') + '.dev'
+      );
+    }
+    const body = JSON.stringify({
+      guestId,
+      exp: Math.floor(Date.now() / 1000) + ttlSeconds,
+    });
+    const sig = createHmac('sha256', secret).update(body).digest('base64url');
+    return Buffer.from(body).toString('base64url') + '.' + sig;
+  }
+
+  verifyInvite(token: string): string {
+    const [b64, sig] = (token ?? '').split('.');
+    if (!b64 || !sig) throw new UnauthorizedException('Malformed invite');
+    const body = Buffer.from(b64, 'base64url').toString('utf8');
+    const secret = this.inviteSecret();
+    const isProd = this.config.get<string>('env') === 'production';
+    if (!secret) {
+      if (isProd) throw new UnauthorizedException('Invites unavailable');
+      // dev/stub path accepts its own marker tokens only
+      if (sig !== 'dev') throw new UnauthorizedException('Invalid invite');
+    } else {
+      const expected = createHmac('sha256', secret)
+        .update(body)
+        .digest('base64url');
+      const a = Buffer.from(sig);
+      const b = Buffer.from(expected);
+      if (a.length !== b.length || !timingSafeEqual(a, b)) {
+        throw new UnauthorizedException('Invalid invite signature');
+      }
+    }
+    let data: { guestId?: string; exp?: number };
+    try {
+      data = JSON.parse(body);
+    } catch {
+      throw new UnauthorizedException('Malformed invite');
+    }
+    if (!data.guestId || typeof data.exp !== 'number') {
+      throw new UnauthorizedException('Malformed invite');
+    }
+    if (data.exp < Math.floor(Date.now() / 1000)) {
+      throw new UnauthorizedException('Invite expired');
+    }
+    return data.guestId;
+  }
 
   authorize(provider: string, dto: AuthorizeDto) {
     // Unpredictable, single-use nonce instead of the guessable `provider:guestId`.
@@ -173,18 +242,46 @@ export class ConnectorsController {
   }
 
   /**
+   * Mint a signed connect invite for a guest (scoped API — this is how a
+   * tenant surface hands a guest their connect link). 15-minute TTL.
+   */
+  @Post('spotify/invite')
+  @Scopes('guest:connectors:write')
+  invite(@Body() dto: AuthorizeDto) {
+    const token = this.svc.signInvite(dto.guestId);
+    return {
+      guestId: dto.guestId,
+      invite: token,
+      connectPath: `/v1/connectors/spotify/connect?invite=${token}`,
+      expiresInSeconds: 900,
+    };
+  }
+
+  /**
    * Browser entry: 302 straight to Spotify consent. Public route (excluded
-   * from tenant middleware) — the state nonce binds the flow to the guestId
-   * issued here. HARDENING TODO: gate issuance behind a signed invite token
-   * so third parties can't attach taste to arbitrary guest ids.
+   * from tenant middleware) — requires a signed invite token; the state nonce
+   * then binds the OAuth flow to the invite's guestId. Raw guestId entry was
+   * removed (hardening, 2026-07-22): unsigned callers can no longer attach
+   * taste to arbitrary guests.
    */
   @Get('spotify/connect')
   connectRedirect(
-    @Query('guestId') guestId: string,
+    @Query('invite') invite: string,
     @Res() res: ExpressResponse,
   ) {
-    if (!guestId) {
-      res.status(400).send('guestId required');
+    if (!invite) {
+      res
+        .status(400)
+        .send(
+          'invite token required — mint one via POST /v1/connectors/spotify/invite',
+        );
+      return;
+    }
+    let guestId: string;
+    try {
+      guestId = this.svc.verifyInvite(invite);
+    } catch (e) {
+      res.status(401).send((e as Error).message);
       return;
     }
     const { authorizeUrl } = this.svc.authorize('spotify', { guestId });

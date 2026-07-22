@@ -40,6 +40,7 @@ export interface AppConfig {
     spotifyClientId: string;
     spotifyClientSecret: string;
     spotifyRedirectUrl: string;
+    connectInviteSecret: string;
     instagramClientId: string;
     instagramClientSecret: string;
     klaviyoApiKey: string;
@@ -92,6 +93,13 @@ export default (): AppConfig => ({
     spotifyClientId: process.env.SPOTIFY_CLIENT_ID ?? '',
     spotifyClientSecret: process.env.SPOTIFY_CLIENT_SECRET ?? '',
     spotifyRedirectUrl: process.env.SPOTIFY_REDIRECT_URL ?? '',
+    // Signs connector invite tokens. Falls back to the Spotify client secret
+    // so hardening needs no extra ops step; set CONNECT_INVITE_SECRET to
+    // rotate independently.
+    connectInviteSecret:
+      process.env.CONNECT_INVITE_SECRET ??
+      process.env.SPOTIFY_CLIENT_SECRET ??
+      '',
     instagramClientId: process.env.INSTAGRAM_CLIENT_ID ?? '',
     instagramClientSecret: process.env.INSTAGRAM_CLIENT_SECRET ?? '',
     klaviyoApiKey: process.env.KLAVIYO_API_KEY ?? '',
