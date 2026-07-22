@@ -6,6 +6,7 @@
     "deleteOutDir": true,
     "assets": [
       { "include": "home/home.html", "outDir": "dist" },
+      { "include": "studio/studio.html", "outDir": "dist" },
       { "include": "dashboard/dashboard.html", "outDir": "dist" },
       { "include": "outcomes/outcomes.html", "outDir": "dist" },
       { "include": "deliverables/pages/*.html", "outDir": "dist" }

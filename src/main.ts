@@ -20,6 +20,7 @@ async function bootstrap(): Promise<void> {
       'health',
       'dashboard',
       'outcomes',
+      'studio',
       'deliverables',
       'deliverables/(.*)',
     ],

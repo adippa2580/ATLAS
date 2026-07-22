@@ -1,43 +1,44 @@
 <title>Atlas — Hospitality Outcomes Intelligence</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
+  /* ATLAS v3.1 — DARK-ONLY. Light root, dark override and prefers-dark all resolve
+     to the same Atlas dark values so the surface can never render light. */
   :root{
-    --paper:#F6F5F8; --panel:#FFFFFF; --sunk:#F1EFF4; --raise:#FBFAFC;
-    --ink:#1A151F; --ink2:#443C4C; --muted:#6E6579; --faint:#9C93A6;
-    --line:#E7E3EC; --line-soft:#EFECF3;
-    --brand:#8A3A83; --brand-ink:#6E2A68; --brand-wash:#F4E9F2;
-    --good:#12864B; --good-wash:#E3F3E9; --warn:#B7791F; --warn-wash:#FBF0DC; --crit:#C8422F; --crit-wash:#F9E7E2;
-    --info:#2B6CB0;
-    --hub-guest:#8A3A83; --hub-ops:#0E7490; --hub-mkt:#4C51BF;
-    /* validated 7-slot categorical palette (light steps) — no green/red (reserved status hues) */
-    --pc-taste:#d16091; --pc-identity:#832f83; --pc-crews:#6649af; --pc-venues:#05b9cf;
-    --pc-bookings:#78a1ff; --pc-revenue:#d29f0a; --pc-marketing:#a44602;
-    --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
-    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    --serif:"Iowan Old Style",Georgia,"Times New Roman",serif;
-    --r:12px; --r-sm:8px; --shadow:0 1px 2px rgba(26,21,31,.05),0 8px 24px -16px rgba(26,21,31,.28);
+    --paper:#04050A; --panel:#0B0E17; --sunk:#0B0E17; --raise:#111524;
+    --ink:#F5F7FF; --ink2:#D8DEEC; --muted:#B8C0D4; --faint:#6B7280;
+    --line:rgba(255,255,255,.10); --line-soft:rgba(255,255,255,.06);
+    --brand:#A78BFA; --brand-ink:#22D3EE; --brand-wash:rgba(34,211,238,.12);
+    --good:#34D399; --good-wash:rgba(52,211,153,.14); --warn:#FBBF24; --warn-wash:rgba(251,191,36,.14); --crit:#FBBF24; --crit-wash:rgba(251,191,36,.14);
+    --info:#60A5FA;
+    --hub-guest:#34D399; --hub-ops:#60A5FA; --hub-mkt:#A78BFA;
+    /* validated 7-slot categorical data-viz palette — preserved exactly */
+    --pc-taste:#c55285; --pc-identity:#933e92; --pc-crews:#6f52b9; --pc-venues:#129db0;
+    --pc-bookings:#618aeb; --pc-revenue:#b48706; --pc-marketing:#ac4b06;
+    --mono:Menlo,Monaco,monospace;
+    --sans:"Helvetica Neue",Helvetica,Arial,sans-serif;
+    --serif:"Helvetica Neue",Helvetica,Arial,sans-serif;
+    --r:12px; --r-sm:8px; --shadow:0 1px 2px rgba(0,0,0,.45),0 10px 30px -18px rgba(0,0,0,.75);
   }
-  :root[data-theme="dark"]{
-    --paper:#100C14; --panel:#191320; --sunk:#120E18; --raise:#1E1727;
-    --ink:#EDE8F1; --ink2:#C6BDCF; --muted:#928AA0; --faint:#61596E;
-    --line:#2A2233; --line-soft:#221A2B;
-    --brand:#CE93C6; --brand-ink:#DDA9D5; --brand-wash:#2A1A29;
-    --good:#4ED08A; --good-wash:#122a1f; --warn:#E3B25B; --warn-wash:#2c2415; --crit:#F0836E; --crit-wash:#2e1a17;
-    --info:#6AA5E0;
-    --hub-guest:#D19BCB; --hub-ops:#4FB6C9; --hub-mkt:#9098EC;
-    /* validated 7-slot categorical palette (dark steps for surface #191320) */
+  :root[data-theme="dark"],:root[data-theme="light"]{
+    --paper:#04050A; --panel:#0B0E17; --sunk:#0B0E17; --raise:#111524;
+    --ink:#F5F7FF; --ink2:#D8DEEC; --muted:#B8C0D4; --faint:#6B7280;
+    --line:rgba(255,255,255,.10); --line-soft:rgba(255,255,255,.06);
+    --brand:#A78BFA; --brand-ink:#22D3EE; --brand-wash:rgba(34,211,238,.12);
+    --good:#34D399; --good-wash:rgba(52,211,153,.14); --warn:#FBBF24; --warn-wash:rgba(251,191,36,.14); --crit:#FBBF24; --crit-wash:rgba(251,191,36,.14);
+    --info:#60A5FA;
+    --hub-guest:#34D399; --hub-ops:#60A5FA; --hub-mkt:#A78BFA;
     --pc-taste:#c55285; --pc-identity:#933e92; --pc-crews:#6f52b9; --pc-venues:#129db0;
     --pc-bookings:#618aeb; --pc-revenue:#b48706; --pc-marketing:#ac4b06;
     --shadow:0 1px 2px rgba(0,0,0,.45),0 10px 30px -18px rgba(0,0,0,.75);
   }
   @media (prefers-color-scheme:dark){:root:not([data-theme]){
-    --paper:#100C14; --panel:#191320; --sunk:#120E18; --raise:#1E1727;
-    --ink:#EDE8F1; --ink2:#C6BDCF; --muted:#928AA0; --faint:#61596E;
-    --line:#2A2233; --line-soft:#221A2B;
-    --brand:#CE93C6; --brand-ink:#DDA9D5; --brand-wash:#2A1A29;
-    --good:#4ED08A; --good-wash:#122a1f; --warn:#E3B25B; --warn-wash:#2c2415; --crit:#F0836E; --crit-wash:#2e1a17;
-    --info:#6AA5E0;
-    --hub-guest:#D19BCB; --hub-ops:#4FB6C9; --hub-mkt:#9098EC;
+    --paper:#04050A; --panel:#0B0E17; --sunk:#0B0E17; --raise:#111524;
+    --ink:#F5F7FF; --ink2:#D8DEEC; --muted:#B8C0D4; --faint:#6B7280;
+    --line:rgba(255,255,255,.10); --line-soft:rgba(255,255,255,.06);
+    --brand:#A78BFA; --brand-ink:#22D3EE; --brand-wash:rgba(34,211,238,.12);
+    --good:#34D399; --good-wash:rgba(52,211,153,.14); --warn:#FBBF24; --warn-wash:rgba(251,191,36,.14); --crit:#FBBF24; --crit-wash:rgba(251,191,36,.14);
+    --info:#60A5FA;
+    --hub-guest:#34D399; --hub-ops:#60A5FA; --hub-mkt:#A78BFA;
     --pc-taste:#c55285; --pc-identity:#933e92; --pc-crews:#6f52b9; --pc-venues:#129db0;
     --pc-bookings:#618aeb; --pc-revenue:#b48706; --pc-marketing:#ac4b06;
     --shadow:0 1px 2px rgba(0,0,0,.45),0 10px 30px -18px rgba(0,0,0,.75);
@@ -50,16 +51,10 @@
   .wrap{max-width:1340px; margin:0 auto; padding:20px 22px 60px}
 
   /* header */
-  .surfacenav{display:flex; gap:4px; flex-wrap:wrap; align-items:center; padding:6px 0 12px; margin-bottom:6px; border-bottom:1px solid var(--line)}
-  .surfacenav a{font-family:var(--mono); font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); padding:7px 12px; border-radius:7px; text-decoration:none; transition:color .12s ease, background .12s ease}
-  .surfacenav a:hover{color:var(--brand-ink); background:var(--brand-wash)}
-  .surfacenav a.on{color:#fff; background:var(--brand)}
-  .surfacenav a:focus-visible{outline:2px solid var(--brand); outline-offset:2px}
-  header{display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:2px 0 18px}
-  .logo{display:flex; align-items:center; gap:12px}
-  .mark{width:32px; height:32px; border-radius:9px; background:linear-gradient(150deg,var(--brand),var(--brand-ink)); display:grid; place-items:center; color:#fff; font-family:var(--serif); font-weight:700; font-size:17px}
-  .logo h1{font-family:var(--serif); font-size:21px; margin:0; font-weight:600; letter-spacing:-.01em}
-  .logo .t{font-family:var(--mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-top:2px}
+  header{display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:14px 0 18px}
+  .logo{display:flex; flex-direction:column; gap:3px}
+  .logo h1{font-family:var(--sans); font-size:24px; margin:0; font-weight:200; letter-spacing:-.01em; color:var(--ink)}
+  .logo .t{font-family:var(--mono); font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted)}
   header .sp{flex:1}
   .seg{display:inline-flex; border:1px solid var(--line); border-radius:9px; overflow:hidden; background:var(--panel)}
   .seg button{appearance:none; border:0; background:transparent; color:var(--muted); font:inherit; font-size:12.5px; font-weight:560; padding:7px 13px; cursor:pointer}
@@ -240,19 +235,79 @@
   @media (prefers-reduced-motion:reduce){*{transition:none !important}}
 </style>
 
+<!-- ===== ATLAS operator shell (canonical) — paste verbatim as the FIRST child of <body>.
+     Self-contained: explicit Atlas v3.1 colors (no page vars), own scoped .opnav-* classes,
+     own IIFE. It auto-marks the active link from location.pathname, and persists the selected
+     venue to localStorage('atlas.venue') + dispatches a 'atlas:venue' event other scripts can listen to.
+     On a page, give <body> top spacing is unnecessary — the bar is sticky, not fixed. ===== -->
+<style>
+  .opnav{position:sticky;top:0;z-index:70;display:flex;align-items:center;gap:14px;
+    padding:10px 18px;background:rgba(11,14,23,.86);backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.10);
+    font-family:Menlo,"SF Mono",Monaco,Consolas,monospace}
+  .opnav-brand{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-weight:600;
+    letter-spacing:.02em;color:#F5F7FF;font-size:15px;text-decoration:none;white-space:nowrap}
+  .opnav-brand span{color:#A78BFA;font-weight:400}
+  .opnav-venue select{background:#111524;color:#F5F7FF;border:1px solid rgba(255,255,255,.14);
+    border-radius:7px;font-family:Menlo,monospace;font-size:11px;padding:5px 8px;cursor:pointer}
+  .opnav-venue select:focus-visible{outline:2px solid #22D3EE;outline-offset:1px}
+  .opnav-links{display:flex;gap:2px;flex-wrap:wrap}
+  .opnav-links a{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#6B7280;
+    text-decoration:none;padding:7px 11px;border-radius:7px;transition:color .12s ease,background .12s ease}
+  .opnav-links a:hover{color:#22D3EE;background:rgba(34,211,238,.08)}
+  .opnav-links a.on{color:#04050A;background:#22D3EE}
+  .opnav-links a:focus-visible{outline:2px solid #22D3EE;outline-offset:2px}
+  .opnav-spacer{flex:1}
+  .opnav-studio{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#6B7280;
+    text-decoration:none;border:1px solid rgba(255,255,255,.14);padding:6px 11px;border-radius:7px;white-space:nowrap}
+  .opnav-studio:hover{color:#A78BFA;border-color:rgba(167,139,250,.5)}
+  @media (max-width:720px){.opnav{flex-wrap:wrap;gap:8px} .opnav-spacer{display:none}}
+</style>
+<nav class="opnav" aria-label="Venue console">
+  <a class="opnav-brand" href="/">ATLAS<span>·</span></a>
+  <div class="opnav-venue">
+    <select id="opnavVenue" aria-label="Venue">
+      <option value="delilah">Delilah · Los Angeles</option>
+      <option value="niceguy">The Nice Guy · Los Angeles</option>
+    </select>
+  </div>
+  <div class="opnav-links">
+    <a href="/" data-nav="home">Home</a>
+    <a href="/dashboard" data-nav="run">Run</a>
+    <a href="/outcomes" data-nav="understand">Understand</a>
+    <a href="/deliverables/promoter-view.html" data-nav="grow">Grow</a>
+    <a href="/deliverables/tenant-onboarding.html" data-nav="setup">Set&nbsp;up</a>
+  </div>
+  <div class="opnav-spacer"></div>
+  <a class="opnav-studio" href="/studio" title="Internal — design system, deck & consumer surfaces">Studio</a>
+</nav>
+<script>
+(function(){
+  var p = location.pathname.replace(/\/+$/,'') || '/';
+  var map = {'/':'home','/dashboard':'run','/outcomes':'understand',
+    '/deliverables/promoter-view.html':'grow','/deliverables/tenant-onboarding.html':'setup'};
+  var active = map[p] || (p.indexOf('/deliverables')===0 ? 'grow' : '');
+  var links = document.querySelectorAll('.opnav-links a');
+  for (var i=0;i<links.length;i++){
+    if (links[i].getAttribute('data-nav')===active){ links[i].classList.add('on'); links[i].setAttribute('aria-current','page'); }
+  }
+  var sel = document.getElementById('opnavVenue');
+  if (sel){
+    try { var saved = localStorage.getItem('atlas.venue'); if (saved) sel.value = saved; } catch(e){}
+    sel.addEventListener('change', function(){
+      try { localStorage.setItem('atlas.venue', sel.value); } catch(e){}
+      document.dispatchEvent(new CustomEvent('atlas:venue',{detail:{venue:sel.value}}));
+    });
+  }
+})();
+</script>
+<!-- ===== end ATLAS operator shell ===== -->
+
 <div class="wrap">
-  <nav class="surfacenav" aria-label="Atlas surfaces">
-    <a href="/">Home</a>
-    <a href="/dashboard">Ops Console</a>
-    <a class="on" href="/outcomes" aria-current="page">Outcomes</a>
-    <a href="/deliverables">Deliverables</a>
-    <a href="/docs">API Docs</a>
-  </nav>
   <header>
-    <div class="logo"><div class="mark">A</div><div><h1>Outcomes Intelligence</h1><div class="t">Atlas · A-List Group · hospitality</div></div></div>
+    <div class="logo"><h1>Outcomes</h1><div class="t">Understand · The Room</div></div>
     <div class="sp"></div>
     <div class="seg" id="view"><button class="on" data-v="portfolio">Portfolio</button><button data-v="mine">My outcomes</button></div>
-    <button class="ic" id="tt">☾ Theme</button>
   </header>
 
   <div class="pillhead"><h2>Data pillars</h2><span class="hint">Every outcome below is derived from the evidence these seven pillars produce. Select one to lens the portfolio.</span></div>
@@ -529,7 +584,6 @@
     Object.keys(map).forEach(function(sel){ $(sel).addEventListener("change",function(){ STATE[map[sel]]=this.value; render(); }); });
     $("#q").addEventListener("input",function(){ STATE.q=this.value.toLowerCase(); render(); });
     $("#view").querySelectorAll("button").forEach(function(b){ b.addEventListener("click",function(){ $("#view").querySelectorAll("button").forEach(function(x){x.classList.remove("on")}); b.classList.add("on"); STATE.view=b.dataset.v; render(); }); });
-    $("#tt").addEventListener("click",function(){ var c=document.documentElement.getAttribute("data-theme"); document.documentElement.setAttribute("data-theme", c==="dark"?"light":(c==="light"?"dark":(matchMedia("(prefers-color-scheme:dark)").matches?"light":"dark"))); render(); });
   }
 
   function inPillar(o,pid){ if(o.pillar===pid) return true; return o.mix.some(function(m){return m[0]===pid}); }
