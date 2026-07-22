@@ -88,3 +88,43 @@ Adding integration #6+ later = another adapter on this framework, never new infr
 - ✅ **Confirmed:** SoundCloud / Apple Music deferred to Phase 02 taste additions.
 - ⏳ **Validate at anchor:** Square vs Lightspeed against the first anchor venue's actual POS (does not change the #13 contract).
 - ⏳ **Confirm:** Instagram API access tier / scopes sufficient for the affinity + attribution we need (biggest external-dependency risk of the five).
+
+---
+
+## 7. Klaviyo live delivery — the metric/flow contract
+
+Atlas delivers through Klaviyo's **server-side Events API**, not its Campaigns
+API. For each consented recipient it pushes a single metric **event**; the
+venue's own Klaviyo **flows** subscribe to that metric and send the actual
+message. Atlas never creates or sends a campaign to a list — delivery is
+*discovery, never a blast*, and the marketer keeps control of copy, timing,
+and suppression (prop 4: makes the existing stack smarter, no rip-and-replace).
+
+**This means the metric names below are the integration contract.** During
+Klaviyo setup the venue creates **one flow per metric it wants live**, each
+triggered by that metric. A metric with no flow simply does nothing — safe by
+default, opt-in per message type.
+
+| Klaviyo metric (create a flow on this) | Fired by | When | Key event properties |
+|---|---|---|---|
+| **Atlas Event Match** | Recommendations → *Promote to matched guests* | Operator promotes a dated event to its taste-matched, consented audience | `event`, `date`, `audienceId`, `guestName` |
+| **Atlas Regulars Lock-In** | Recommendations → *Lock in regulars* | A flagged competitor is opening; defend exposed regulars | `rival`, `audienceId`, `guestName` |
+| **Atlas Winback** | `POST /v1/winback/trigger` | A lapsed VIP crosses the lapse threshold | `lapseDays`, `topAffinity`, `message`, `guestName` |
+| **Atlas Crew Rebook** | `POST /v1/nudges/crew-rebook` | A crew with a past visit and nothing upcoming goes quiet | `crewId`, `lastVisit`, `sinceDays`, `message`, `guestName` |
+| **Atlas Loyalty Claim** | Booking closeout | A still-provisional venue-link guest earned credit (phone-keyed) | `venue`, `message` |
+| **Atlas Campaign** | `POST /v1/campaigns` (lifecycle) | Generic audience push over an audience's matched-guest set | `campaignId`, `audienceId`, `guestName` |
+
+Any future template with no mapping falls back to the metric **Atlas Signal**,
+so an unmapped send is still visible in Klaviyo rather than silently dropped.
+
+**Profile resolution.** Each event carries a `profile` keyed by the guest's
+`email`, `phone_number` (E.164), and `external_id` (the Atlas guestId). A venue
+that syncs its own profiles by `external_id` resolves the person even without a
+matching email/phone on file.
+
+**Going live.** Set the `KLAVIYO_API_KEY` repo secret (a Klaviyo **private**
+API key) — the next deploy flips the adapter from stub → live automatically.
+Unset, the rail stays in STUB mode (logs intent, reports `stub: true`), so this
+is safe to ship ahead of the key. Delivery is **fail-soft**: a Klaviyo outage
+or a recipient with no contact key is counted as `skipped`, never surfaced as
+an error on the action that triggered it.

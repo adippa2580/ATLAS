@@ -626,6 +626,7 @@
         <li><b>Amber solid = AUTH EXPIRED.</b> Alarm's tinted-fill weight — the token lapsed, action needed, but never red. <span class="m">RECONNECT</span> is the recovery path.</li>
         <li>Seeded stubs mean a tenant is <b>never blocked by an unconnected source</b> — they go live on seed and upgrade in place.</li>
         <li>No connector ever shows red — expired auth is amber, the strongest weight used here.</li>
+        <li><b>Klaviyo setup = create one flow per Atlas metric.</b> Delivery is server-side <b>events</b>, never a list blast — Atlas fires a metric event per consented guest and your Klaviyo flow sends the message. Create a flow triggered on each metric you want live: <span class="m">Atlas Event Match</span>, <span class="m">Atlas Regulars Lock-In</span>, <span class="m">Atlas Winback</span>, <span class="m">Atlas Crew Rebook</span>, <span class="m">Atlas Loyalty Claim</span>, <span class="m">Atlas Campaign</span>. A metric with no flow simply does nothing — opt-in per message type. Profiles match on email / phone / <span class="m">external_id</span> (the Atlas guest id).</li>
       </ul>
     </aside>
   </section>

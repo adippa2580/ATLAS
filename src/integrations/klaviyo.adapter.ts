@@ -65,6 +65,7 @@ export class KlaviyoAdapter {
     lapsed_vip_winback: 'Atlas Winback',
     crew_rebook_nudge: 'Atlas Crew Rebook',
     post_visit_loyalty_claim: 'Atlas Loyalty Claim',
+    lifecycle_campaign: 'Atlas Campaign',
   };
 
   constructor(private readonly config: ConfigService) {}
