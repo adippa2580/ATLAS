@@ -41,6 +41,12 @@ export interface GroundedRecommendation {
   kind: 'event_demand' | 'late_night_fill' | 'competitor_opening';
   headline: string;
   date: string | null;
+  /**
+   * Regional relevance (2026-07-22 product rule): promotion is borderless —
+   * venues market to travellers — but IMPACT is regional. 'local' = same city
+   * as the venue; 'destination' = elsewhere; null = unknown.
+   */
+  relevance: 'local' | 'destination' | null;
   insight: string;
   matched: number;
   repeatMatched: number;
@@ -167,12 +173,25 @@ export class RecommendationsService {
     return { matchedIds, repeatIds, genres };
   }
 
-  private async resolveVenueId(ctx: TenantContext, venueId?: string) {
-    if (venueId) return venueId;
-    const v = await this.prisma.venue.findFirst({
-      where: { tenantId: ctx.tenantId },
-    });
-    return v?.id;
+  private async resolveVenue(ctx: TenantContext, venueId?: string) {
+    const v = venueId
+      ? await this.prisma.venue.findFirst({
+          where: { id: venueId, tenantId: ctx.tenantId },
+        })
+      : await this.prisma.venue.findFirst({
+          where: { tenantId: ctx.tenantId },
+        });
+    return v ? { id: v.id, city: v.city ?? null } : null;
+  }
+
+  private relevanceOf(
+    eventCity: string | null | undefined,
+    venueCity: string | null,
+  ): 'local' | 'destination' | null {
+    if (!eventCity || !venueCity) return null;
+    return eventCity.trim().toLowerCase() === venueCity.trim().toLowerCase()
+      ? 'local'
+      : 'destination';
   }
 
   async list(
@@ -181,7 +200,9 @@ export class RecommendationsService {
   ) {
     const windowDays = opts.windowDays ?? DEFAULT_WINDOW_DAYS;
     const minScore = opts.minScore ?? DEFAULT_MIN_SCORE;
-    const venueId = await this.resolveVenueId(ctx, opts.venueId);
+    const venue = await this.resolveVenue(ctx, opts.venueId);
+    const venueId = venue?.id;
+    const venueCity = venue?.city ?? null;
     const now = new Date();
     const horizon = new Date(now.getTime() + windowDays * 86_400_000);
 
@@ -207,11 +228,15 @@ export class RecommendationsService {
         minScore,
       );
       const dayLabel = date.toISOString().slice(0, 10);
+      const evCity = (ev.metadata as { city?: string } | null)?.city ?? null;
       recommendations.push({
         id: `event:${ev.id}`,
         kind: 'event_demand',
-        headline: `${ev.name} · ${dayLabel}`,
+        headline: evCity
+          ? `${ev.name} · ${evCity} · ${dayLabel}`
+          : `${ev.name} · ${dayLabel}`,
         date: date.toISOString(),
+        relevance: this.relevanceOf(evCity, venueCity),
         insight: matchedIds.length
           ? `${matchedIds.length} consented guests match via taste graph` +
             (genres.length ? ` (${genres.join(' / ')})` : '') +
@@ -250,13 +275,24 @@ export class RecommendationsService {
         continue;
       }
       if (opening < now || opening > horizon) continue;
+      // Regional impact rule: a rival opening in another state/city does not
+      // split this venue's weekend crowd — suppress the impact rec entirely
+      // when both cities are known and differ. (Promotion recs stay
+      // borderless; impact recs are local.)
+      const rivalCity =
+        (rival.metadata as { city?: string } | null)?.city ?? null;
+      const rel = this.relevanceOf(rivalCity, venueCity);
+      if (rel === 'destination') continue;
       const exposed = venueId ? await this.exposedRegulars(ctx, venueId) : [];
       const dayLabel = opening.toISOString().slice(0, 10);
       recommendations.push({
         id: `competitor:${rival.id}`,
         kind: 'competitor_opening',
-        headline: `${rival.name} opens · ${dayLabel}`,
+        headline: rivalCity
+          ? `${rival.name} opens · ${rivalCity} · ${dayLabel}`
+          : `${rival.name} opens · ${dayLabel}`,
         date: opening.toISOString(),
+        relevance: rel,
         insight: exposed.length
           ? `Splits the weekend crowd — ${exposed.length} consented regulars booked here in the last 60 days are the exposed audience`
           : 'Splits the weekend crowd — no recent consented regulars to defend yet',
@@ -289,6 +325,7 @@ export class RecommendationsService {
           kind: 'late_night_fill',
           headline: 'Late-night fill opportunity',
           date: null,
+          relevance: 'local',
           insight: `No after-party inventory released — ${DEFAULT_DROP_COUNT} late slots available to drop at standard minimums`,
           matched: 0,
           repeatMatched: 0,
@@ -299,7 +336,11 @@ export class RecommendationsService {
       }
     }
 
-    recommendations.sort((a, b) => b.matched - a.matched);
+    // Local first (impact + hometown demand), then by audience size. Destination
+    // events stay listed — they are promotion opportunities, not noise.
+    const rank = (r: GroundedRecommendation) =>
+      r.relevance === 'local' ? 0 : 1;
+    recommendations.sort((a, b) => rank(a) - rank(b) || b.matched - a.matched);
     return {
       tenantId: ctx.tenantId,
       venueId: venueId ?? null,
@@ -313,7 +354,8 @@ export class RecommendationsService {
   }
 
   async act(ctx: TenantContext, dto: ActDto) {
-    const venueId = await this.resolveVenueId(ctx, dto.venueId);
+    const venue = await this.resolveVenue(ctx, dto.venueId);
+    const venueId = venue?.id;
     if (!venueId) throw new BadRequestException('No venue for tenant');
 
     const event = dto.eventId

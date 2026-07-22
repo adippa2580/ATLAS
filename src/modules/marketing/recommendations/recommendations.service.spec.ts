@@ -22,7 +22,9 @@ describe('RecommendationsService', () => {
         findUnique: async ({ where }: any) =>
           (opts.events ?? []).find((e) => e.id === where.id) ?? null,
       },
-      venue: { findFirst: async () => ({ id: 'v1', tenantId: 't1' }) },
+      venue: {
+        findFirst: async () => ({ id: 'v1', tenantId: 't1', city: 'Miami' }),
+      },
       guestAffinity: { findMany: async () => opts.affinities ?? [] },
       booking: { findMany: async () => opts.repeatBookings ?? [] },
       inventory: { count: async () => opts.dropCount ?? 0 },
@@ -225,5 +227,57 @@ describe('RecommendationsService', () => {
       }),
     );
     expect(res.matched).toBe(2);
+  });
+
+  it('carries the event city in the headline and tags relevance', async () => {
+    const { svc } = make({
+      events: [
+        { ...festival, metadata: { ...festival.metadata, city: 'Miami' } },
+        {
+          id: 'e-syd',
+          name: 'Sydney Warehouse',
+          kind: 'event',
+          metadata: { date: soon, genres: ['rock'], city: 'Sydney' },
+        },
+      ],
+      affinities: [{ guestId: 'g1' }],
+    });
+    const out = await svc.list(ctx, { venueId: 'v1' });
+    const local = out.recommendations.find((r) =>
+      r.headline.includes('Sundown'),
+    )!;
+    const dest = out.recommendations.find((r) =>
+      r.headline.includes('Sydney Warehouse'),
+    )!;
+    expect(local.headline).toContain('· Miami ·');
+    expect(local.relevance).toBe('local');
+    expect(dest.headline).toContain('· Sydney ·');
+    expect(dest.relevance).toBe('destination');
+    // local ranks before destination even at equal match counts
+    expect(out.recommendations.indexOf(local)).toBeLessThan(
+      out.recommendations.indexOf(dest),
+    );
+  });
+
+  it('suppresses competitor impact recs from other cities, keeps same-city ones', async () => {
+    const { svc } = make({
+      events: [
+        { ...rival, metadata: { ...rival.metadata, city: 'Sydney' } },
+        {
+          id: 'v-local',
+          name: 'Local Rival',
+          kind: 'venue',
+          metadata: { competitor: true, openingDate: soon, city: 'Miami' },
+        },
+      ],
+      repeatBookings: [{ guestId: 'g1' }],
+    });
+    const out = await svc.list(ctx, { venueId: 'v1' });
+    const comps = out.recommendations.filter(
+      (r) => r.kind === 'competitor_opening',
+    );
+    expect(comps).toHaveLength(1);
+    expect(comps[0].headline).toContain('Local Rival');
+    expect(comps[0].relevance).toBe('local');
   });
 });
