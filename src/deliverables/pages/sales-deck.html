@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atlas Sales Demo Deck</title>
+<style>
+  :root{
+    --s0:#04050A; --s1:#0B0E17; --s2:#111524;
+    --hi:#F5F7FF; --mid:#B8C0D4; --lo:#6B7280;
+    --violet:#A78BFA; --cyan:#22D3EE; --electric:#60A5FA; --amber:#FBBF24; --mint:#34D399;
+    --guest:#34D399; --ops:#A78BFA; --mkt:#FBBF24;
+    --pc-taste:#c55285; --pc-identity:#933e92; --pc-crews:#6f52b9; --pc-venues:#129db0;
+    --pc-bookings:#618aeb; --pc-revenue:#b48706; --pc-marketing:#ac4b06;
+    --mono:Menlo,Monaco,"SF Mono",monospace;
+    --sans:"Helvetica Neue",Helvetica,Arial,sans-serif;
+    --h-chrome:rgba(255,255,255,.12); --h-card:rgba(255,255,255,.08); --h-row:rgba(255,255,255,.05);
+    --glass:rgba(255,255,255,.05);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:var(--s0); color:var(--mid);
+    font-family:var(--sans); font-weight:300;
+    -webkit-font-smoothing:antialiased;
+    display:flex; align-items:center; justify-content:center;
+    min-height:100vh; overflow:hidden;
+  }
+
+  /* fixed back-link, tucked top-left away from deck chrome */
+  .backlink{
+    position:fixed; top:14px; left:18px; z-index:60;
+    font-family:var(--mono); font-size:11px; letter-spacing:.2em;
+    color:var(--lo); text-decoration:none; padding:4px 6px;
+  }
+  .backlink:hover{color:var(--mid)}
+  .backlink:focus-visible{outline:2px solid var(--cyan); outline-offset:2px; border-radius:4px}
+
+  /* ---------- STAGE (16:9) ---------- */
+  .stage{
+    position:relative;
+    width:min(97vw, calc(96vh * 16 / 9));
+    aspect-ratio:16 / 9;
+    background:radial-gradient(120% 140% at 78% -10%, rgba(96,165,250,.07), transparent 55%),
+               radial-gradient(120% 140% at 10% 120%, rgba(167,139,250,.06), transparent 55%),
+               var(--s0);
+    border:1px solid var(--h-card);
+    border-radius:14px;
+    overflow:hidden;
+    container-type:size;
+    box-shadow:0 30px 80px -30px rgba(0,0,0,.8);
+  }
+
+  /* ---------- SLIDES ---------- */
+  .slide{
+    position:absolute; inset:0;
+    padding:5.2cqw 5.4cqw 4.4cqw;
+    display:flex; flex-direction:column;
+    opacity:0; visibility:hidden;
+    transition:opacity .2s ease;
+  }
+  .slide.active{opacity:1; visibility:visible}
+
+  .kicker{
+    font-family:var(--mono); font-size:.98cqw; letter-spacing:.24em;
+    text-transform:uppercase; color:var(--lo);
+    display:flex; gap:.9em; align-items:center; margin-bottom:1.6cqw;
+  }
+  .kicker .num{color:var(--cyan)}
+  .kicker .dot{color:var(--lo)}
+
+  h2.head{
+    margin:0; font-weight:200; color:var(--hi);
+    font-size:3.5cqw; line-height:1.05; letter-spacing:-.01em;
+    max-width:24ch;
+  }
+
+  .slide-body{display:flex; gap:4cqw; flex:1; min-height:0; margin-top:2.6cqw}
+
+  /* mock frame ------------------------------------------------- */
+  .mock-wrap{flex:1.15; min-width:0; display:flex; align-items:center; justify-content:center}
+  .mock{
+    width:100%;
+    background:var(--s1);
+    border:1px solid var(--h-card);
+    border-radius:1cqw;
+    padding:2cqw;
+    position:relative;
+  }
+  .mock-tag{
+    position:absolute; top:1.1cqw; right:1.4cqw;
+    font-family:var(--mono); font-size:.78cqw; letter-spacing:.2em; color:var(--lo);
+  }
+
+  /* talk track ------------------------------------------------- */
+  .track{flex:1; display:flex; flex-direction:column; justify-content:center; gap:1.9cqw}
+  .beat{border-left:2px solid var(--h-chrome); padding-left:1.4cqw}
+  .beat .bl{font-family:var(--mono); font-size:.92cqw; letter-spacing:.26em; margin-bottom:.55cqw; display:block}
+  .beat.show .bl{color:var(--cyan)}
+  .beat.say  .bl{color:var(--violet)}
+  .beat.proof .bl{color:var(--mint)}
+  .beat p{margin:0; font-size:1.55cqw; line-height:1.5; color:var(--mid); font-weight:300}
+  .beat p b{color:var(--hi); font-weight:400}
+  .beat p .m{font-family:var(--mono); font-size:.92em; color:var(--hi)}
+
+  /* ---------- mock atoms ---------- */
+  .m-mono{font-family:var(--mono)}
+  .row-lbl{font-family:var(--mono); font-size:.82cqw; letter-spacing:.22em; color:var(--lo); text-transform:uppercase}
+
+  /* floor grid */
+  .floor{display:grid; grid-template-columns:repeat(4,1fr); gap:.9cqw}
+  .tcard{
+    background:var(--s2); border:1.5px solid rgba(184,192,212,.18);
+    border-radius:.7cqw; padding:.95cqw 1cqw; min-height:5.4cqw;
+    display:flex; flex-direction:column; justify-content:space-between;
+  }
+  .tcard .tid{font-family:var(--mono); font-size:1cqw; color:var(--hi); letter-spacing:.06em}
+  .tcard .tstate{font-family:var(--mono); font-size:.72cqw; letter-spacing:.16em; text-transform:uppercase; white-space:nowrap}
+  .tcard .tmeta{font-family:var(--mono); font-size:.72cqw; color:var(--lo); margin-top:.5cqw}
+  .tcard.held{border-color:rgba(184,192,212,.5); border-style:dashed}
+  .tcard.held .tstate{color:var(--mid)}
+  .tcard.conf{border-color:rgba(34,211,238,.55)} .tcard.conf .tstate{color:var(--cyan)}
+  .tcard.seat{border-color:rgba(52,211,153,.55)} .tcard.seat .tstate{color:var(--mint)}
+  .tcard.avail .tstate{color:var(--lo)}
+  .tcard.sel{outline:2px solid var(--cyan); outline-offset:1px}
+  .pdot{display:inline-block; width:.62cqw; height:.62cqw; border-radius:50%; border:1.5px solid var(--mid); vertical-align:middle}
+  .pdot.pulse{animation:pulse 1.6s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+  /* bookings board */
+  .board{display:flex; flex-direction:column; gap:.5cqw}
+  .brow{display:grid; grid-template-columns:3cqw 1fr 4.2cqw 5cqw auto; gap:1cqw; align-items:center;
+        background:var(--s2); border:1px solid var(--h-row); border-radius:.55cqw; padding:.85cqw 1.1cqw}
+  .brow .btime{font-family:var(--mono); font-size:.92cqw; color:var(--hi)}
+  .brow .bguest{font-size:1.1cqw; color:var(--hi); font-weight:400; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .brow .bguest .sub{font-family:var(--mono); font-size:.8cqw; color:var(--lo); margin-left:.6em}
+  .brow .bmin{font-family:var(--mono); font-size:.9cqw; color:var(--mid); text-align:right}
+  .chip{font-family:var(--mono); font-size:.74cqw; letter-spacing:.14em; text-transform:uppercase;
+        padding:.28cqw .6cqw; border-radius:99px; white-space:nowrap}
+  .chip.held{border:1px dashed var(--mid); color:var(--mid)}
+  .chip.conf{background:rgba(34,211,238,.14); color:var(--cyan)}
+  .chip.seat{background:rgba(52,211,153,.14); color:var(--mint)}
+  .attr{border-left:2px solid var(--mkt); padding-left:.55cqw; font-family:var(--mono);
+        font-size:.78cqw; letter-spacing:.12em; color:var(--mid); text-transform:uppercase}
+  .attr.guest{border-color:var(--guest)}
+  .pay{display:flex; gap:.4cqw; align-items:center; font-family:var(--mono); font-size:.78cqw; color:var(--lo)}
+  .dot-s{width:.55cqw; height:.55cqw; border-radius:50%}
+  .dot-s.lock{background:var(--mint)} .dot-s.pend{border:1.2px solid var(--lo)} .dot-s.fail{background:var(--amber)}
+
+  /* door rows */
+  .scanbtn{background:rgba(34,211,238,.1); border:1px solid rgba(34,211,238,.4); color:var(--cyan);
+           font-family:var(--sans); font-size:1.2cqw; padding:1cqw 1.2cqw; border-radius:.6cqw; margin-bottom:1cqw;
+           display:flex; align-items:center; gap:.7cqw}
+  .drow{display:flex; align-items:center; gap:1.1cqw; background:var(--s2); border:1px solid var(--h-row);
+        border-radius:.55cqw; padding:1cqw 1.2cqw; margin-bottom:.55cqw}
+  .drow .dname{font-size:1.25cqw; color:var(--hi); font-weight:400}
+  .drow .dmeta{font-family:var(--mono); font-size:.82cqw; color:var(--lo)}
+  .flag{font-family:var(--mono); font-size:.72cqw; letter-spacing:.12em; color:var(--mint);
+        border:1px solid rgba(52,211,153,.4); border-radius:99px; padding:.24cqw .55cqw; text-transform:uppercase}
+  .ci{margin-left:auto; font-family:var(--sans); font-size:1.05cqw; color:var(--cyan);
+      border:1px solid rgba(34,211,238,.4); border-radius:.5cqw; padding:.5cqw .9cqw}
+  .ci.done{color:var(--mint); border:none; background:none; padding-right:0}
+
+  /* closeout KPI */
+  .kgrid{display:grid; grid-template-columns:repeat(2,1fr); gap:.9cqw; margin-bottom:1.4cqw}
+  .kpi{background:var(--glass); border:1px solid var(--h-chrome); border-radius:.7cqw; padding:1cqw 1.2cqw}
+  .kpi .kl{font-family:var(--mono); font-size:.76cqw; letter-spacing:.2em; color:var(--lo); text-transform:uppercase}
+  .kpi .kv{font-family:var(--mono); font-size:1.9cqw; color:var(--hi); margin-top:.5cqw}
+  .kpi .kv.amber{color:var(--amber)}
+  .kpi .flagv{font-family:var(--mono); font-size:.72cqw; letter-spacing:.14em; color:var(--amber)}
+  .bars{display:flex; flex-direction:column; gap:.55cqw}
+  .bar-row{display:grid; grid-template-columns:6cqw 1fr 4cqw; gap:.8cqw; align-items:center}
+  .bar-row .bn{font-family:var(--mono); font-size:.8cqw; letter-spacing:.14em; color:var(--mid); text-transform:uppercase}
+  .bar-track{height:.9cqw; background:var(--s2); border-radius:99px; overflow:hidden}
+  .bar-fill{height:100%; border-radius:99px}
+  .bar-row .bv{font-family:var(--mono); font-size:.8cqw; color:var(--mid); text-align:right}
+
+  /* pass card */
+  .pass{width:70%; margin:0 auto; background:linear-gradient(160deg,#0c0f19,#070910);
+        border:1px solid rgba(184,192,212,.25); border-radius:1cqw; overflow:hidden}
+  .pass-hd{display:flex; justify-content:space-between; align-items:center; padding:1cqw 1.3cqw;
+           border-bottom:1px solid var(--h-card)}
+  .pass-hd .pl{font-family:var(--mono); font-size:.82cqw; letter-spacing:.4em; color:var(--mid)}
+  .pass-hd .pd{font-family:var(--mono); font-size:.78cqw; color:var(--lo)}
+  .pass-venue{font-size:2.6cqw; font-weight:200; color:var(--hi); padding:1.3cqw 1.3cqw .3cqw; letter-spacing:.01em}
+  .pass-fields{display:flex; gap:2.2cqw; padding:.6cqw 1.3cqw 1.2cqw}
+  .pf .pfl{font-family:var(--mono); font-size:.7cqw; letter-spacing:.2em; color:var(--lo); text-transform:uppercase}
+  .pf .pfv{font-family:var(--mono); font-size:1.1cqw; color:var(--hi); margin-top:.35cqw}
+  .qr{margin:.4cqw 1.3cqw 1.3cqw; background:#fff; border-radius:.5cqw; padding:1cqw; display:flex; flex-direction:column; align-items:center; gap:.7cqw}
+  .qr-grid{width:7cqw; height:7cqw; display:grid; grid-template-columns:repeat(11,1fr); grid-template-rows:repeat(11,1fr); gap:1px}
+  .qr-grid i{background:#0a0a0a; border-radius:1px}
+  .qr-cap{font-family:var(--mono); font-size:.72cqw; letter-spacing:.24em; color:#0a0a0a}
+
+  /* venue-link mobile mock */
+  .phone{width:44%; margin:0 auto; background:var(--s1); border:1px solid var(--h-card);
+         border-radius:1.4cqw; padding:1.4cqw; position:relative;
+         box-shadow:inset 0 0 0 1px rgba(255,255,255,.02)}
+  .vhero{background:radial-gradient(120% 120% at 30% 0%, rgba(167,139,250,.16), transparent 60%);
+         border-radius:.9cqw; padding:1.4cqw 1.1cqw; margin-bottom:1cqw}
+  .vhero .vk{font-family:var(--mono); font-size:.72cqw; letter-spacing:.24em; color:var(--lo); text-transform:uppercase}
+  .vhero .vn{font-size:2.1cqw; font-weight:200; color:var(--hi); margin-top:.5cqw}
+  .vcard{background:var(--s2); border:1px solid var(--h-row); border-radius:.7cqw; padding:1cqw}
+  .vcard .vt{font-size:1.35cqw; color:var(--hi); font-weight:400}
+  .vcard .vsub{font-family:var(--mono); font-size:.78cqw; color:var(--mid); margin-top:.4cqw}
+  .vcard .vmin{font-family:var(--mono); font-size:.78cqw; color:var(--lo); margin-top:.25cqw}
+  .reserve{margin-top:.9cqw; background:var(--hi); color:#04050A; text-align:center;
+           font-family:var(--mono); font-size:.92cqw; letter-spacing:.18em; padding:.85cqw; border-radius:99px}
+  .powered{text-align:center; font-family:var(--mono); font-size:.62cqw; letter-spacing:.4em;
+           color:rgba(184,192,212,.28); margin-top:1cqw; text-transform:uppercase}
+
+  /* intelligence chain */
+  .chain{display:flex; align-items:stretch; gap:.7cqw}
+  .stagec{flex:1; background:var(--s2); border:1px solid var(--h-row); border-radius:.6cqw; padding:.85cqw .7cqw; text-align:center}
+  .stagec .sc-l{font-family:var(--mono); font-size:.68cqw; letter-spacing:.14em; color:var(--lo); text-transform:uppercase; line-height:1.3}
+  .stagec.on{border-color:rgba(34,211,238,.45)} .stagec.on .sc-l{color:var(--cyan)}
+  .stagec.gate{border-color:rgba(167,139,250,.45)} .stagec.gate .sc-l{color:var(--violet)}
+  .chain .arr{align-self:center; color:var(--lo); font-family:var(--mono); font-size:1cqw}
+  .insight{margin-top:1.2cqw; background:var(--glass); border:1px solid var(--h-chrome); border-radius:.7cqw; padding:1.2cqw}
+  .pchip{font-family:var(--mono); font-size:.74cqw; letter-spacing:.14em; text-transform:uppercase;
+         padding:.24cqw .6cqw; border-radius:99px; color:#04050A; background:var(--pc-taste)}
+  .insight .bigstat{font-family:var(--mono); font-size:2.4cqw; color:var(--hi); margin:.6cqw 0 .3cqw}
+  .insight .sowhat{font-size:1.1cqw; color:var(--mid); line-height:1.4}
+  .insight .sowhat b{color:var(--hi); font-weight:400}
+
+  /* promoters */
+  .lead{display:flex; flex-direction:column; gap:.55cqw; margin-bottom:1.2cqw}
+  .lrow{display:flex; align-items:center; gap:1cqw; background:var(--s2); border:1px solid var(--h-row);
+        border-radius:.55cqw; padding:.85cqw 1.1cqw}
+  .lrow .lrank{font-family:var(--mono); font-size:1cqw; color:var(--lo)}
+  .lrow.top .lrank{color:var(--amber)}
+  .lrow .lh{font-size:1.25cqw; color:var(--hi); font-weight:400}
+  .lrow .lsub{font-family:var(--mono); font-size:.76cqw; color:var(--lo); margin-left:auto}
+  .lrow .lsub .good{color:var(--mint)} .lrow .lsub .warn{color:var(--amber)}
+  .funnel{display:flex; flex-direction:column; gap:.5cqw}
+  .frow{display:grid; grid-template-columns:6.5cqw 1fr 5cqw; gap:.8cqw; align-items:center}
+  .frow .fn{font-family:var(--mono); font-size:.78cqw; letter-spacing:.14em; color:var(--mid); text-transform:uppercase}
+  .frow .ft{height:1.1cqw; border-radius:.3cqw}
+  .frow .fv{font-family:var(--mono); font-size:.82cqw; color:var(--hi); text-align:right}
+
+  /* substrate stack */
+  .stack{display:flex; flex-direction:column; gap:.6cqw; width:82%; margin:0 auto}
+  .layer{display:flex; align-items:center; gap:1.2cqw; background:var(--s2); border:1px solid var(--h-row);
+         border-radius:.6cqw; padding:1cqw 1.3cqw; border-left:3px solid var(--lo)}
+  .layer .lname{font-size:1.5cqw; color:var(--hi); font-weight:300}
+  .layer .ld{font-family:var(--mono); font-size:.82cqw; color:var(--lo); margin-left:auto; letter-spacing:.1em; text-transform:uppercase}
+  .layer.l1{border-left-color:var(--guest)}
+  .layer.l2{border-left-color:var(--cyan)}
+  .layer.l3{border-left-color:var(--electric)}
+  .layer.l4{border-left-color:var(--violet)}
+  .layer.l5{border-left-color:var(--amber)}
+  .stack-arrow{text-align:center; color:var(--lo); font-family:var(--mono); font-size:1.1cqw; margin:-.1cqw 0}
+
+  /* ---------- COVER (slide 1) ---------- */
+  .cover{justify-content:center}
+  .wordmark{font-size:9cqw; font-weight:200; color:var(--hi); letter-spacing:.02em; line-height:1}
+  .wordmark .lit{color:var(--cyan)}
+  .cover .tag{font-size:2.3cqw; font-weight:200; color:var(--mid); margin-top:1.4cqw; max-width:32ch; line-height:1.3}
+  .cover .pilot{font-family:var(--mono); font-size:1cqw; letter-spacing:.24em; color:var(--lo);
+                margin-top:3cqw; text-transform:uppercase; display:flex; gap:1em; align-items:center}
+  .cover .pilot .num{color:var(--cyan)}
+
+  /* ---------- DEMO ARC (slide 2) ---------- */
+  .arc{flex:1; display:grid; grid-template-columns:repeat(4,1fr); gap:1.4cqw; margin-top:3cqw}
+  .beatc{background:var(--s1); border:1px solid var(--h-card); border-radius:.9cqw; padding:1.8cqw 1.5cqw;
+         display:flex; flex-direction:column}
+  .beatc .bnum{font-family:var(--mono); font-size:.9cqw; letter-spacing:.2em; color:var(--lo)}
+  .beatc .bt{font-size:2.8cqw; font-weight:200; color:var(--hi); margin:1cqw 0 .8cqw}
+  .beatc .bd{font-size:1.35cqw; line-height:1.5; color:var(--mid)}
+  .beatc.b1{border-top:2px solid var(--guest)}
+  .beatc.b2{border-top:2px solid var(--ops)}
+  .beatc.b3{border-top:2px solid var(--electric)}
+  .beatc.b4{border-top:2px solid var(--mkt)}
+  .beatc .bt.c1{color:var(--guest)} .beatc .bt.c2{color:var(--ops)}
+  .beatc .bt.c3{color:var(--electric)} .beatc .bt.c4{color:var(--mkt)}
+
+  /* ---------- CLOSE (slide 12) ---------- */
+  .close{justify-content:center; align-items:flex-start}
+  .close .big{font-size:6cqw; font-weight:200; color:var(--hi); line-height:1.05; letter-spacing:-.01em}
+  .close .big .sep{color:var(--cyan); font-weight:200}
+  .close .three{display:flex; gap:3cqw; margin-top:3.4cqw}
+  .close .three .t .tk{font-family:var(--mono); font-size:.86cqw; letter-spacing:.2em; color:var(--cyan); text-transform:uppercase}
+  .close .three .t .tv{font-size:1.5cqw; color:var(--mid); margin-top:.7cqw; max-width:20ch; line-height:1.4}
+  .close .sig{font-family:var(--mono); font-size:.92cqw; letter-spacing:.24em; color:var(--lo);
+              margin-top:3.6cqw; text-transform:uppercase}
+
+  /* ---------- DECK CHROME ---------- */
+  .chrome{
+    position:absolute; left:0; right:0; bottom:1.6cqw;
+    display:flex; align-items:center; justify-content:center; gap:2cqw; z-index:20;
+  }
+  .navbtn{
+    width:3.4cqw; height:3.4cqw; border-radius:50%;
+    background:var(--glass); border:1px solid var(--h-chrome); color:var(--mid);
+    font-size:1.5cqw; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    transition:border-color .12s ease, color .12s ease, background .12s ease;
+  }
+  .navbtn:hover{border-color:rgba(34,211,238,.5); color:var(--cyan)}
+  .navbtn:disabled{opacity:.3; cursor:default}
+  .navbtn:focus-visible{outline:2px solid var(--cyan); outline-offset:2px}
+  .counter{font-family:var(--mono); font-size:1.1cqw; letter-spacing:.24em; color:var(--mid); min-width:7ch; text-align:center}
+  .counter .cur{color:var(--hi)}
+
+  /* speaker notes footer (toggle: S) */
+  .notes{
+    position:absolute; left:0; right:0; bottom:0; z-index:15;
+    background:rgba(4,5,10,.92); border-top:1px solid var(--h-card);
+    padding:1.1cqw 5.4cqw; font-family:var(--mono); font-size:1cqw; letter-spacing:.04em;
+    color:var(--mid); display:flex; gap:1em; align-items:baseline;
+    transition:transform .2s ease;
+  }
+  .notes .nl{color:var(--amber); letter-spacing:.2em; flex:none}
+  .notes.hidden{transform:translateY(105%)}
+  .hint{
+    position:absolute; right:1.4cqw; top:1.2cqw; z-index:20;
+    font-family:var(--mono); font-size:.78cqw; letter-spacing:.14em; color:var(--lo); text-transform:uppercase;
+  }
+
+  /* progress ticks */
+  .progress{position:absolute; top:0; left:0; right:0; height:2px; display:flex; z-index:20}
+  .progress i{flex:1; background:rgba(255,255,255,.06); transition:background .2s ease}
+  .progress i.done{background:rgba(34,211,238,.5)}
+  .progress i.here{background:var(--cyan)}
+
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none !important; animation:none !important}
+  }
+  @media print{
+    body{overflow:visible; display:block; height:auto}
+    .stage{width:100%; aspect-ratio:auto; box-shadow:none; page-break-inside:avoid}
+    .slide{position:static; opacity:1 !important; visibility:visible !important; page-break-after:always; min-height:56vh}
+    .chrome,.notes,.hint,.backlink,.progress{display:none}
+  }
+</style>
+</head>
+<body>
+
+<a class="backlink" href="/deliverables">← DELIVERABLES</a>
+
+<div class="stage" id="stage" role="region" aria-label="Atlas sales demo deck">
+
+  <div class="progress" id="progress" aria-hidden="true"></div>
+  <div class="hint">← → NAVIGATE&nbsp;&nbsp;·&nbsp;&nbsp;S NOTES</div>
+
+  <!-- 1 · COVER -->
+  <section class="slide cover" data-note="Open on the wordmark. This is not a dashboard demo — it is one booking, followed end to end, across every surface that touches it.">
+    <div class="wordmark">ATLAS<span class="lit">.</span></div>
+    <div class="tag">The operating system for the night. One booking, followed from the guest's phone to your closeout.</div>
+    <div class="pilot"><span>PILOT</span><span class="dot">·</span><span class="num">30 DAYS</span><span class="dot">·</span><span>ONE VENUE</span><span class="dot">·</span><span>ONE CONTRACT</span></div>
+  </section>
+
+  <!-- 2 · DEMO ARC -->
+  <section class="slide" data-note="Four beats. Everything you're about to see hangs off one of these. Guests BOOK, the floor RUNS the night, the venue LEARNs what worked, and every signal is earned with consent — that's TRUST.">
+    <div class="kicker"><span class="num">02</span><span class="dot">·</span><span>THE DEMO ARC</span></div>
+    <h2 class="head">One night, four beats</h2>
+    <div class="arc">
+      <div class="beatc b1"><div class="bnum">BEAT 01</div><div class="bt c1">BOOK</div><div class="bd">A guest reserves a table from a link — no app, no signup wall, deposit held to the minimum.</div></div>
+      <div class="beatc b2"><div class="bnum">BEAT 02</div><div class="bt c2">RUN</div><div class="bd">The floor, the door and the tab move as one board. Held, seated, closed — nothing hidden.</div></div>
+      <div class="beatc b3"><div class="bnum">BEAT 03</div><div class="bt c3">LEARN</div><div class="bd">Closeout and intelligence turn the night into which paths, promoters and tastes actually paid.</div></div>
+      <div class="beatc b4"><div class="bnum">BEAT 04</div><div class="bt c4">TRUST</div><div class="bd">Every signal is consent-gated and logged. Revoke and the graph forgets. That's the substrate.</div></div>
+    </div>
+  </section>
+
+  <!-- 3 · VENUE-LINK -->
+  <section class="slide" data-note="BEAT: BOOK. The guest never sees a login. Party size filters the tables that fit, deposit counts toward the minimum, refundable to 6pm day-of. Powered-by is ambient — this reads as the venue's own page.">
+    <div class="kicker"><span class="num">03</span><span class="dot">·</span><span>SURFACE</span><span class="dot">·</span><span>VENUE-LINK</span><span class="dot">·</span><span style="color:var(--guest)">GUEST</span></div>
+    <h2 class="head">Booking starts with a link, not a login</h2>
+    <div class="slide-body">
+      <div class="mock-wrap"><div class="mock"><span class="mock-tag">MOBILE WEB · 390PX</span>
+        <div class="phone">
+          <div class="vhero"><div class="vk">FRI · JUL 24 · 21:30</div><div class="vn">Meridian Room</div></div>
+          <div class="vcard">
+            <div class="vt">The Terrace Booth</div>
+            <div class="vsub">up to 6 guests</div>
+            <div class="vmin">$1,200.00 minimum · $300.00 deposit today</div>
+            <div class="reserve">RESERVE</div>
+          </div>
+          <div class="powered">POWERED BY A-LIST</div>
+        </div>
+      </div></div>
+      <div class="track">
+        <div class="beat show"><span class="bl">SHOW</span><p>Tap a date, pick party size, reserve a table. <b>No account, no wall</b> before checkout.</p></div>
+        <div class="beat say"><span class="bl">SAY</span><p>Your guests book the way they already share a location — a link. The deposit <b>counts toward the minimum</b> and is refundable to 6pm.</p></div>
+        <div class="beat proof"><span class="bl">PROOF</span><p>Deposit <span class="m">$300.00</span> against a <span class="m">$1,200.00</span> minimum — money computed from integer cents, never floats.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · WALLET PASS -->
+  <section class="slide" data-note="Still BOOK. The pass is the pre-app channel: it lives in the phone and we push table-ready and running-tab updates to it. No app install required to stay in the loop.">
+    <div class="kicker"><span class="num">04</span><span class="dot">·</span><span>SURFACE</span><span class="dot">·</span><span>WALLET PASS</span><span class="dot">·</span><span style="color:var(--guest)">GUEST</span></div>
+    <h2 class="head">The booking rides home in their wallet</h2>
+    <div class="slide-body">
+      <div class="mock-wrap"><div class="mock"><span class="mock-tag">WALLET PASS</span>
+        <div class="pass">
+          <div class="pass-hd"><span class="pl">A-LIST</span><span class="pd">FRI · JUL 24</span></div>
+          <div class="pass-venue">Meridian Room</div>
+          <div class="pass-fields">
+            <div class="pf"><div class="pfl">Doors</div><div class="pfv">21:30</div></div>
+            <div class="pf"><div class="pfl">Party</div><div class="pfv">6</div></div>
+            <div class="pf"><div class="pfl">Table</div><div class="pfv">Terrace</div></div>
+          </div>
+          <div class="qr">
+            <div class="qr-grid" id="qr4" aria-hidden="true"></div>
+            <div class="qr-cap">SCAN AT DOOR</div>
+          </div>
+        </div>
+      </div></div>
+      <div class="track">
+        <div class="beat show"><span class="bl">SHOW</span><p>Add to wallet at confirmation. The pass carries <b>doors, party, table</b> and a scannable code.</p></div>
+        <div class="beat say"><span class="bl">SAY</span><p>This is your channel before they ever install an app. <b>Table ready. Tab running.</b> We push it straight to the pass.</p></div>
+        <div class="beat proof"><span class="bl">PROOF</span><p>Live updates arrive via a Square-webhook pass push — the QR encodes the booking id, scanned at the door.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · FLOOR -->
+  <section class="slide" data-note="BEAT: RUN. The floor is one grid. Bookings drive it — tables inherit status by booking. Dashed = held, cyan = confirmed, mint = seated. Select a table, seat the party, one tap.">
+    <div class="kicker"><span class="num">05</span><span class="dot">·</span><span>SURFACE</span><span class="dot">·</span><span>FLOOR</span><span class="dot">·</span><span style="color:var(--ops)">OPS</span></div>
+    <h2 class="head">The floor is one live grid</h2>
+    <div class="slide-body">
+      <div class="mock-wrap"><div class="mock"><span class="mock-tag">HOST STAND · NIGHT DENSITY</span>
+        <div class="floor">
+          <div class="tcard seat"><div><div class="tid">T-01</div><div class="tstate">● SEATED</div></div><div class="tmeta">Osei · 2</div></div>
+          <div class="tcard conf sel"><div><div class="tid">T-04</div><div class="tstate">CONFIRMED</div></div><div class="tmeta">Marchetti · 4</div></div>
+          <div class="tcard held"><div><div class="tid">T-09</div><div class="tstate"><span class="pdot pulse"></span> HELD</div></div><div class="tmeta">Beaulieu · 6</div></div>
+          <div class="tcard avail"><div><div class="tid">T-12</div><div class="tstate">○ AVAILABLE</div></div><div class="tmeta">cap 8</div></div>
+          <div class="tcard seat"><div><div class="tid">T-02</div><div class="tstate">● SEATED</div></div><div class="tmeta">Ferro · 4</div></div>
+          <div class="tcard conf"><div><div class="tid">T-05</div><div class="tstate">CONFIRMED</div></div><div class="tmeta">Nakai · 2</div></div>
+          <div class="tcard avail"><div><div class="tid">T-10</div><div class="tstate">○ AVAILABLE</div></div><div class="tmeta">cap 6</div></div>
+          <div class="tcard held"><div><div class="tid">T-14</div><div class="tstate"><span class="pdot pulse"></span> HELD</div></div><div class="tmeta">Vance · 8</div></div>
+        </div>
+      </div></div>
+      <div class="track">
+        <div class="beat show"><span class="bl">SHOW</span><p>Every table, colour-coded by status. <b>T-04 is selected</b> — the aside would show minimum, deposit and split dots.</p></div>
+        <div class="beat say"><span class="bl">SAY</span><p>Your host reads the whole room in one glance. Held pulses, confirmed is cyan, seated is mint. <b>Nothing moves position</b> — only colour.</p></div>
+        <div class="beat proof"><span class="bl">PROOF</span><p>The floor is derived, not entered — bookings drive it. Seat a party and the booking flips <span class="m">confirmed → seated</span>.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · BOOKINGS BOARD -->
+  <section class="slide" data-note="Still RUN. The board is the source of truth. Attribution chip shows where each booking came from — venue-link vs promoter. Payment column shows deposit plus per-share split dots. Confirm or cancel in place.">
+    <div class="kicker"><span class="num">06</span><span class="dot">·</span><span>SURFACE</span><span class="dot">·</span><span>BOOKINGS BOARD</span><span class="dot">·</span><span style="color:var(--ops)">OPS</span></div>
+    <h2 class="head">Every booking, its money and its origin</h2>
+    <div class="slide-body">
+      <div class="mock-wrap"><div class="mock"><span class="mock-tag">BOOKINGS · NEEDS ACTION</span>
+        <div class="board">
+          <div class="brow">
+            <div class="btime">21:30</div>
+            <div class="bguest">Marchetti<span class="sub">4 · T-04</span></div>
+            <div class="attr">PROMOTER · KOFI</div>
+            <div class="pay"><span class="dot-s lock"></span><span class="dot-s lock"></span><span class="dot-s pend"></span>DEP ●</div>
+            <div class="chip conf">CONFIRMED</div>
+          </div>
+          <div class="brow">
+            <div class="btime">22:00</div>
+            <div class="bguest">Beaulieu<span class="sub">6 · T-09</span></div>
+            <div class="attr guest">VENUE-LINK</div>
+            <div class="pay"><span class="dot-s lock"></span><span class="dot-s pend"></span><span class="dot-s pend"></span>DEP ●</div>
+            <div class="chip held">◐ HELD</div>
+          </div>
+          <div class="brow">
+            <div class="btime">22:15</div>
+            <div class="bguest">Osei<span class="sub">2 · T-01</span></div>
+            <div class="attr guest">VENUE-LINK</div>
+            <div class="pay"><span class="dot-s lock"></span><span class="dot-s lock"></span>DEP ●</div>
+            <div class="chip seat">● SEATED</div>
+          </div>
+        </div>
+      </div></div>
+      <div class="track">
+        <div class="beat show"><span class="bl">SHOW</span><p>Time, guest, where it came from, how it's paying, and its status — one row, no drill-down.</p></div>
+        <div class="beat say"><span class="bl">SAY</span><p>You always know <b>who to thank</b>. The amber rule is a promoter, the mint rule is your own venue-link. Split-pay dots show who's locked.</p></div>
+        <div class="beat proof"><span class="bl">PROOF</span><p>Actions mutate status in place: <span class="m">held → confirmed → seated</span>. Every mutation carries an idempotency key.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 · DOOR -->
+  <section class="slide" data-note="Still RUN. The door closes the loop with the wallet pass. Scan the QR or search a name. Entitlement flags (bottle service, comped) travel with the booking so the door never guesses.">
+    <div class="kicker"><span class="num">07</span><span class="dot">·</span><span>SURFACE</span><span class="dot">·</span><span>DOOR</span><span class="dot">·</span><span style="color:var(--ops)">OPS</span></div>
+    <h2 class="head">The door scans the pass it issued</h2>
+    <div class="slide-body">
+      <div class="mock-wrap"><div class="mock"><span class="mock-tag">DOOR · NIGHT DENSITY</span>
+        <div class="scanbtn">△ Scan wallet pass QR</div>
+        <div class="drow">
+          <div><div class="dname">Beaulieu <span style="color:var(--lo);font-weight:300">· 6</span></div><div class="dmeta">T-09 · 22:00 · VENUE-LINK</div></div>
+          <span class="flag">BOTTLE SERVICE</span>
+          <span class="ci">Check in</span>
+        </div>
+        <div class="drow">
+          <div><div class="dname">Osei <span style="color:var(--lo);font-weight:300">· 2</span></div><div class="dmeta">T-01 · 22:15 · VENUE-LINK</div></div>
+          <span class="ci done">● Checked in 21:48</span>
+        </div>
+      </div></div>
+      <div class="track">
+        <div class="beat show"><span class="bl">SHOW</span><p>Scan the QR, or search a name. Big targets, big type — this works in the dark with one hand.</p></div>
+        <div class="beat say"><span class="bl">SAY</span><p>The pass you gave the guest is the ticket you scan. <b>Entitlements ride along</b> — the door never has to ask "what did they book?"</p></div>
+        <div class="beat proof"><span class="bl">PROOF</span><p>Check-in stamps the time on the booking (<span class="m">● 21:48</span>) and lights the floor — one shared truth.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 · CLOSEOUT -->
+  <section class="slide" data-note="BEAT: LEARN. Closeout reconciles the night. Take-rate is a placeholder — venue reporting only, never a marketing number. Tab by path shows which channel actually earned the tab, in the fixed PC palette.">
+    <div class="kicker"><span class="num">08</span><span class="dot">·</span><span>SURFACE</span><span class="dot">·</span><span>CLOSEOUT</span><span class="dot">·</span><span style="color:var(--ops)">OPS</span></div>
+    <h2 class="head">The night reconciles itself</h2>
+    <div class="slide-body">
+      <div class="mock-wrap"><div class="mock"><span class="mock-tag">CLOSEOUT · POST-NIGHT</span>
+        <div class="kgrid">
+          <div class="kpi"><div class="kl">Bookings</div><div class="kv">42</div></div>
+          <div class="kpi"><div class="kl">Total tab</div><div class="kv">$18,240.00</div></div>
+          <div class="kpi"><div class="kl">Take</div><div class="kv amber">⚑</div><div class="flagv">RATE PLACEHOLDER</div></div>
+          <div class="kpi"><div class="kl">Post-visit sent</div><div class="kv">38</div></div>
+        </div>
+        <div class="bars">
+          <div class="bar-row"><div class="bn">Venues</div><div class="bar-track"><div class="bar-fill" style="width:46%;background:var(--pc-venues)"></div></div><div class="bv">$8.4k</div></div>
+          <div class="bar-row"><div class="bn">Bookings</div><div class="bar-track"><div class="bar-fill" style="width:31%;background:var(--pc-bookings)"></div></div><div class="bv">$5.6k</div></div>
+          <div class="bar-row"><div class="bn">Marketing</div><div class="bar-track"><div class="bar-fill" style="width:23%;background:var(--pc-marketing)"></div></div><div class="bv">$4.2k</div></div>
+        </div>
+      </div></div>
+      <div class="track">
+        <div class="beat show"><span class="bl">SHOW</span><p>Four numbers close the night: bookings, total tab, take, and post-visit sent — then tab split by path.</p></div>
+        <div class="beat say"><span class="bl">SAY</span><p>You leave knowing <b>which channel earned the tab</b>, not just that the tab happened. Run closeout and it reconciles per booking.</p></div>
+        <div class="beat proof"><span class="bl">PROOF</span><p>Total tab <span class="m">$18,240.00</span> from integer cents. Take is a <b>⚑ placeholder</b> — venue reporting only, never a marketing rate.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · INTELLIGENCE -->
+  <section class="slide" data-note="Still LEARN, into the substrate. A signal only becomes intelligence after it clears a consent gate and lands in the evidence log. Revoke consent and the gate blocks, downstream goes dead. Nothing is inferred without a source.">
+    <div class="kicker"><span class="num">09</span><span class="dot">·</span><span>SURFACE</span><span class="dot">·</span><span>INTELLIGENCE</span><span class="dot">·</span><span style="color:var(--ops)">OPS</span></div>
+    <h2 class="head">A signal becomes intelligence — with a receipt</h2>
+    <div class="slide-body" style="flex-direction:column;gap:0">
+      <div class="chain">
+        <div class="stagec on"><div class="sc-l">Connector</div></div>
+        <div class="arr">→</div>
+        <div class="stagec gate"><div class="sc-l">Consent<br>Gate</div></div>
+        <div class="arr">→</div>
+        <div class="stagec on"><div class="sc-l">Evidence<br>Log</div></div>
+        <div class="arr">→</div>
+        <div class="stagec on"><div class="sc-l">Graph</div></div>
+        <div class="arr">→</div>
+        <div class="stagec on"><div class="sc-l">Pillars</div></div>
+        <div class="arr">→</div>
+        <div class="stagec on"><div class="sc-l">Insight</div></div>
+      </div>
+      <div class="insight">
+        <span class="pchip">TASTE</span>
+        <div class="bigstat">+18</div>
+        <div class="sowhat"><b>Terrace bookings over-index on deep-house crews.</b> Every point traces to a consented connector and a logged event — revoke consent and this insight goes dark.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 · PROMOTERS -->
+  <section class="slide" data-note="LEARN, the growth loop. Promoters are ranked by settled tab revenue, not clicks. Show-up rate is the honesty metric — mint above 75%, amber below. Take is metered as a placeholder, never marketed as a rate.">
+    <div class="kicker"><span class="num">10</span><span class="dot">·</span><span>SURFACE</span><span class="dot">·</span><span>PROMOTERS</span><span class="dot">·</span><span style="color:var(--mkt)">MARKETING</span></div>
+    <h2 class="head">Promoters ranked by settled tab, not clicks</h2>
+    <div class="slide-body">
+      <div class="mock-wrap"><div class="mock"><span class="mock-tag">PROMOTERS · LEADERBOARD + FUNNEL</span>
+        <div class="lead">
+          <div class="lrow top"><span class="lrank">01</span><span class="lh">Kofi</span><span class="lsub">28 bookings · 6 links · <span class="good">86% show</span></span></div>
+          <div class="lrow"><span class="lrank">02</span><span class="lh">Lena</span><span class="lsub">19 bookings · 4 links · <span class="good">78% show</span></span></div>
+          <div class="lrow"><span class="lrank">03</span><span class="lh">Rui</span><span class="lsub">11 bookings · 3 links · <span class="warn">61% show</span></span></div>
+        </div>
+        <div class="funnel">
+          <div class="frow"><span class="fn">Link taps</span><div class="ft" style="width:100%;background:var(--lo)"></div><span class="fv">340</span></div>
+          <div class="frow"><span class="fn">Bookings</span><div class="ft" style="width:52%;background:var(--electric)"></div><span class="fv">28</span></div>
+          <div class="frow"><span class="fn">Seated</span><div class="ft" style="width:44%;background:var(--mint)"></div><span class="fv">24</span></div>
+          <div class="frow"><span class="fn">Tab</span><div class="ft" style="width:36%;background:var(--cyan)"></div><span class="fv">$9.6k</span></div>
+          <div class="frow"><span class="fn">Take</span><div class="ft" style="width:14%;background:var(--violet)"></div><span class="fv">⚑</span></div>
+        </div>
+      </div></div>
+      <div class="track">
+        <div class="beat show"><span class="bl">SHOW</span><p>Ranked by <b>settled tab revenue</b>. Below each name: bookings, links, and show-up rate.</p></div>
+        <div class="beat say"><span class="bl">SAY</span><p>Anyone can drive taps. This tells you who drove <b>tables that showed and spent</b> — Kofi's 86% is why he's rank 01.</p></div>
+        <div class="beat proof"><span class="bl">PROOF</span><p>Funnel taps → bookings → seated → tab → take. Take stays a <b>⚑ placeholder</b> — no venue-facing rate marketing.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 · SUBSTRATE -->
+  <section class="slide" data-note="BEAT: TRUST. This is why the demo holds together. Every surface sits on the same contract: signals flow up through consent and evidence into the graph and pillars. Nothing above exists without a receipt below.">
+    <div class="kicker"><span class="num">11</span><span class="dot">·</span><span>SURFACE</span><span class="dot">·</span><span>SUBSTRATE</span><span class="dot">·</span><span style="color:var(--violet)">TRUST</span></div>
+    <h2 class="head">One contract under every surface</h2>
+    <div class="slide-body" style="align-items:center">
+      <div style="flex:1;width:100%">
+        <div class="stack">
+          <div class="layer l1"><span class="lname">Surfaces</span><span class="ld">venue-link · pass · floor · door</span></div>
+          <div class="stack-arrow">↓</div>
+          <div class="layer l2"><span class="lname">Data contract</span><span class="ld">flows-in · flows-out · never-flows</span></div>
+          <div class="stack-arrow">↓</div>
+          <div class="layer l3"><span class="lname">Evidence log</span><span class="ld">every signal, sourced</span></div>
+          <div class="stack-arrow">↓</div>
+          <div class="layer l4"><span class="lname">Graph</span><span class="ld">taste · crews · venues</span></div>
+          <div class="stack-arrow">↓</div>
+          <div class="layer l5"><span class="lname">Pillars</span><span class="ld">seven scores, all derived</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 · CLOSE -->
+  <section class="slide close" data-note="Close. Make the ask concrete. 30 days, one contract, one pilot night. The whole system, one venue, no rip-and-replace. Then stop talking.">
+    <div class="kicker"><span class="num">12</span><span class="dot">·</span><span>THE ASK</span></div>
+    <div class="big">30 days <span class="sep">·</span> one contract <span class="sep">·</span><br>one pilot night.</div>
+    <div class="three">
+      <div class="t"><div class="tk">SCOPE</div><div class="tv">Every surface, one venue, your next real night.</div></div>
+      <div class="t"><div class="tk">RISK</div><div class="tv">No rip-and-replace. It runs alongside what you have.</div></div>
+      <div class="t"><div class="tk">PROOF</div><div class="tv">You leave with a reconciled closeout and consented data you own.</div></div>
+    </div>
+    <div class="sig">ATLAS · THE OPERATING SYSTEM FOR THE NIGHT</div>
+  </section>
+
+  <!-- chrome -->
+  <div class="notes" id="notes"><span class="nl">NOTES</span><span id="noteText"></span></div>
+
+  <div class="chrome">
+    <button class="navbtn" id="prev" aria-label="Previous slide">←</button>
+    <div class="counter"><span class="cur" id="cur">01</span> / <span id="total">12</span></div>
+    <button class="navbtn" id="next" aria-label="Next slide">→</button>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total = slides.length;
+  var i = 0;
+  var cur = document.getElementById('cur');
+  var totalEl = document.getElementById('total');
+  var prev = document.getElementById('prev');
+  var next = document.getElementById('next');
+  var notes = document.getElementById('notes');
+  var noteText = document.getElementById('noteText');
+  var progress = document.getElementById('progress');
+  var notesOn = true;
+
+  totalEl.textContent = String(total).padStart(2,'0');
+
+  // build progress ticks
+  for(var t=0;t<total;t++){ progress.appendChild(document.createElement('i')); }
+  var ticks = Array.prototype.slice.call(progress.children);
+
+  // deterministic QR-like fill for the wallet pass
+  var qr = document.getElementById('qr4');
+  if(qr){
+    var seed = 20240724;
+    for(var c=0;c<121;c++){
+      seed = (seed*1103515245 + 12345) & 0x7fffffff;
+      var cell = document.createElement('i');
+      // fixed finder-ish corners + pseudo-random field
+      var r = Math.floor(c/11), col = c%11;
+      var corner = (r<3&&col<3)||(r<3&&col>7)||(r>7&&col<3);
+      cell.style.background = (corner || (seed % 100) < 48) ? '#0a0a0a' : 'transparent';
+      qr.appendChild(cell);
+    }
+  }
+
+  function show(n){
+    i = Math.max(0, Math.min(total-1, n));
+    slides.forEach(function(s,x){ s.classList.toggle('active', x===i); });
+    cur.textContent = String(i+1).padStart(2,'0');
+    prev.disabled = (i===0);
+    next.disabled = (i===total-1);
+    noteText.textContent = slides[i].getAttribute('data-note') || '';
+    ticks.forEach(function(tk,x){
+      tk.className = x<i ? 'done' : (x===i ? 'here' : '');
+    });
+  }
+
+  prev.addEventListener('click', function(){ show(i-1); });
+  next.addEventListener('click', function(){ show(i+1); });
+
+  document.addEventListener('keydown', function(e){
+    if(e.key==='ArrowRight' || e.key==='PageDown'){ e.preventDefault(); show(i+1); }
+    else if(e.key==='ArrowLeft' || e.key==='PageUp'){ e.preventDefault(); show(i-1); }
+    else if(e.key==='Home'){ e.preventDefault(); show(0); }
+    else if(e.key==='End'){ e.preventDefault(); show(total-1); }
+    else if(e.key==='s' || e.key==='S'){
+      notesOn = !notesOn;
+      notes.classList.toggle('hidden', !notesOn);
+    }
+  });
+
+  show(0);
+})();
+</script>
+</body>
+</html>
