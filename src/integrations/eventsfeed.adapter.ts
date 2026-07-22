@@ -38,6 +38,15 @@ export interface FeedResult {
  * touches guest-level records and needs no consent. Competitor flagging is
  * NOT done here — a feed cannot know who competes with you; that stays a
  * curated judgement via POST /v1/catalog/competitors.
+ *
+ * Source priority:
+ *   1. ALIST partner feed (ALIST_FEED_URL + ALIST_FEED_KEY) — the A-List
+ *      Supabase `ra_events` table, itself refreshed from Resident Advisor +
+ *      Ticketmaster by A-List's ra-cron. Public-read by policy
+ *      (ra_events_public_read); the key is the publishable anon key. This is
+ *      the plan's "A-List as first ingest point", catalog-grade.
+ *   2. Ticketmaster Discovery directly (TICKETMASTER_API_KEY).
+ *   3. Deterministic stub slate (no credentials).
  */
 @Injectable()
 export class EventsFeedAdapter {
@@ -49,8 +58,105 @@ export class EventsFeedAdapter {
     return this.config.get<string>('connectors.ticketmasterApiKey') ?? '';
   }
 
+  private get alistUrl(): string {
+    return this.config.get<string>('connectors.alistFeedUrl') ?? '';
+  }
+
+  private get alistKey(): string {
+    return this.config.get<string>('connectors.alistFeedKey') ?? '';
+  }
+
   private get stub(): boolean {
-    return !this.apiKey;
+    return !this.apiKey && !(this.alistUrl && this.alistKey);
+  }
+
+  /** City name → A-List ra_events city_slug (ra-cron's slug set). */
+  private citySlug(city: string): string {
+    const key = city.trim().toLowerCase().replace(/\s+/g, '');
+    const known: Record<string, string> = {
+      miami: 'us/miami',
+      newyork: 'us/newyork',
+      losangeles: 'us/losangeles',
+      chicago: 'us/chicago',
+      houston: 'us/houston',
+      detroit: 'us/detroit',
+      dallas: 'us/dallas',
+      lasvegas: 'us/lasvegas',
+      london: 'uk/london',
+      berlin: 'de/berlin',
+      amsterdam: 'nl/amsterdam',
+      barcelona: 'es/barcelona',
+      paris: 'fr/paris',
+      ibiza: 'es/ibiza',
+      toronto: 'ca/toronto',
+      montreal: 'ca/montreal',
+      sydney: 'au/sydney',
+      melbourne: 'au/melbourne',
+      tokyo: 'jp/tokyo',
+    };
+    return known[key] ?? `us/${key}`;
+  }
+
+  /** ALIST partner feed: read upcoming rows from the public ra_events table. */
+  private async fetchAlist(city: string): Promise<FeedResult> {
+    const slug = this.citySlug(city);
+    const nowIso = new Date().toISOString();
+    const url =
+      `${this.alistUrl}/rest/v1/ra_events` +
+      `?city_slug=eq.${encodeURIComponent(slug)}` +
+      `&start_time=gte.${encodeURIComponent(nowIso)}` +
+      '&order=start_time.asc&limit=100';
+    const res = await fetch(url, {
+      headers: {
+        apikey: this.alistKey,
+        Authorization: `Bearer ${this.alistKey}`,
+      },
+    });
+    if (!res.ok) {
+      throw new Error(`alist feed ${res.status} for ${city}`);
+    }
+    const rows: any[] = await res.json();
+    const events: FeedEvent[] = [];
+    const venuesByName = new Map<string, FeedVenue>();
+    for (const r of rows) {
+      if (!r?.ra_event_id || !r?.title || !r?.start_time) continue;
+      const genres = [
+        ...new Set(
+          (Array.isArray(r.genres) ? r.genres : [])
+            .map((g: any) =>
+              typeof g === 'string'
+                ? g
+                : typeof g?.name === 'string'
+                  ? g.name
+                  : null,
+            )
+            .filter((g: any): g is string => !!g)
+            .map((g: string) => g.toLowerCase()),
+        ),
+      ] as string[];
+      events.push({
+        sourceId: String(r.ra_event_id),
+        name: r.title,
+        date: r.start_time,
+        genres,
+        city,
+        venueName: r.venue_name ?? undefined,
+      });
+      if (r.venue_name && !venuesByName.has(r.venue_name)) {
+        venuesByName.set(r.venue_name, {
+          sourceId: `alist:${slug}:${r.venue_name}`,
+          name: r.venue_name,
+          city,
+        });
+      }
+    }
+    return {
+      source: 'alist-ra',
+      city,
+      stub: false,
+      events,
+      venues: [...venuesByName.values()],
+    };
   }
 
   private nextDow(dow: number, hour = 22): string {
@@ -61,6 +167,9 @@ export class EventsFeedAdapter {
   }
 
   async fetchCity(city: string): Promise<FeedResult> {
+    if (this.alistUrl && this.alistKey) {
+      return this.fetchAlist(city);
+    }
     if (this.stub) {
       this.logger.debug(`[eventsfeed-stub] slate for ${city}`);
       return {

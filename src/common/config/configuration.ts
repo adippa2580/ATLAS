@@ -58,6 +58,8 @@ export interface AppConfig {
     googleCalendarClientId: string;
     googleCalendarClientSecret: string;
     ticketmasterApiKey: string;
+    alistFeedUrl: string;
+    alistFeedKey: string;
   };
 }
 
@@ -113,5 +115,9 @@ export default (): AppConfig => ({
     googleCalendarClientSecret: process.env.GOOGLE_CALENDAR_CLIENT_SECRET ?? '',
     // Class-3 catalog feed (events/venues). Stub slate when unset.
     ticketmasterApiKey: process.env.TICKETMASTER_API_KEY ?? '',
+    // ALIST partner feed: public ra_events table (RA + Ticketmaster, refreshed
+    // by A-List's ra-cron). Key is the publishable anon key — client-safe class.
+    alistFeedUrl: process.env.ALIST_FEED_URL ?? '',
+    alistFeedKey: process.env.ALIST_FEED_KEY ?? '',
   },
 });

@@ -33,6 +33,10 @@ spec:
               value: 'false'
             - name: GCP_PROJECT_ID
               value: __PROJECT_ID__
+            - name: ALIST_FEED_URL
+              value: https://ofjcnikfebfgopytsgbm.supabase.co
+            - name: ALIST_FEED_KEY
+              value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mamNuaWtmZWJmZ29weXRzZ2JtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA5NzE5MjAsImV4cCI6MjA3NjU0NzkyMH0.Dpu4Xh2ho8zbi7lnDoSxXfVw5ZbxJBu8evqkOxI6WGE
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
