@@ -21,6 +21,7 @@ import { OpsModule } from './modules/ops/ops.module';
 import { MarketingModule } from './modules/marketing/marketing.module';
 import { McpModule } from './modules/mcp/mcp.module';
 import { IntegrationsModule } from './integrations/integrations.module';
+import { HomeModule } from './home/home.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { OutcomesModule } from './outcomes/outcomes.module';
 import { DeliverablesModule } from './deliverables/deliverables.module';
@@ -50,6 +51,8 @@ import { ProjectionModule } from './modules/guest/projection/projection.module';
     OpsModule,
     MarketingModule,
     McpModule,
+    // Platform home / menu at the site root, linking every surface.
+    HomeModule,
     DashboardModule,
     OutcomesModule,
     // Static design deliverables (Atlas v3.1 + A-List surfaces) at /deliverables.

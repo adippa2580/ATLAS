@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atlas — Platform Home</title>
+<style>
+  :root{
+    --ground:#04050A; --s1:#0B0E17; --s2:#111524;
+    --hi:#F5F7FF; --mid:#B8C0D4; --lo:#6B7280;
+    --violet:#A78BFA; --cyan:#22D3EE; --electric:#60A5FA; --amber:#FBBF24; --mint:#34D399;
+    --mono:Menlo,"SF Mono",Monaco,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--ground); color:var(--mid);
+    font-family:"Helvetica Neue",Helvetica,Arial,sans-serif; font-weight:300;
+    -webkit-font-smoothing:antialiased; min-height:100vh;
+  }
+  a{color:inherit; text-decoration:none}
+  .wrap{max-width:1000px; margin:0 auto; padding:64px 40px 96px}
+
+  header{border-bottom:1px solid rgba(255,255,255,.10); padding-bottom:28px; margin-bottom:40px}
+  .brand{display:flex; align-items:baseline; gap:14px}
+  .brand h1{margin:0; font-size:34px; font-weight:200; letter-spacing:.02em; color:var(--hi)}
+  .brand .sub{font-family:var(--mono); font-size:11px; letter-spacing:.24em; text-transform:uppercase; color:var(--violet)}
+  .lede{margin:16px 0 0; max-width:640px; font-size:14px; line-height:1.7}
+  .code{font-family:var(--mono); font-size:12px; color:var(--cyan)}
+
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px}
+  .card{
+    display:block; position:relative; background:var(--s1); border:1px solid rgba(255,255,255,.08);
+    border-radius:12px; padding:22px 24px 24px; overflow:hidden;
+    transition:background .16s ease, border-color .16s ease, transform .12s ease;
+  }
+  .card::before{content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--accent,var(--lo)); opacity:.85}
+  .card:hover{background:var(--s2); border-color:color-mix(in srgb, var(--accent,#fff) 45%, transparent); transform:translateY(-1px)}
+  .card:focus-visible{outline:2px solid var(--cyan); outline-offset:2px}
+  .card .tag{font-family:var(--mono); font-size:9.5px; letter-spacing:.2em; text-transform:uppercase; color:var(--lo); margin-bottom:12px}
+  .card .name{font-size:19px; font-weight:400; color:var(--hi); margin-bottom:8px; display:flex; align-items:center; gap:9px}
+  .card .dot{width:8px; height:8px; border-radius:50%; background:var(--accent,var(--lo))}
+  .card .desc{font-size:12.5px; line-height:1.6; color:var(--mid)}
+  .card .path{font-family:var(--mono); font-size:11px; color:var(--lo); margin-top:14px; letter-spacing:.04em}
+  .card:hover .path{color:var(--accent,var(--mid))}
+
+  .c-ops{--accent:var(--violet)}
+  .c-out{--accent:var(--electric)}
+  .c-del{--accent:var(--cyan)}
+  .c-docs{--accent:var(--amber)}
+  .c-health{--accent:var(--mint)}
+
+  .util{margin-top:34px; display:flex; gap:22px; flex-wrap:wrap; font-family:var(--mono); font-size:11px; letter-spacing:.06em; color:var(--lo)}
+  .util a{color:var(--lo); border-bottom:1px solid transparent; padding-bottom:2px}
+  .util a:hover{color:var(--mint); border-color:var(--mint)}
+
+  .foot{margin-top:48px; font-family:var(--mono); font-size:10.5px; color:var(--lo); line-height:2; border-top:1px solid rgba(255,255,255,.08); padding-top:18px}
+
+  @media (max-width:560px){ .wrap{padding:44px 20px 72px} .brand h1{font-size:27px} }
+  @media (prefers-reduced-motion:reduce){*{transition:none !important}}
+</style>
+</head>
+<body>
+<main class="wrap" aria-label="Atlas platform home">
+
+  <header>
+    <div class="brand"><h1>ATLAS</h1><span class="sub">Nightlife OS · Platform Home</span></div>
+    <p class="lede">One place to reach every Atlas surface — the live operator console, the outcomes-intelligence view, and the design deliverables. Backend contract: <span class="code">adippa2580/ATLAS</span>.</p>
+  </header>
+
+  <nav class="grid" aria-label="Surfaces">
+    <a class="card c-ops" href="/dashboard">
+      <div class="tag">OPERATOR&nbsp;&nbsp;·&nbsp;&nbsp;LIVE</div>
+      <div class="name"><span class="dot"></span>Ops Console</div>
+      <div class="desc">Run the night: floor &amp; host stand, bookings board, door check-in, and closeout — driven by the live primitive APIs.</div>
+      <div class="path">/dashboard →</div>
+    </a>
+
+    <a class="card c-out" href="/outcomes">
+      <div class="tag">INTELLIGENCE&nbsp;&nbsp;·&nbsp;&nbsp;LIVE</div>
+      <div class="name"><span class="dot"></span>Outcomes Intelligence</div>
+      <div class="desc">Hospitality outcomes derived across the seven data pillars — scorecard, act-now queue, drill-downs and insights.</div>
+      <div class="path">/outcomes →</div>
+    </a>
+
+    <a class="card c-del" href="/deliverables">
+      <div class="tag">DESIGN&nbsp;&nbsp;·&nbsp;&nbsp;9 DELIVERABLES</div>
+      <div class="name"><span class="dot"></span>Design Deliverables</div>
+      <div class="desc">The Atlas operator surfaces (v3.1 midnight system) and A-List consumer surfaces (platinum/dark), recreated as browsable pages.</div>
+      <div class="path">/deliverables →</div>
+    </a>
+
+    <a class="card c-docs" href="/docs">
+      <div class="tag">CONTRACT&nbsp;&nbsp;·&nbsp;&nbsp;OPENAPI</div>
+      <div class="name"><span class="dot"></span>API Docs</div>
+      <div class="desc">The public tenant contract — primitives across the Guest, Ops and Marketing hubs — rendered as interactive Swagger.</div>
+      <div class="path">/docs →</div>
+    </a>
+  </nav>
+
+  <div class="util">
+    <a href="/health">● health</a>
+    <a href="/deliverables/atlas-tokens.html">v3.1 tokens</a>
+    <a href="/deliverables/component-library.html">component library</a>
+    <a href="/deliverables/sales-deck.html">sales deck</a>
+  </div>
+
+  <div class="foot">ATLAS&nbsp;&nbsp;·&nbsp;&nbsp;NIGHTLIFE OS&nbsp;&nbsp;·&nbsp;&nbsp;OPERATOR + PLATFORM&nbsp;&nbsp;·&nbsp;&nbsp;RED-FREE · DARK-ONLY</div>
+
+</main>
+</body>
+</html>

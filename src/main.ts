@@ -1,5 +1,5 @@
 import { NestFactory, Reflector } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { RequestMethod, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
@@ -16,6 +16,7 @@ async function bootstrap(): Promise<void> {
 
   app.setGlobalPrefix('v1', {
     exclude: [
+      { path: '/', method: RequestMethod.GET }, // platform home / menu
       'health',
       'dashboard',
       'outcomes',

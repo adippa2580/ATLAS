@@ -39,6 +39,11 @@
     margin:30px 2px 12px; display:flex; align-items:center; gap:10px}
   h2.sec::after{content:""; flex:1; height:1px; background:var(--line-soft)}
 
+  .surfacenav{display:flex; gap:4px; flex-wrap:wrap; align-items:center; padding:6px 0 12px; margin-bottom:6px; border-bottom:1px solid rgba(255,255,255,.07)}
+  .surfacenav a{font-family:var(--mono); font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:#6B7280; padding:7px 12px; border-radius:7px; text-decoration:none; transition:color .12s ease, background .12s ease}
+  .surfacenav a:hover{color:#22D3EE; background:rgba(34,211,238,.08)}
+  .surfacenav a.on{color:#04050A; background:#22D3EE}
+  .surfacenav a:focus-visible{outline:2px solid #22D3EE; outline-offset:2px}
   .top{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:4px 2px 16px}
   .brand{display:flex; align-items:baseline; gap:10px}
   .brand h1{font-size:23px; margin:0; letter-spacing:-.01em; font-weight:680}
@@ -185,6 +190,13 @@
 </style>
 
 <div class="wrap">
+  <nav class="surfacenav" aria-label="Atlas surfaces">
+    <a href="/">Home</a>
+    <a class="on" href="/dashboard" aria-current="page">Ops Console</a>
+    <a href="/outcomes">Outcomes</a>
+    <a href="/deliverables">Deliverables</a>
+    <a href="/docs">API Docs</a>
+  </nav>
   <div class="top">
     <div class="brand"><h1>ATLAS</h1><span class="sub">Nightlife OS · Console</span></div>
     <div class="spacer"></div>
