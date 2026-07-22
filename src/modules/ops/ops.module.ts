@@ -8,6 +8,10 @@ import { RoutingModule } from './routing.module';
 import { DoorModule } from './door.module';
 import { CloseoutModule } from './closeout.module';
 import { PosBackfillModule } from './pos-backfill.module';
+import { BookingConnectModule } from './booking-connect.module';
+import { RevenuePromptsModule } from './revenue-prompts.module';
+import { OverbookingModule } from './overbooking.module';
+import { InventoryDropModule } from './inventory-drop.module';
 
 /** Ops hub — the 8 primitives that run BOOK & PAY, LIVE and WRAP. */
 @Module({
@@ -21,6 +25,10 @@ import { PosBackfillModule } from './pos-backfill.module';
     DoorModule,
     CloseoutModule,
     PosBackfillModule,
+    BookingConnectModule,
+    RevenuePromptsModule,
+    OverbookingModule,
+    InventoryDropModule,
   ],
   exports: [
     BookingsModule,
