@@ -441,7 +441,8 @@
       <h3><span class="idx">05</span> Venue intelligence <span class="plchip" data-pc="venues">venues</span> <span class="plchip" data-pc="marketing">marketing</span></h3>
       <p class="cap">mkt:audiences · mkt:reporting</p>
       <div class="op"><div class="q" id="opQ">Run the night to surface an opportunity.</div>
-        <div class="act"><button class="mini gold">Reach them</button><button class="mini">Save audience</button></div></div>
+        <div class="act"><button class="mini gold" id="reachBtn">Reach them</button><button class="mini" id="saveAudBtn">Save audience</button></div>
+        <div class="muted" id="opReceipt" style="margin-top:8px;min-height:14px;font-size:12px"></div></div>
       <div class="stats2">
         <div class="st"><div class="k">Tonight spend</div><div class="v" id="s-spend">—</div></div>
         <div class="st"><div class="k">Deposit held</div><div class="v" id="s-dep">—</div></div>
@@ -1146,6 +1147,18 @@
   }
 
   $("#run").addEventListener("click",drive);
+
+  // ---- card 05 opportunity actions: Save audience + Reach them (consent-gated) ----
+  $("#saveAudBtn").addEventListener("click",async function(){var b=this;b.disabled=true;$("#opReceipt").textContent="Saving audience…";
+    var r=await apiCall("POST","/v1/audiences",A,{name:"Afro House · high-spend regulars",predicates:{minScore:1}});
+    b.disabled=false;
+    if(mode==="live"){$("#opReceipt").textContent=r.ok?("✓ audience saved · "+((r.json&&r.json.id)?r.json.id.slice(0,8):"ok")):("✕ "+((r.json&&r.json.error)||"save failed"));}
+    else{$("#opReceipt").textContent="✓ audience saved · Afro House · high-spend regulars (demo)";}});
+  $("#reachBtn").addEventListener("click",async function(){var b=this;b.disabled=true;$("#opReceipt").textContent="Reaching consented guests…";
+    var r=await apiCall("POST","/v1/audiences/reach",A,{minScore:1});
+    b.disabled=false;
+    if(mode==="live"){var j=r.json||{},d=j.delivery||{};$("#opReceipt").textContent=r.ok?("✓ reached "+(d.delivered!=null?d.delivered:(j.count||0))+" consented guests · klaviyo"+(d.stub?" (stub)":"")):("✕ "+(j.error||"reach failed"));}
+    else{$("#opReceipt").textContent="✓ discovery send queued to consented guests · klaviyo (demo)";}});
 
   // ---- door walk-in capture (POST /v1/door/walk-in) ----
   function toggleWalkIn(){ var f=$("#wiForm"); f.hidden=!f.hidden; if(!f.hidden) $("#wiName").focus(); }
