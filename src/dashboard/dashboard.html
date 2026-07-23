@@ -188,6 +188,8 @@
   .foot{margin-top:26px; color:var(--faint); font-size:11.5px; font-family:var(--mono); display:flex; gap:12px; flex-wrap:wrap; align-items:center}
   .badge{font-family:var(--mono); font-size:10px; padding:2px 7px; border-radius:5px; border:1px solid}
   .badge.ok{color:var(--good); border-color:color-mix(in srgb,var(--good) 40%,var(--line))}
+  .badge.warn{color:var(--warn); border-color:color-mix(in srgb,var(--warn) 45%,var(--line))}
+  .badge.pend{color:var(--faint); border-color:var(--line)}
   /* Intelligence section — reuses core tokens */
   .i-empty{color:var(--faint); font-size:12px; padding:12px 2px; font-family:var(--mono)}
   .i-tiles{display:grid; grid-template-columns:repeat(3,1fr); gap:9px}
@@ -558,7 +560,7 @@
   <div class="foot">
     <span>ATLAS primitive contract</span>
     <span class="badge ok">evidence is the only graph write</span>
-    <span class="badge ok">403 on missing scope</span>
+    <span class="badge pend" id="badgeGuard">403 on missing scope…</span>
     <span class="badge ok">pooled multi-tenant · RLS-ready</span>
     <span style="margin-left:auto" id="srcNote"></span>
   </div>
@@ -1189,6 +1191,16 @@
   window.toggleWalkIn=toggleWalkIn; window.submitWalkIn=submitWalkIn;
 
   renderFlow(-1); renderExplorer();
-  detect().then(function(){ loadTotals(); loadIntel(); });
+  // Earn the "403 on missing scope" contract badge with a live probe rather than
+  // asserting it: hit the graph write with a scope that lacks evidence:write.
+  async function verifyGuard(){
+    var b=$("#badgeGuard"); if(!b) return;
+    try{
+      var r=await fetch(BASE+"/v1/evidence",{method:"POST",headers:{"X-Tenant-Id":A,"X-Scopes":"guest:identity:read","Content-Type":"application/json"},body:JSON.stringify({guestId:"x",subjectType:"genre",subjectRef:"y",signal:"listen",provenance:"connector",dedupeKey:"z"})});
+      if(r.status===403){b.className="badge ok";b.textContent="403 on missing scope ✓"}
+      else{b.className="badge warn";b.textContent="scope guard returned "+r.status}
+    }catch(e){b.className="badge warn";b.textContent="scope guard unreachable"}
+  }
+  detect().then(function(){ loadTotals(); loadIntel(); verifyGuard(); });
 })();
 </script>
