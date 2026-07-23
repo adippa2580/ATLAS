@@ -7,6 +7,7 @@ import {
   Injectable,
   Module,
   Post,
+  Query,
   Req,
   Res,
   ServiceUnavailableException,
@@ -24,6 +25,8 @@ import {
   CatalogIngestModule,
   CatalogIngestService,
 } from '../modules/marketing/entities/catalog-ingest.module';
+import { TasteModule } from '../modules/guest/taste/taste.module';
+import { AffinityRecomputeService } from '../modules/guest/taste/affinity-recompute.service';
 
 /** The A-List flagship tenant — where the operator's taste graph lives. */
 const FLAGSHIP_TENANT_ID = '00000000-0000-0000-0000-00000000a115';
@@ -36,6 +39,14 @@ class LoginDto {
 }
 class LoadDto {
   @IsOptional() @IsString() city?: string;
+  // Tenant to recompute after ingest; omitted / 'all' → every tenant.
+  @IsOptional() @IsString() tenant?: string;
+}
+
+/** Normalize a tenant query param: '', 'all', undefined → undefined (aggregate). */
+function tenantFilter(tenant?: string): string | undefined {
+  const t = tenant?.trim();
+  return !t || t === 'all' ? undefined : t;
 }
 
 /** Read the named cookie out of a raw Cookie header (no cookie-parser dep). */
@@ -59,6 +70,7 @@ export class AdminService {
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
     private readonly catalog: CatalogIngestService,
+    private readonly recompute: AffinityRecomputeService,
   ) {}
 
   private get sessionSecret(): string {
@@ -123,9 +135,32 @@ export class AdminService {
     }
   }
 
-  /** A snapshot of the flagship tenant's taste graph + the global catalog. */
-  async graph() {
-    const t = FLAGSHIP_TENANT_ID;
+  /** Tenants the admin can scope the graph to (plus an implicit "all"). */
+  async tenants() {
+    const rows = await this.prisma.tenant.findMany({
+      select: { id: true, name: true, kind: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    return rows;
+  }
+
+  /** Human label for the selected scope. */
+  private async scopeLabel(tenantId?: string): Promise<string> {
+    if (!tenantId) return 'All tenants';
+    const t = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { name: true },
+    });
+    return t?.name ?? tenantId;
+  }
+
+  /**
+   * A snapshot of the taste graph + global catalog. Scoped to one tenant, or
+   * aggregated across ALL tenants when `tenantId` is omitted.
+   */
+  async graph(tenantId?: string) {
+    // Tenant-scoped where fragment: a specific tenant, or {} for all tenants.
+    const tw = tenantId ? { tenantId } : {};
     const [
       entityKinds,
       guests,
@@ -135,23 +170,22 @@ export class AdminService {
       affinityTotal,
       affinities,
       recentEvidence,
+      label,
     ] = await Promise.all([
       this.prisma.entity.groupBy({ by: ['kind'], _count: { _all: true } }),
-      this.prisma.guest.count({ where: { tenantId: t } }),
-      this.prisma.consentGrant.count({
-        where: { tenantId: t, revokedAt: null },
-      }),
-      this.prisma.crew.count({ where: { tenantId: t } }),
-      this.prisma.affinityEvidence.count({ where: { tenantId: t } }),
-      this.prisma.guestAffinity.count({ where: { tenantId: t } }),
+      this.prisma.guest.count({ where: tw }),
+      this.prisma.consentGrant.count({ where: { ...tw, revokedAt: null } }),
+      this.prisma.crew.count({ where: tw }),
+      this.prisma.affinityEvidence.count({ where: tw }),
+      this.prisma.guestAffinity.count({ where: tw }),
       this.prisma.guestAffinity.findMany({
-        where: { tenantId: t, muted: false },
+        where: { ...tw, muted: false },
         orderBy: { score: 'desc' },
         take: 400,
         select: { subjectType: true, subjectRef: true, score: true },
       }),
       this.prisma.affinityEvidence.findMany({
-        where: { tenantId: t },
+        where: tw,
         orderBy: { observedAt: 'desc' },
         take: 12,
         select: {
@@ -163,6 +197,7 @@ export class AdminService {
           observedAt: true,
         },
       }),
+      this.scopeLabel(tenantId),
     ]);
 
     // Aggregate the graph by subject (sum score, count distinct-ish guests).
@@ -192,7 +227,7 @@ export class AdminService {
       }));
 
     return {
-      tenant: 'A-List (flagship)',
+      tenant: label,
       entities: Object.fromEntries(
         entityKinds.map((e) => [e.kind, e._count._all]),
       ),
@@ -209,11 +244,45 @@ export class AdminService {
     };
   }
 
-  /** Load/refresh: ingest the class-3 catalog for a city, then return the graph. */
-  async load(city = 'Miami') {
+  /**
+   * Load/refresh: (1) ingest the class-3 catalog for a city, then (2) fully
+   * rebuild derived affinities by folding each distinct evidence key through the
+   * recompute service — for one tenant, or every tenant when unscoped. Returns
+   * the refreshed graph. Recompute is idempotent + consent-respecting.
+   */
+  async load(city = 'Miami', tenantId?: string) {
     const ctx = { tenantId: FLAGSHIP_TENANT_ID, scopes: [] } as TenantContext;
     const ingested = await this.catalog.ingest(ctx, { city });
-    return { ingested, graph: await this.graph() };
+
+    // Distinct (tenant, guest, subject) evidence keys to rebuild.
+    const keys = await this.prisma.affinityEvidence.findMany({
+      where: tenantId ? { tenantId } : {},
+      distinct: ['tenantId', 'guestId', 'subjectType', 'subjectRef'],
+      select: {
+        tenantId: true,
+        guestId: true,
+        subjectType: true,
+        subjectRef: true,
+      },
+    });
+    // Bounded concurrency so a large graph doesn't open hundreds of tx at once.
+    let recomputed = 0;
+    for (let i = 0; i < keys.length; i += 8) {
+      const batch = keys.slice(i, i + 8);
+      await Promise.all(
+        batch.map((k) =>
+          this.recompute.recomputeSubject(
+            k.tenantId,
+            k.guestId,
+            k.subjectType,
+            k.subjectRef,
+          ),
+        ),
+      );
+      recomputed += batch.length;
+    }
+
+    return { ingested, recomputed, graph: await this.graph(tenantId) };
   }
 }
 
@@ -287,16 +356,22 @@ export class AdminController {
     };
   }
 
+  @Get('tenants')
+  @UseGuards(AdminGuard)
+  tenants() {
+    return this.svc.tenants();
+  }
+
   @Get('graph')
   @UseGuards(AdminGuard)
-  graph() {
-    return this.svc.graph();
+  graph(@Query('tenant') tenant?: string) {
+    return this.svc.graph(tenantFilter(tenant));
   }
 
   @Post('load')
   @UseGuards(AdminGuard)
   load(@Body() dto: LoadDto) {
-    return this.svc.load(dto.city);
+    return this.svc.load(dto.city, tenantFilter(dto.tenant));
   }
 }
 
@@ -355,7 +430,8 @@ function adminPage(): string {
       <div class="row" style="justify-content:space-between">
         <div><b id="who">—</b> <span class="pill">· signed in</span></div>
         <div class="row">
-          <input id="city" placeholder="City (Miami)" style="width:150px">
+          <select id="tenant" style="width:180px;padding:9px 11px;background:var(--input);border:1px solid var(--line);border-radius:9px;color:var(--ink);font-size:13px"></select>
+          <input id="city" placeholder="City (Miami)" style="width:140px">
           <button class="primary" id="loadBtn">⟳ Load / refresh graph</button>
           <button class="ghost" id="logoutBtn">Sign out</button>
         </div>
@@ -391,27 +467,33 @@ function adminPage(): string {
     bars($('#artists'),g.topArtists||[]); bars($('#genres'),g.topGenres||[]);
     $('#evtbl tbody').innerHTML=(g.recentEvidence||[]).map(function(r){return '<tr><td><span class="pill">'+esc(r.subjectType)+'</span> '+esc(r.subjectRef)+'</td><td>'+esc(r.signal)+'</td><td>'+esc(r.provenance)+'</td><td>'+esc(r.weight)+'</td><td>'+esc((r.observedAt||'').slice(0,16).replace('T',' '))+'</td></tr>'}).join('')||'<tr><td colspan="5" class="muted">no evidence yet</td></tr>';
   }
-  async function loadGraph(){var r=await api('/admin/graph');if(r.ok){renderGraph(r.json)}else if(r.status===401){show(false)}}
+  function selTenant(){var s=$('#tenant');return s&&s.value?s.value:'all'}
+  var tenantsLoaded=false;
+  async function initTenants(){if(tenantsLoaded)return;var r=await api('/admin/tenants');var sel=$('#tenant');
+    var opts='<option value="all">All tenants</option>';
+    if(r.ok&&Array.isArray(r.json)){opts+=r.json.map(function(t){return '<option value="'+esc(t.id)+'">'+esc(t.name)+' ('+esc(t.kind)+')</option>'}).join('')}
+    sel.innerHTML=opts; tenantsLoaded=true; sel.addEventListener('change',loadGraph)}
+  async function loadGraph(){var r=await api('/admin/graph?tenant='+encodeURIComponent(selTenant()));if(r.ok){renderGraph(r.json)}else if(r.status===401){show(false)}}
   function show(authed){$('#app').hidden=!authed;$('#loginCard').hidden=authed}
   async function boot(){var s=await api('/admin/session');
     if(!s.json||!s.json.configured){$('#loginCard').hidden=false;$('#loginErr').textContent='Admin login is not configured on this deployment yet.';$('#loginBtn').disabled=true;return}
-    if(s.json.authenticated){$('#who').textContent=s.json.user;show(true);loadGraph()}else{show(false)}}
+    if(s.json.authenticated){$('#who').textContent=s.json.user;show(true);initTenants().then(loadGraph)}else{show(false)}}
   $('#loginBtn').addEventListener('click',async function(){var b=this;b.disabled=true;$('#loginErr').textContent='';
     var r=await api('/admin/login',{method:'POST',body:JSON.stringify({username:$('#u').value.trim(),password:$('#p').value})});
     b.disabled=false;
-    if(r.ok){$('#who').textContent=r.json.user;show(true);loadGraph()}else{$('#loginErr').textContent=(r.json&&r.json.message)||'Sign-in failed'}});
+    if(r.ok){$('#who').textContent=r.json.user;show(true);initTenants().then(loadGraph)}else{$('#loginErr').textContent=(r.json&&r.json.message)||'Sign-in failed'}});
   $('#logoutBtn').addEventListener('click',async function(){await api('/admin/logout',{method:'POST'});show(false)});
   $('#loadBtn').addEventListener('click',async function(){var b=this;b.disabled=true;$('#appMsg').textContent='Loading catalog + graph…';
-    var r=await api('/admin/load',{method:'POST',body:JSON.stringify({city:($('#city').value.trim()||undefined)})});
+    var r=await api('/admin/load',{method:'POST',body:JSON.stringify({city:($('#city').value.trim()||undefined),tenant:selTenant()})});
     b.disabled=false;
-    if(r.ok){renderGraph(r.json.graph);var ing=r.json.ingested||{};$('#appMsg').textContent='Loaded · '+(ing.created!=null?ing.created+' entities ingested':'catalog refreshed')}
+    if(r.ok){renderGraph(r.json.graph);var ing=r.json.ingested||{};var rc=r.json.recomputed;$('#appMsg').textContent='Loaded · '+(ing.created!=null?ing.created+' entities ingested':'catalog refreshed')+(rc!=null?' · '+rc+' affinities recomputed':'')}
     else if(r.status===401){show(false)}else{$('#appMsg').textContent=(r.json&&r.json.message)||'Load failed'}});
   boot();
 </script>`;
 }
 
 @Module({
-  imports: [CatalogIngestModule],
+  imports: [CatalogIngestModule, TasteModule],
   controllers: [AdminController],
   providers: [AdminService, AdminGuard],
 })

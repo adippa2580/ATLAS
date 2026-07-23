@@ -12,9 +12,10 @@ describe('AdminService', () => {
     },
     prisma: any = {},
     catalog: any = {},
+    recompute: any = { recomputeSubject: jest.fn(async () => undefined) },
   ) {
     const config: any = { get: (k: string) => cfg[k] };
-    return new AdminService(config, prisma, catalog);
+    return new AdminService(config, prisma, catalog, recompute);
   }
 
   describe('configured', () => {
@@ -94,6 +95,8 @@ describe('AdminService', () => {
         count: async () => 40,
         findMany: async () => [
           {
+            tenantId: 't1',
+            guestId: 'g1',
             subjectType: 'artist',
             subjectRef: 'Keinemusik',
             signal: 'follow',
@@ -111,6 +114,13 @@ describe('AdminService', () => {
           { subjectType: 'artist', subjectRef: 'Rampa', score: 2 },
           { subjectType: 'genre', subjectRef: 'afro house', score: 5 },
         ],
+      },
+      tenant: {
+        findMany: async () => [
+          { id: 't1', name: 'A-List', kind: 'flagship' },
+          { id: 't2', name: 'Delilah', kind: 'venue' },
+        ],
+        findUnique: async ({ where }: any) => ({ name: 'Tenant ' + where.id }),
       },
     };
 
@@ -134,16 +144,41 @@ describe('AdminService', () => {
       });
       expect(g.topGenres[0].subjectRef).toBe('afro house');
       expect(g.recentEvidence).toHaveLength(1);
+      // Unscoped → aggregate label.
+      expect(g.tenant).toBe('All tenants');
     });
 
-    it('load ingests the catalog then returns the graph', async () => {
+    it('scopes to a tenant and labels it by name', async () => {
+      const s = make(undefined, prisma);
+      const g = await s.graph('t1');
+      expect(g.tenant).toBe('Tenant t1');
+    });
+
+    it('lists tenants for the scope picker', async () => {
+      const s = make(undefined, prisma);
+      expect(await s.tenants()).toEqual([
+        { id: 't1', name: 'A-List', kind: 'flagship' },
+        { id: 't2', name: 'Delilah', kind: 'venue' },
+      ]);
+    });
+
+    it('load ingests the catalog, recomputes affinities, then returns the graph', async () => {
       const catalog = { ingest: jest.fn(async () => ({ created: 4 })) };
-      const s = make(undefined, prisma, catalog);
+      const recompute = { recomputeSubject: jest.fn(async () => undefined) };
+      const s = make(undefined, prisma, catalog, recompute);
       const out = await s.load('Miami');
       expect(catalog.ingest).toHaveBeenCalledWith(
         expect.objectContaining({ tenantId: expect.any(String) }),
         { city: 'Miami' },
       );
+      // One distinct evidence key → one recompute, with its real coordinates.
+      expect(recompute.recomputeSubject).toHaveBeenCalledWith(
+        't1',
+        'g1',
+        'artist',
+        'Keinemusik',
+      );
+      expect(out.recomputed).toBe(1);
       expect(out.ingested).toEqual({ created: 4 });
       expect(out.graph.topArtists[0].subjectRef).toBe('Keinemusik');
     });
