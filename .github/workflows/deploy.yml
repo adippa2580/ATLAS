@@ -202,10 +202,12 @@ jobs:
           # stays in STUB mode (safe to wire ahead of the key).
           KLAVIYO_API_KEY: ${{ secrets.KLAVIYO_API_KEY }}
           # Apple Music: Team ID + Key ID + the .p8 key base64-encoded (base64 is
-          # sed-safe — no newlines). Empty → adapter stays in STUB mode.
+          # sed-safe — no newlines). Empty → adapter stays in STUB mode. The
+          # private-key secret is accepted under either APPLE_MUSIC_PRIVATE_KEY
+          # or the shorter APPLE_MUSIC_KEY.
           APPLE_MUSIC_TEAM_ID: ${{ secrets.APPLE_MUSIC_TEAM_ID }}
           APPLE_MUSIC_KEY_ID: ${{ secrets.APPLE_MUSIC_KEY_ID }}
-          APPLE_MUSIC_PRIVATE_KEY: ${{ secrets.APPLE_MUSIC_PRIVATE_KEY }}
+          APPLE_MUSIC_PRIVATE_KEY: ${{ secrets.APPLE_MUSIC_PRIVATE_KEY || secrets.APPLE_MUSIC_KEY }}
           # SoundCloud (optional; stays stub unless both are set).
           SOUNDCLOUD_CLIENT_ID: ${{ secrets.SOUNDCLOUD_CLIENT_ID }}
           SOUNDCLOUD_CLIENT_SECRET: ${{ secrets.SOUNDCLOUD_CLIENT_SECRET }}

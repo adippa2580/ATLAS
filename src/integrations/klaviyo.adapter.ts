@@ -66,6 +66,7 @@ export class KlaviyoAdapter {
     crew_rebook_nudge: 'Atlas Crew Rebook',
     post_visit_loyalty_claim: 'Atlas Loyalty Claim',
     lifecycle_campaign: 'Atlas Campaign',
+    concert_promo: 'Atlas Concert Match',
   };
 
   constructor(private readonly config: ConfigService) {}

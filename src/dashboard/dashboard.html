@@ -828,19 +828,20 @@
         '<div class="ri">'+r.insight+'</div><div class="ra"></div><div class="receipt" hidden></div>';
       var ra=el.querySelector(".ra"), receipt=el.querySelector(".receipt");
       (r.actions||[]).forEach(function(a){
-        var b=document.createElement("button"); b.className="mini"+(a.action==="promote_matched"?" gold":""); b.textContent=a.label;
+        var b=document.createElement("button"); b.className="mini"+(a.action==="promote_matched"||a.action==="promote_concert"?" gold":""); b.textContent=a.label;
         b.onclick=async function(){
           b.disabled=true; receipt.hidden=false; receipt.classList.remove("err"); receipt.textContent="acting…";
           try{
             if(mode!=="live"){ await sleep(500);
               receipt.textContent = a.action==="promote_matched" ? "✓ audience created · campaign to "+r.matched+" guests queued (klaviyo · demo)" :
+                a.action==="promote_concert" ? "✓ audience created · campaign to "+r.matched+" "+(r.artist||"artist")+" followers queued (klaviyo · demo)" :
                 a.action==="defend_regulars" ? "✓ lock-in campaign to "+r.matched+" regulars queued (klaviyo · demo)" :
                 a.action==="late_night_drop" ? "✓ 4 late slots released · Late Drop 1–4 (demo)" : "✓ promo link minted · atlas.link/"+Math.random().toString(36).slice(2,10)+" (demo)";
               return; }
             var eventId = r.id && r.id.indexOf("event:")===0 ? r.id.slice(6) : r.id && r.id.indexOf("competitor:")===0 ? r.id.slice(11) : undefined;
-            var res=await apiCall("POST","/v1/recommendations/act",A,{action:a.action,eventId:eventId});
+            var res=await apiCall("POST","/v1/recommendations/act",A,{action:a.action,eventId:eventId,artist:r.artist});
             if(res&&res.ok){var j=res.json||{};
-              receipt.textContent = a.action==="promote_matched" ? "✓ audience "+(j.audienceId||"")+" · delivered to "+(j.delivery&&j.delivery.delivered)+" guests" :
+              receipt.textContent = (a.action==="promote_matched"||a.action==="promote_concert") ? "✓ audience "+(j.audienceId||"")+" · delivered to "+(j.delivery&&j.delivery.delivered)+" guests" :
                 a.action==="late_night_drop" ? "✓ "+((j.created&&j.created.length)||0)+" slots released" : "✓ link minted · code "+(j.code||"");
             } else { receipt.classList.add("err"); receipt.textContent="✕ "+((res&&res.json&&res.json.message)||"failed"); }
           } finally { b.disabled=false; }
