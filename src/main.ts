@@ -21,6 +21,8 @@ async function bootstrap(): Promise<void> {
       'dashboard',
       'outcomes',
       'studio',
+      'admin',
+      'admin/(.*)',
       'deliverables',
       'deliverables/(.*)',
     ],

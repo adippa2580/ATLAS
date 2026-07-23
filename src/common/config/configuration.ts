@@ -24,6 +24,16 @@ export interface AppConfig {
     audience: string;
   };
   /**
+   * Internal admin console (ATLAS employees). `sessionSecret` signs the session
+   * cookie; `users` maps a username to its password (set via per-user repo
+   * secrets — never committed). Empty `sessionSecret` or empty `users` = admin
+   * login is disabled (fails closed).
+   */
+  admin: {
+    sessionSecret: string;
+    users: Record<string, string>;
+  };
+  /**
    * W7 take-rate, basis points. Table 1000 (10%) / ticket 800 (8%) are the
    * W7 one-pager PLACEHOLDER numbers, adopted 2026-07-21 pending Jack — set
    * the ratified values via env before any venue conversation. Closeout keeps
@@ -108,6 +118,17 @@ export default (): AppConfig => ({
     jwksUrl: process.env.OIDC_JWKS_URL ?? '',
     issuer: process.env.OIDC_ISSUER ?? '',
     audience: process.env.OIDC_AUDIENCE ?? '',
+  },
+  admin: {
+    sessionSecret: process.env.ADMIN_SESSION_SECRET ?? '',
+    // Registered ATLAS employees. Each password comes from its own repo secret;
+    // an unset password drops that user (login stays closed for them).
+    users: Object.fromEntries(
+      [
+        ['adrian', process.env.ADMIN_ADRIAN_PASSWORD ?? ''],
+        ['jack', process.env.ADMIN_JACK_PASSWORD ?? ''],
+      ].filter(([, pw]) => pw),
+    ),
   },
   takeRateBps: {
     table: parseInt(process.env.TAKE_RATE_TABLE_BPS ?? '1000', 10),

@@ -23,6 +23,7 @@ import { McpModule } from './modules/mcp/mcp.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { HomeModule } from './home/home.module';
 import { StudioModule } from './studio/studio.module';
+import { AdminModule } from './admin/admin.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { OutcomesModule } from './outcomes/outcomes.module';
 import { DeliverablesModule } from './deliverables/deliverables.module';
@@ -58,6 +59,8 @@ import { ProjectionModule } from './modules/guest/projection/projection.module';
     HomeModule,
     // Internal design-system / sales / consumer hub, off the venue home.
     StudioModule,
+    // Internal admin console (ATLAS employees) — taste-graph view + load.
+    AdminModule,
     DashboardModule,
     OutcomesModule,
     // Static design deliverables (Atlas v3.1 + A-List surfaces) at /deliverables.
@@ -100,6 +103,8 @@ export class AppModule implements NestModule, OnModuleInit {
         'v1/connectors/spotify/callback',
         'v1/connectors/applemusic/connect',
         'v1/connectors/applemusic/browser-callback',
+        'admin',
+        'admin/(.*)',
       )
       .forRoutes('*');
   }
