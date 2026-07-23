@@ -239,6 +239,9 @@ jobs:
               -e "s/__PROJECT_ID__/${PROJECT_ID}/g" \
               -e "s/__IMAGE_TAG__/${GITHUB_SHA::7}/g" \
               -e "s#__SQL_CONNECTION_NAME__#${SQL_CONN}#g" \
+              -e "s#__ADMIN_SESSION_SECRET__#${ADMIN_SESSION_SECRET}#g" \
+              -e "s#__ADMIN_ADRIAN_PASSWORD__#${ADMIN_ADRIAN_PASSWORD}#g" \
+              -e "s#__ADMIN_JACK_PASSWORD__#${ADMIN_JACK_PASSWORD}#g" \
               -e "s#__SPOTIFY_CLIENT_SECRET__#${SPOTIFY_CLIENT_SECRET}#g" \
               -e "s#__EVENTBRITE_API_TOKEN__#${EVENTBRITE_API_TOKEN}#g" \
               -e "s#__KLAVIYO_API_KEY__#${KLAVIYO_API_KEY}#g" \
