@@ -17,7 +17,14 @@ import type { Response as ExpressResponse } from 'express';
 
 /** The A-List flagship tenant — browser OAuth legs write into its graph. */
 const FLAGSHIP_TENANT_ID = '00000000-0000-0000-0000-00000000a115';
-import { IsArray, IsOptional, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { Scopes } from '../../../common/auth/scopes.decorator';
 import { Tenant, TenantContext } from '../../../common/tenancy/tenant-context';
@@ -30,6 +37,7 @@ import {
 import { SoundcloudAdapter } from '../../../integrations/soundcloud.adapter';
 import { AppleMusicAdapter } from '../../../integrations/applemusic.adapter';
 import { InstagramAdapter } from '../../../integrations/instagram.adapter';
+import { EventbriteAdapter } from '../../../integrations/eventbrite.adapter';
 import { evidenceDedupeKey } from '../../../common/util/hash';
 import { ConsentBasis } from '@prisma/client';
 
@@ -46,6 +54,14 @@ interface TasteConnector {
 
 class AuthorizeDto {
   @IsString() guestId!: string;
+}
+/**
+ * Mint a connect invite. Optional `ttlSeconds` makes the link shareable —
+ * default 15 min for an in-session hand-off, up to 7 days for a link you send.
+ */
+class InviteDto {
+  @IsString() guestId!: string;
+  @IsOptional() @IsInt() @Min(60) @Max(604_800) ttlSeconds?: number;
 }
 class CallbackDto {
   // CSRF: the opaque state nonce issued by /authorize must round-trip back here.
@@ -128,6 +144,7 @@ export class ConnectorsService {
     private readonly soundcloud: SoundcloudAdapter,
     private readonly applemusic: AppleMusicAdapter,
     private readonly instagram: InstagramAdapter,
+    private readonly eventbrite: EventbriteAdapter,
     private readonly config: ConfigService,
   ) {}
 
@@ -240,6 +257,47 @@ export class ConnectorsService {
     return { provider, authorizeUrl: adapter.authorizeUrl(state), state };
   }
 
+  /**
+   * Begin the Eventbrite OAuth connect — a tenant/operator authorises ATLAS to
+   * read their organisation's events. Uses the same CSRF nonce store as the
+   * taste connectors. `subjectId` is the operator/guest who initiated it.
+   */
+  eventbriteAuthorize(subjectId: string) {
+    const state = randomBytes(32).toString('hex');
+    this.pendingStates.set(state, {
+      provider: 'eventbrite',
+      guestId: subjectId,
+      createdAt: Date.now(),
+    });
+    return {
+      provider: 'eventbrite',
+      authorizeUrl: this.eventbrite.authorizeUrl(state),
+      state,
+    };
+  }
+
+  /**
+   * Complete the Eventbrite OAuth connect: validate the CSRF nonce, exchange the
+   * code for an access token (stub-first), and report the connection. Unlike a
+   * taste connector this does NOT write guest evidence — Eventbrite is an
+   * organisation-level demand source; the token authorises event ingestion.
+   */
+  async eventbriteCallback(state: string, code: string) {
+    const pending = this.pendingStates.get(state);
+    if (!pending || pending.provider !== 'eventbrite') {
+      throw new UnauthorizedException('Invalid or expired OAuth state');
+    }
+    this.pendingStates.delete(state); // single-use
+    const token = await this.eventbrite.exchangeCode(code);
+    return {
+      provider: 'eventbrite',
+      connected: true,
+      subjectId: pending.guestId,
+      live: this.eventbrite.oauthConfigured,
+      tokenPreview: `${token.slice(0, 10)}…`,
+    };
+  }
+
   /** Complete OAuth → record consent → sync taste into evidence. */
   async callback(ctx: TenantContext, provider: string, dto: CallbackDto) {
     // Validate the CSRF state nonce and bind guestId to the issuing request.
@@ -343,13 +401,14 @@ export class ConnectorsController {
    */
   @Post('spotify/invite')
   @Scopes('guest:connectors:write')
-  invite(@Body() dto: AuthorizeDto) {
-    const token = this.svc.signInvite(dto.guestId);
+  invite(@Body() dto: InviteDto) {
+    const ttl = dto.ttlSeconds ?? 900;
+    const token = this.svc.signInvite(dto.guestId, ttl);
     return {
       guestId: dto.guestId,
       invite: token,
       connectPath: `/v1/connectors/spotify/connect?invite=${token}`,
-      expiresInSeconds: 900,
+      expiresInSeconds: ttl,
     };
   }
 
@@ -417,16 +476,92 @@ export class ConnectorsController {
     }
   }
 
+  /**
+   * Mint a signed Eventbrite connect invite (shareable link to send to an
+   * operator). Same invite infra as the taste connectors; default 15 min,
+   * `ttlSeconds` up to 7 days for a send-and-forget link.
+   */
+  @Post('eventbrite/invite')
+  @Scopes('guest:connectors:write')
+  eventbriteInvite(@Body() dto: InviteDto) {
+    const ttl = dto.ttlSeconds ?? 900;
+    const token = this.svc.signInvite(dto.guestId, ttl);
+    return {
+      guestId: dto.guestId,
+      invite: token,
+      connectPath: `/v1/connectors/eventbrite/connect?invite=${token}`,
+      expiresInSeconds: ttl,
+    };
+  }
+
+  /**
+   * Browser entry for Eventbrite. Public route (excluded from tenant
+   * middleware) — a signed invite gates it; the state nonce then binds the
+   * OAuth flow. 302s to Eventbrite consent (or straight to our callback with a
+   * stub code when OAuth isn't configured).
+   */
+  @Get('eventbrite/connect')
+  eventbriteConnect(
+    @Query('invite') invite: string,
+    @Res() res: ExpressResponse,
+  ) {
+    if (!invite) {
+      res
+        .status(400)
+        .send(
+          'invite token required — mint one via POST /v1/connectors/eventbrite/invite',
+        );
+      return;
+    }
+    let subjectId: string;
+    try {
+      subjectId = this.svc.verifyInvite(invite);
+    } catch (e) {
+      res.status(401).send((e as Error).message);
+      return;
+    }
+    const { authorizeUrl } = this.svc.eventbriteAuthorize(subjectId);
+    res.redirect(authorizeUrl);
+  }
+
+  /** Browser return leg from Eventbrite — completes the OAuth handshake. */
+  @Get('eventbrite/callback')
+  async eventbriteCallback(
+    @Query('code') code: string,
+    @Query('state') state: string,
+    @Query('error') error: string,
+    @Res() res: ExpressResponse,
+  ) {
+    const page = (inner: string, status = 200) =>
+      res
+        .status(status)
+        .type('html')
+        .send(
+          `<!doctype html><meta charset="utf-8"><title>A-List × Eventbrite</title><body style="font-family:system-ui;background:#100C14;color:#EDE8F1;display:grid;place-items:center;min-height:95vh"><div style="max-width:560px;padding:32px;background:#191320;border:1px solid #2A2233;border-radius:14px">${inner}</div>`,
+        );
+    if (error) return page(`<h2>Eventbrite said no</h2><p>${error}</p>`, 400);
+    if (!code || !state) return page('<h2>Missing code or state</h2>', 400);
+    try {
+      const result = await this.svc.eventbriteCallback(state, code);
+      return page(
+        `<h2>Connected ✓</h2><p>Eventbrite is now linked${result.live ? '' : ' <b>(stub — no live token exchange in this build)</b>'}. Atlas can ingest this account's events as demand signals.</p><p><a style="color:#DDA9D5" href="/dashboard">Open the ops console →</a></p>`,
+      );
+    } catch (e) {
+      return page(`<h2>Connect failed</h2><p>${(e as Error).message}</p>`, 400);
+    }
+  }
+
   /** Mint a signed connect invite for the Apple Music browser handshake. */
   @Post('applemusic/invite')
   @Scopes('guest:connectors:write')
-  appleInvite(@Body() dto: AuthorizeDto) {
-    const token = this.svc.signInvite(dto.guestId);
+  appleInvite(@Body() dto: InviteDto) {
+    const ttl = dto.ttlSeconds ?? 900;
+    const token = this.svc.signInvite(dto.guestId, ttl);
     return {
       guestId: dto.guestId,
       invite: token,
       connectPath: `/v1/connectors/applemusic/connect?invite=${token}`,
-      expiresInSeconds: 900,
+      expiresInSeconds: ttl,
     };
   }
 

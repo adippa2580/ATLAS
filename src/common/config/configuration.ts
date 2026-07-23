@@ -74,6 +74,9 @@ export interface AppConfig {
     tockApiKey: string;
     tockWebhookSecret: string;
     eventbriteApiToken: string;
+    eventbriteClientId: string;
+    eventbriteClientSecret: string;
+    eventbriteRedirectUrl: string;
     googleCalendarClientId: string;
     googleCalendarClientSecret: string;
     ticketmasterApiKey: string;
@@ -218,6 +221,11 @@ export default (): AppConfig => ({
     tockApiKey: process.env.TOCK_API_KEY ?? '',
     tockWebhookSecret: process.env.TOCK_WEBHOOK_SECRET ?? '',
     eventbriteApiToken: process.env.EVENTBRITE_API_TOKEN ?? '',
+    // Eventbrite OAuth (per-account connect). Empty client id → the connect
+    // flow is stubbed (walkable end to end, no live token exchange).
+    eventbriteClientId: process.env.EVENTBRITE_CLIENT_ID ?? '',
+    eventbriteClientSecret: process.env.EVENTBRITE_CLIENT_SECRET ?? '',
+    eventbriteRedirectUrl: process.env.EVENTBRITE_REDIRECT_URL ?? '',
     googleCalendarClientId: process.env.GOOGLE_CALENDAR_CLIENT_ID ?? '',
     googleCalendarClientSecret: process.env.GOOGLE_CALENDAR_CLIENT_SECRET ?? '',
     // Class-3 catalog feed (events/venues). Stub slate when unset.

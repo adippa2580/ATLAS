@@ -105,6 +105,8 @@ export class AppModule implements NestModule, OnModuleInit {
         'v1/connectors/spotify/callback',
         'v1/connectors/applemusic/connect',
         'v1/connectors/applemusic/browser-callback',
+        'v1/connectors/eventbrite/connect',
+        'v1/connectors/eventbrite/callback',
         'admin',
         'admin/(.*)',
       )
