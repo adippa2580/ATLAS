@@ -249,6 +249,35 @@
   .rec .ra{display:flex; gap:7px; flex-wrap:wrap; margin-top:9px}
   .rec .receipt{font-family:var(--mono); font-size:10.5px; color:var(--good); margin-top:8px}
   .rec .receipt.err{color:var(--warn)}
+  /* --- ATLAS OS layer: system bar, LEDs, command palette, boot --- */
+  .sysbar{display:flex; align-items:center; gap:14px; flex-wrap:wrap; font-family:var(--mono); font-size:10.5px; letter-spacing:.06em;
+    color:var(--muted); background:var(--panel); border:1px solid var(--line); border-radius:9px; padding:7px 12px; margin-bottom:10px; box-shadow:var(--shadow)}
+  .sysbar b{color:var(--ink); font-weight:600}
+  .sysbar .k{color:var(--brand-ink)}
+  .led{display:inline-flex; align-items:center; gap:5px; white-space:nowrap}
+  .led i{width:6px; height:6px; border-radius:50%; background:var(--faint)}
+  .led.live i{background:var(--good)} .led.stub i{background:var(--warn)}
+  .sysbar .sp2{flex:1}
+  .sysbar .cmdhint{cursor:pointer; border:1px solid var(--line); border-radius:6px; padding:2px 7px; color:var(--faint)}
+  .sysbar .cmdhint:hover{color:var(--brand-ink); border-color:var(--brand)}
+
+  .cmdk{position:fixed; inset:0; background:color-mix(in srgb,var(--ground) 62%,transparent); display:none; align-items:flex-start; justify-content:center; padding-top:14vh; z-index:60}
+  .cmdk.open{display:flex}
+  .cmdk .box{width:min(560px,92vw); background:var(--panel); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow); overflow:hidden}
+  .cmdk input{width:100%; box-sizing:border-box; font:inherit; font-size:15px; color:var(--ink); background:transparent; border:0; border-bottom:1px solid var(--line-soft); padding:14px 16px; outline:none}
+  .cmdk .results{max-height:320px; overflow:auto; padding:6px}
+  .cmdk .item{display:flex; align-items:center; gap:10px; padding:9px 11px; border-radius:8px; cursor:pointer; font-size:13.5px}
+  .cmdk .item .tag{font-family:var(--mono); font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:var(--faint); margin-left:auto}
+  .cmdk .item.on, .cmdk .item:hover{background:var(--raise); color:var(--ink)}
+  .cmdk .empty{color:var(--faint); font-size:12.5px; padding:14px}
+
+  .bootveil{position:fixed; inset:0; background:var(--ground); z-index:70; display:flex; align-items:center; justify-content:center; transition:opacity .35s ease}
+  .bootveil.done{opacity:0; pointer-events:none}
+  .bootlog{font-family:var(--mono); font-size:12px; color:var(--muted); min-width:280px}
+  .bootlog .l{opacity:0; animation:bootline .18s forwards}
+  .bootlog .l b{color:var(--good)}
+  .bootlog .t{color:var(--ink); font-size:14px; letter-spacing:.18em; margin-bottom:10px}
+  @keyframes bootline{to{opacity:1}}
   @media (prefers-reduced-motion:reduce){*{animation:none !important; transition:none !important}}
 </style>
 
@@ -322,6 +351,16 @@
     <span class="chip"><span class="dot live"></span> Cloud Run · <b id="hb">health</b></span>
     <span class="chip modepill demo" id="mode">◇ demo data</span>
     <span class="chip ttoggle" id="tt" title="toggle theme">☾ theme</span>
+  </div>
+
+  <div class="sysbar" id="sysbar">
+    <span><b>ATLAS OS</b> <span class="k" id="sys-kernel">kernel —</span></span>
+    <span id="sys-mounts">mounting…</span>
+    <span id="sys-bus"></span>
+    <span id="sys-uptime"></span>
+    <span class="sp2"></span>
+    <span id="sys-leds"></span>
+    <span class="cmdhint" id="cmdhint" title="Command palette">⌘K</span>
   </div>
 
   <h2 class="sec">Platform totals <span id="totalsSrc" style="font-size:10px; letter-spacing:0; text-transform:none"></span></h2>
@@ -804,6 +843,91 @@
     });
   }
   // live fetch → data | null (fail/empty) | undefined (demo mode: use sample)
+  function bootSequence(){
+    try{
+      if(sessionStorage.getItem("atlas-booted")) return;
+      sessionStorage.setItem("atlas-booted","1");
+    }catch(e){return}
+    var v=document.querySelector("#bootveil"), log=document.querySelector("#bootlog");
+    if(!v||!log) return;
+    v.hidden=false;
+    var lines=["mounting guest hub … <b>ok</b>","mounting ops hub … <b>ok</b>","mounting marketing hub … <b>ok</b>","loading 23 primitives … <b>ok</b>","attaching evidence bus … <b>ok</b>","taste graph online … <b>ok</b>"];
+    lines.forEach(function(t,i){
+      var d=document.createElement("div"); d.className="l"; d.style.animationDelay=(i*110)+"ms"; d.innerHTML=t; log.appendChild(d);
+    });
+    setTimeout(function(){v.classList.add("done"); setTimeout(function(){v.hidden=true},400)}, lines.length*110+320);
+  }
+
+  async function loadSystem(){
+    var bar=document.querySelector("#sysbar"); if(!bar) return;
+    function fmtUp(s){var h=Math.floor(s/3600),m=Math.floor((s%3600)/60); return h?h+"h "+m+"m":m+"m "+(s%60)+"s"}
+    var sys=null;
+    if(mode==="live"){try{var r=await apiCall("GET","/v1/system",A); if(r&&r.ok) sys=r.json;}catch(e){}}
+    if(!sys){sys={kernel:"0.1.0",primitives:23,hubs:["guest","ops","marketing"],evidenceBus:"memory",uptimeSeconds:0,connectors:{spotify:"live",klaviyo:"live",stripe:"stub",square:"stub",lightspeed:"stub",eventsFeed:"live",instagram:"stub"},demo:true};}
+    document.querySelector("#sys-kernel").textContent="kernel "+sys.kernel;
+    document.querySelector("#sys-mounts").innerHTML="<b>"+sys.primitives+"</b> primitives · <b>"+sys.hubs.length+"</b> hubs mounted";
+    document.querySelector("#sys-bus").textContent="bus: "+sys.evidenceBus;
+    document.querySelector("#sys-uptime").textContent=sys.demo?"uptime —":"uptime "+fmtUp(sys.uptimeSeconds);
+    var leds=document.querySelector("#sys-leds"); leds.innerHTML="";
+    Object.keys(sys.connectors).forEach(function(k){
+      var st=sys.connectors[k];
+      var el=document.createElement("span"); el.className="led "+st; el.title=k+": "+st.toUpperCase();
+      el.innerHTML="<i></i>"+k; leds.appendChild(el);
+    });
+  }
+
+  function wireCmdK(){
+    var overlay=document.querySelector("#cmdk"), input=document.querySelector("#cmdkIn"), res=document.querySelector("#cmdkRes");
+    if(!overlay) return;
+    var actions=[
+      {label:"Drive the night", tag:"action", run:function(){var b=document.querySelector("#run"); if(b) b.click();}},
+      {label:"Sync catalog feed", tag:"action", run:function(){var b=document.querySelector("#syncCat"); if(b) b.click();}},
+      {label:"Toggle theme", tag:"action", run:function(){var t=document.querySelector("#tt"); if(t) t.click();}},
+      {label:"Do next · recommendations", tag:"go", run:function(){go("#c-recs")}},
+      {label:"Evidence log", tag:"go", run:function(){go("#c-ev")}},
+      {label:"Guest affinity", tag:"go", run:function(){go("#c-aff")}},
+      {label:"Crew blend", tag:"go", run:function(){go("#c-crew")}},
+      {label:"Booking flow", tag:"go", run:function(){go("#c-flow")}},
+      {label:"Venue intelligence", tag:"go", run:function(){go("#c-venue")}},
+      {label:"Taste demand index", tag:"go", run:function(){go("#c-demand")}},
+      {label:"Identity coverage", tag:"go", run:function(){go("#c-ident")}},
+      {label:"Silent whales · at-risk", tag:"go", run:function(){go("#c-atrisk")}},
+      {label:"Crew super-connectors", tag:"go", run:function(){go("#c-conn")}},
+      {label:"Attribution → LTV", tag:"go", run:function(){go("#c-attr")}},
+      {label:"Min-spend realization", tag:"go", run:function(){go("#c-minspend")}},
+      {label:"Outcomes intelligence", tag:"surface", run:function(){location.href="/outcomes"}},
+      {label:"API docs", tag:"surface", run:function(){location.href="/docs"}}
+    ];
+    var sel=0, view=[];
+    function go(q){var el=document.querySelector(q); if(el){el.scrollIntoView({behavior:"smooth",block:"start"});}}
+    function close(){overlay.classList.remove("open"); input.value=""; render("");}
+    function open(){overlay.classList.add("open"); input.focus(); render("");}
+    function render(q){
+      var needle=q.trim().toLowerCase();
+      view=actions.filter(function(a){return !needle||a.label.toLowerCase().indexOf(needle)>=0});
+      sel=0; res.innerHTML="";
+      if(!view.length){res.innerHTML='<div class="empty">nothing mounted by that name</div>'; return;}
+      view.forEach(function(a,i){
+        var el=document.createElement("div"); el.className="item"+(i===sel?" on":"");
+        el.innerHTML="<span>"+a.label+"</span><span class=\"tag\">"+a.tag+"</span>";
+        el.onclick=function(){close(); a.run();};
+        res.appendChild(el);
+      });
+    }
+    input.addEventListener("input",function(){render(input.value)});
+    input.addEventListener("keydown",function(e){
+      if(e.key==="Escape"){close();}
+      else if(e.key==="ArrowDown"){e.preventDefault(); sel=Math.min(sel+1,view.length-1); render(input.value); }
+      else if(e.key==="ArrowUp"){e.preventDefault(); sel=Math.max(sel-1,0); render(input.value);}
+      else if(e.key==="Enter"&&view[sel]){var a=view[sel]; close(); a.run();}
+    });
+    overlay.addEventListener("click",function(e){if(e.target===overlay) close();});
+    document.addEventListener("keydown",function(e){
+      if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==="k"){e.preventDefault(); overlay.classList.contains("open")?close():open();}
+    });
+    var hint=document.querySelector("#cmdhint"); if(hint) hint.onclick=open;
+  }
+
   function demoRecs(){
     function next(dow){var d=new Date(); d.setDate(d.getDate()+(((dow-d.getDay())%7+7)%7||7)); return d.toISOString().slice(0,10);}
     return {recommendations:[
@@ -987,6 +1111,7 @@
 
   function loadIntel(){
     $("#i-noshow-date").textContent=IDATE;
+    bootSequence(); loadSystem(); wireCmdK();
     loadRecs(); wireCatalogSync();
     loadDemand(); loadIdent(); loadAtRisk(); loadConnectors(); loadAttr();
     loadMinspend(); loadNoShow(); loadDoorlist(); loadMix(); loadBook(); loadRoi();

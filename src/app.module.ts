@@ -13,6 +13,7 @@ import { PrismaModule } from './common/prisma/prisma.module';
 import { EvidenceModule } from './common/evidence/evidence.module';
 import { TenantMiddleware } from './common/tenancy/tenant.middleware';
 import { VenueLinkModule } from './modules/web/venue-link.module';
+import { SystemModule } from './system/system.module';
 import { TokenVerifier } from './common/auth/token-verifier';
 import { IdempotencyInterceptor } from './common/idempotency/idempotency.interceptor';
 import { HealthController } from './health.controller';
@@ -80,6 +81,7 @@ import { ProjectionModule } from './modules/guest/projection/projection.module';
     ProjectionModule,
     // Public venue-link (class 1b) surface — tenant resolved from the link code.
     VenueLinkModule,
+    SystemModule,
   ],
   controllers: [HealthController],
   providers: [
