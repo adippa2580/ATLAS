@@ -78,6 +78,25 @@ export interface AppConfig {
     googleCalendarClientSecret: string;
     ticketmasterApiKey: string;
     bandsintownAppId: string;
+    // Product-MVP connector fleet (KAN-4..KAN-13). Stub-first: each runs on
+    // canned data until its key is set; inbound webhooks fail closed on a bad
+    // signature. Read-only intelligence connectors carry an API key only.
+    gigfinesseApiKey: string;
+    gigfinesseWebhookSecret: string;
+    cobrandApiKey: string;
+    fourvenuesApiKey: string;
+    fourvenuesWebhookSecret: string;
+    soundchartsApiKey: string;
+    poshApiKey: string;
+    poshWebhookSecret: string;
+    diceApiKey: string;
+    diceWebhookSecret: string;
+    residentAdvisorApiKey: string;
+    crowdvoltApiKey: string;
+    crowdvoltWebhookSecret: string;
+    tablelistApiKey: string;
+    tablelistWebhookSecret: string;
+    stripeConnectClientId: string;
     alistFeedUrl: string;
     alistFeedKey: string;
   };
@@ -206,6 +225,26 @@ export default (): AppConfig => ({
     // Bandsintown artist-events API (app_id issued per partner). Complements
     // Ticketmaster with club/indie/international long-tail coverage. Stub when unset.
     bandsintownAppId: process.env.BANDSINTOWN_APP_ID ?? '',
+    // Product-MVP connector fleet (KAN-4..KAN-13). Every key defaults empty →
+    // the adapter stays in stub mode. Webhook secrets gate inbound signature
+    // verification (fail closed when set; trust-in-dev when unset, per the
+    // existing POS/reservation connectors).
+    gigfinesseApiKey: process.env.GIGFINESSE_API_KEY ?? '',
+    gigfinesseWebhookSecret: process.env.GIGFINESSE_WEBHOOK_SECRET ?? '',
+    cobrandApiKey: process.env.COBRAND_API_KEY ?? '',
+    fourvenuesApiKey: process.env.FOURVENUES_API_KEY ?? '',
+    fourvenuesWebhookSecret: process.env.FOURVENUES_WEBHOOK_SECRET ?? '',
+    soundchartsApiKey: process.env.SOUNDCHARTS_API_KEY ?? '',
+    poshApiKey: process.env.POSH_API_KEY ?? '',
+    poshWebhookSecret: process.env.POSH_WEBHOOK_SECRET ?? '',
+    diceApiKey: process.env.DICE_API_KEY ?? '',
+    diceWebhookSecret: process.env.DICE_WEBHOOK_SECRET ?? '',
+    residentAdvisorApiKey: process.env.RESIDENT_ADVISOR_API_KEY ?? '',
+    crowdvoltApiKey: process.env.CROWDVOLT_API_KEY ?? '',
+    crowdvoltWebhookSecret: process.env.CROWDVOLT_WEBHOOK_SECRET ?? '',
+    tablelistApiKey: process.env.TABLELIST_API_KEY ?? '',
+    tablelistWebhookSecret: process.env.TABLELIST_WEBHOOK_SECRET ?? '',
+    stripeConnectClientId: process.env.STRIPE_CONNECT_CLIENT_ID ?? '',
     // ALIST partner feed: public ra_events table (RA + Ticketmaster, refreshed
     // by A-List's ra-cron). Key is the publishable anon key — client-safe class.
     alistFeedUrl: process.env.ALIST_FEED_URL ?? '',
