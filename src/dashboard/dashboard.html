@@ -443,6 +443,20 @@
     </div>
   </div>
 
+  <h2 class="sec">Intelligence · taste blend &amp; concerts <span style="font-size:10px; letter-spacing:0; text-transform:none; color:var(--faint)">native — no platform has a Blend or concerts API</span></h2>
+  <div class="grid3">
+    <div class="card" id="c-blend">
+      <h3>Tonight&#39;s crowd blend <span class="plchip" data-pc="taste">taste</span> <span class="plchip" data-pc="venues">venues</span></h3>
+      <p class="cap">GET /v1/insights/venue-blend · the room's collective taste</p>
+      <div id="i-blend"><div class="i-empty">loading…</div></div>
+    </div>
+    <div class="card" id="c-concerts" style="grid-column:span 2">
+      <h3>Artists your guests follow · playing near you <span class="plchip" data-pc="taste">taste</span> <span class="plchip" data-pc="venues">venues</span></h3>
+      <p class="cap">GET /v1/insights/concerts · taste graph × Ticketmaster</p>
+      <div id="i-concerts"><div class="i-empty">loading…</div></div>
+    </div>
+  </div>
+
   <h2 class="sec">Intelligence · ops</h2>
   <div class="grid3">
     <div class="card" id="c-minspend" style="grid-column:span 2">
@@ -772,6 +786,9 @@
   var moneyC=function(c){return money(Math.round(Number(c||0)/100))};
   var pct=function(x){var n=Number(x||0); if(n>0&&n<=1) n*=100; return Math.round(n)+"%";};
   function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+  var DEMO_BLEND={venueId:"v1",guests:34,summary:"The room skews afro house / melodic techno — top artist Keinemusik.",topArtists:[{ref:"Keinemusik",score:4.6,confidence:0.8},{ref:"Black Coffee",score:3.9,confidence:0.7},{ref:"Adam Port",score:3.2,confidence:0.6},{ref:"ANOTR",score:2.7,confidence:0.5}],topGenres:[{ref:"afro house",score:4.8},{ref:"melodic techno",score:3.1}]};
+  var DEMO_CONCERTS={venueId:"v1",city:"Miami",artistsConsidered:3,concerts:[{artist:"Keinemusik",guestsInterested:12,event:"Keinemusik — Miami",date:"2026-08-15T22:00:00Z",venue:"Factory Town",city:"Miami"},{artist:"Black Coffee",guestsInterested:8,event:"Black Coffee presents",date:"2026-08-22T22:00:00Z",venue:"Space",city:"Miami"},{artist:"ANOTR",guestsInterested:5,event:"ANOTR live",date:"2026-09-05T22:00:00Z",venue:"Club Space",city:"Miami"}]};
+
   function iEmpty(host,msg){host.innerHTML='<div class="i-empty">'+(msg||"No data yet")+'</div>';}
   function tile(k,v){return '<div class="st"><div class="k">'+k+'</div><div class="v">'+v+'</div></div>';}
   function tierCls(t){t=String(t||"").toLowerCase();return t==="high"?"crit":(t==="low"?"ok":"warn");}
@@ -947,11 +964,32 @@
     h.innerHTML=tile("Artist",esc(d.name||d.entityId))+tile("Night revenue",moneyC(d.nightRevenueCents))+tile("Baseline",moneyC(d.baselineCents))+tile("Lift",moneyC(d.liftCents))+tile("ROI",Number(d.roi||0).toFixed(2)+"×");
   }catch(e){iEmpty(h);}}
 
+  async function loadBlend(){var h=$("#i-blend");try{
+    var d=await iget("/v1/insights/venue-blend",A); if(d===undefined)d=DEMO_BLEND;
+    if(!d||typeof d!=="object"||!Array.isArray(d.topArtists)) return iEmpty(h);
+    if(!d.topArtists.length) return iEmpty(h, esc(d.summary||"No consented crowd yet"));
+    var summary='<div class="vsub" style="margin-bottom:10px">'+esc(d.summary||"")+' · <b>'+(d.guests||0)+'</b> consented guests</div>';
+    var tmp=document.createElement("div");
+    renderBars(tmp,d.topArtists,
+      function(r){return esc(r.ref);},
+      function(r){return Number(r.score||0).toFixed(2);},
+      function(r){return r.score;});
+    h.innerHTML=summary+tmp.innerHTML;
+  }catch(e){iEmpty(h);}}
+
+  async function loadConcerts(){var h=$("#i-concerts");try{
+    var d=await iget("/v1/insights/concerts",A); if(d===undefined)d=DEMO_CONCERTS;
+    if(!d||!Array.isArray(d.concerts)||!d.concerts.length) return iEmpty(h,"No upcoming shows matched to guests' artists");
+    var rows=d.concerts.map(function(r){return '<tr><td>'+esc(r.artist)+'<div class="vsub">'+esc(r.event)+'</div></td><td>'+esc(r.venue||r.city||"")+'</td><td class="n">'+esc((r.date||"").slice(0,10))+'</td><td class="n">'+(r.guestsInterested||0)+'g</td></tr>';}).join("");
+    h.innerHTML='<table class="itbl"><thead><tr><th>artist</th><th>where</th><th class="rt">date</th><th class="rt">follow</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  }catch(e){iEmpty(h);}}
+
   function loadIntel(){
     $("#i-noshow-date").textContent=IDATE;
     loadRecs(); wireCatalogSync();
     loadDemand(); loadIdent(); loadAtRisk(); loadConnectors(); loadAttr();
     loadMinspend(); loadNoShow(); loadDoorlist(); loadMix(); loadBook(); loadRoi();
+    loadBlend(); loadConcerts();
   }
 
   var running=false;
