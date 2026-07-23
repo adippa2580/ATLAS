@@ -19,6 +19,50 @@ export class EventbriteAdapter {
     return !this.config.get<string>('connectors.eventbriteApiToken');
   }
 
+  /** OAuth is configured once a client id is present (redirect defaults sanely). */
+  get oauthConfigured(): boolean {
+    return !!this.config.get<string>('connectors.eventbriteClientId');
+  }
+
+  /**
+   * The Eventbrite OAuth2 authorize URL — where a person consents to ATLAS
+   * reading their organisation's events. `state` is the CSRF nonce the caller
+   * issued; it must round-trip back to the callback. When no client id is set
+   * the flow is stubbed: we point back at our own callback with a stub code so
+   * the whole handshake is walkable without credentials (mirrors the rest of
+   * the stub-first connector fleet).
+   */
+  authorizeUrl(state: string): string {
+    const clientId = this.config.get<string>('connectors.eventbriteClientId');
+    const redirect =
+      this.config.get<string>('connectors.eventbriteRedirectUrl') ??
+      '/v1/connectors/eventbrite/callback';
+    if (!clientId) {
+      return `${redirect}?code=stub_authorization_code&state=${encodeURIComponent(state)}`;
+    }
+    const params = new URLSearchParams({
+      response_type: 'code',
+      client_id: clientId,
+      redirect_uri: redirect,
+      state,
+    });
+    return `https://www.eventbrite.com/oauth/authorize?${params.toString()}`;
+  }
+
+  /**
+   * Exchange an OAuth `code` for an access token. Stubbed when the OAuth trio is
+   * unset — returns a deterministic stub token so the callback completes; live
+   * mode (client id + secret set) is intentionally unimplemented in this build.
+   */
+  async exchangeCode(code: string): Promise<string> {
+    if (!this.oauthConfigured) {
+      return `ebo_stub_token_${code}`;
+    }
+    throw new Error(
+      'Eventbrite live OAuth exchange not configured in this build',
+    );
+  }
+
   /**
    * Fetch upcoming events for an org/venue as demand signals. Stubbed
    * deterministically; live mode is intentionally unimplemented in this build.

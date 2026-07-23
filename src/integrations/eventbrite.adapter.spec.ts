@@ -59,4 +59,39 @@ describe('EventbriteAdapter', () => {
     expect(signal.name).toBe('Untitled event');
     expect(signal.subjectType).toBe('event');
   });
+
+  describe('OAuth connect', () => {
+    it('stub authorizeUrl points back at our callback with a stub code + the state', () => {
+      const a = make({});
+      expect(a.oauthConfigured).toBe(false);
+      const url = a.authorizeUrl('nonce123');
+      expect(url).toContain('/v1/connectors/eventbrite/callback');
+      expect(url).toContain('code=stub_authorization_code');
+      expect(url).toContain('state=nonce123');
+    });
+
+    it('live authorizeUrl targets Eventbrite with client_id, redirect and state', () => {
+      const a = make({
+        'connectors.eventbriteClientId': 'CID',
+        'connectors.eventbriteRedirectUrl': 'https://x/cb',
+      });
+      expect(a.oauthConfigured).toBe(true);
+      const url = a.authorizeUrl('nonce123');
+      expect(url).toContain('https://www.eventbrite.com/oauth/authorize');
+      expect(url).toContain('client_id=CID');
+      expect(url).toContain('response_type=code');
+      expect(url).toContain('state=nonce123');
+    });
+
+    it('exchangeCode stubs a deterministic token when OAuth is unset, throws when configured', async () => {
+      expect(await make({}).exchangeCode('abc')).toBe('ebo_stub_token_abc');
+      const live = make({
+        'connectors.eventbriteClientId': 'CID',
+        'connectors.eventbriteClientSecret': 'SEC',
+      });
+      await expect(live.exchangeCode('abc')).rejects.toThrow(
+        'Eventbrite live OAuth exchange not configured',
+      );
+    });
+  });
 });
