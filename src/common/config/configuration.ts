@@ -67,6 +67,7 @@ export interface AppConfig {
     googleCalendarClientId: string;
     googleCalendarClientSecret: string;
     ticketmasterApiKey: string;
+    bandsintownAppId: string;
     alistFeedUrl: string;
     alistFeedKey: string;
   };
@@ -166,6 +167,9 @@ export default (): AppConfig => ({
     googleCalendarClientSecret: process.env.GOOGLE_CALENDAR_CLIENT_SECRET ?? '',
     // Class-3 catalog feed (events/venues). Stub slate when unset.
     ticketmasterApiKey: process.env.TICKETMASTER_API_KEY ?? '',
+    // Bandsintown artist-events API (app_id issued per partner). Complements
+    // Ticketmaster with club/indie/international long-tail coverage. Stub when unset.
+    bandsintownAppId: process.env.BANDSINTOWN_APP_ID ?? '',
     // ALIST partner feed: public ra_events table (RA + Ticketmaster, refreshed
     // by A-List's ra-cron). Key is the publishable anon key — client-safe class.
     alistFeedUrl: process.env.ALIST_FEED_URL ?? '',
