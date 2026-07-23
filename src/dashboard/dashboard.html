@@ -188,6 +188,8 @@
   .foot{margin-top:26px; color:var(--faint); font-size:11.5px; font-family:var(--mono); display:flex; gap:12px; flex-wrap:wrap; align-items:center}
   .badge{font-family:var(--mono); font-size:10px; padding:2px 7px; border-radius:5px; border:1px solid}
   .badge.ok{color:var(--good); border-color:color-mix(in srgb,var(--good) 40%,var(--line))}
+  .badge.warn{color:var(--warn); border-color:color-mix(in srgb,var(--warn) 45%,var(--line))}
+  .badge.pend{color:var(--faint); border-color:var(--line)}
   /* Intelligence section — reuses core tokens */
   .i-empty{color:var(--faint); font-size:12px; padding:12px 2px; font-family:var(--mono)}
   .i-tiles{display:grid; grid-template-columns:repeat(3,1fr); gap:9px}
@@ -441,7 +443,8 @@
       <h3><span class="idx">05</span> Venue intelligence <span class="plchip" data-pc="venues">venues</span> <span class="plchip" data-pc="marketing">marketing</span></h3>
       <p class="cap">mkt:audiences · mkt:reporting</p>
       <div class="op"><div class="q" id="opQ">Run the night to surface an opportunity.</div>
-        <div class="act"><button class="mini gold">Reach them</button><button class="mini">Save audience</button></div></div>
+        <div class="act"><button class="mini gold" id="reachBtn">Reach them</button><button class="mini" id="saveAudBtn">Save audience</button></div>
+        <div class="muted" id="opReceipt" style="margin-top:8px;min-height:14px;font-size:12px"></div></div>
       <div class="stats2">
         <div class="st"><div class="k">Tonight spend</div><div class="v" id="s-spend">—</div></div>
         <div class="st"><div class="k">Deposit held</div><div class="v" id="s-dep">—</div></div>
@@ -557,7 +560,7 @@
   <div class="foot">
     <span>ATLAS primitive contract</span>
     <span class="badge ok">evidence is the only graph write</span>
-    <span class="badge ok">403 on missing scope</span>
+    <span class="badge pend" id="badgeGuard">403 on missing scope…</span>
     <span class="badge ok">pooled multi-tenant · RLS-ready</span>
     <span style="margin-left:auto" id="srcNote"></span>
   </div>
@@ -1147,6 +1150,18 @@
 
   $("#run").addEventListener("click",drive);
 
+  // ---- card 05 opportunity actions: Save audience + Reach them (consent-gated) ----
+  $("#saveAudBtn").addEventListener("click",async function(){var b=this;b.disabled=true;$("#opReceipt").textContent="Saving audience…";
+    var r=await apiCall("POST","/v1/audiences",A,{name:"Afro House · high-spend regulars",predicates:{minScore:1}});
+    b.disabled=false;
+    if(mode==="live"){$("#opReceipt").textContent=r.ok?("✓ audience saved · "+((r.json&&r.json.id)?r.json.id.slice(0,8):"ok")):("✕ "+((r.json&&r.json.error)||"save failed"));}
+    else{$("#opReceipt").textContent="✓ audience saved · Afro House · high-spend regulars (demo)";}});
+  $("#reachBtn").addEventListener("click",async function(){var b=this;b.disabled=true;$("#opReceipt").textContent="Reaching consented guests…";
+    var r=await apiCall("POST","/v1/audiences/reach",A,{minScore:1});
+    b.disabled=false;
+    if(mode==="live"){var j=r.json||{},d=j.delivery||{};$("#opReceipt").textContent=r.ok?("✓ reached "+(d.delivered!=null?d.delivered:(j.count||0))+" consented guests · klaviyo"+(d.stub?" (stub)":"")):("✕ "+(j.error||"reach failed"));}
+    else{$("#opReceipt").textContent="✓ discovery send queued to consented guests · klaviyo (demo)";}});
+
   // ---- door walk-in capture (POST /v1/door/walk-in) ----
   function toggleWalkIn(){ var f=$("#wiForm"); f.hidden=!f.hidden; if(!f.hidden) $("#wiName").focus(); }
   function resetWalkIn(){ $("#wiName").value=""; $("#wiPhone").value=""; }
@@ -1176,6 +1191,16 @@
   window.toggleWalkIn=toggleWalkIn; window.submitWalkIn=submitWalkIn;
 
   renderFlow(-1); renderExplorer();
-  detect().then(function(){ loadTotals(); loadIntel(); });
+  // Earn the "403 on missing scope" contract badge with a live probe rather than
+  // asserting it: hit the graph write with a scope that lacks evidence:write.
+  async function verifyGuard(){
+    var b=$("#badgeGuard"); if(!b) return;
+    try{
+      var r=await fetch(BASE+"/v1/evidence",{method:"POST",headers:{"X-Tenant-Id":A,"X-Scopes":"guest:identity:read","Content-Type":"application/json"},body:JSON.stringify({guestId:"x",subjectType:"genre",subjectRef:"y",signal:"listen",provenance:"connector",dedupeKey:"z"})});
+      if(r.status===403){b.className="badge ok";b.textContent="403 on missing scope ✓"}
+      else{b.className="badge warn";b.textContent="scope guard returned "+r.status}
+    }catch(e){b.className="badge warn";b.textContent="scope guard unreachable"}
+  }
+  detect().then(function(){ loadTotals(); loadIntel(); verifyGuard(); });
 })();
 </script>

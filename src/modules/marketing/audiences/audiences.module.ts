@@ -4,6 +4,8 @@ import { IsNumber, IsObject, IsOptional, IsString } from 'class-validator';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { Scopes } from '../../../common/auth/scopes.decorator';
 import { Tenant, TenantContext } from '../../../common/tenancy/tenant-context';
+import { KlaviyoAdapter } from '../../../integrations/klaviyo.adapter';
+import { REACHABLE_CONSENT_SCOPES } from './taste-segments.module';
 
 // Predicates over affinity / spend / recency (geo later).
 class AudienceQueryDto {
@@ -18,9 +20,19 @@ class SaveAudienceDto {
   @IsObject() predicates!: Record<string, any>;
 }
 
+// Discovery send to a predicate-defined audience — consent-gated, never a blast.
+class AudienceReachDto {
+  @IsOptional() @IsString() subjectRef?: string;
+  @IsOptional() @IsNumber() minScore?: number;
+  @IsOptional() @IsString() name?: string;
+}
+
 @Injectable()
 export class AudiencesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly klaviyo: KlaviyoAdapter,
+  ) {}
 
   /**
    * Audience Studio: resolve predicates into a matching guest COUNT and an
@@ -109,6 +121,70 @@ export class AudiencesService {
       },
     });
   }
+
+  /**
+   * Reach a predicate-defined audience: resolve the matching guests **who have
+   * granted a reachable consent** (marketing/identity, not revoked), persist the
+   * audience, and hand them to the Klaviyo rail as a discovery send. Consent is a
+   * hard dependency — an unconsented guest is never contacted — and the adapter
+   * is stub-first, so with no key it logs the intent and delivers nothing.
+   */
+  async reach(ctx: TenantContext, dto: AudienceReachDto) {
+    let guestIds: string[] | undefined;
+    if (dto.subjectRef || dto.minScore != null) {
+      const affinities = await this.prisma.guestAffinity.findMany({
+        where: {
+          tenantId: ctx.tenantId,
+          muted: false,
+          ...(dto.subjectRef ? { subjectRef: dto.subjectRef } : {}),
+          ...(dto.minScore != null ? { score: { gte: dto.minScore } } : {}),
+        },
+        select: { guestId: true },
+      });
+      guestIds = [...new Set(affinities.map((a) => a.guestId))];
+    }
+
+    const guests = await this.prisma.guest.findMany({
+      where: {
+        tenantId: ctx.tenantId,
+        ...(guestIds ? { id: { in: guestIds } } : {}),
+        // The consent gate: only guests with a live reachable grant.
+        consents: {
+          some: { revokedAt: null, scope: { in: REACHABLE_CONSENT_SCOPES } },
+        },
+      },
+      select: {
+        id: true,
+        email: true,
+        primaryPhone: true,
+        displayName: true,
+      },
+    });
+
+    const audience = await this.prisma.audience.create({
+      data: {
+        tenantId: ctx.tenantId,
+        name: dto.name || `Reach · ${dto.subjectRef ?? 'surfaced audience'}`,
+        predicates: {
+          subjectRef: dto.subjectRef ?? null,
+          minScore: dto.minScore ?? null,
+          reached: true,
+        } as any,
+      },
+    });
+
+    const delivery = await this.klaviyo.sendCampaign(
+      guests.length,
+      {
+        template: 'lifecycle_campaign',
+        audienceId: audience.id,
+        subjectRef: dto.subjectRef ?? null,
+      },
+      KlaviyoAdapter.toRecipients(guests, { audienceId: audience.id }),
+    );
+
+    return { audienceId: audience.id, count: guests.length, delivery };
+  }
 }
 
 @ApiTags('mkt:audiences')
@@ -128,6 +204,12 @@ export class AudiencesController {
   @Scopes('mkt:audiences:write')
   save(@Tenant() ctx: TenantContext, @Body() dto: SaveAudienceDto) {
     return this.svc.save(ctx, dto);
+  }
+
+  @Post('audiences/reach')
+  @Scopes('mkt:audiences:write')
+  reach(@Tenant() ctx: TenantContext, @Body() dto: AudienceReachDto) {
+    return this.svc.reach(ctx, dto);
   }
 }
 
