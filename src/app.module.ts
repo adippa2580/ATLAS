@@ -32,6 +32,7 @@ import { RevenueInsightsModule } from './insights/revenue/revenue-insights.modul
 import { OpsInsightsModule } from './insights/ops/ops-insights.module';
 import { TalentModule } from './insights/talent/talent.module';
 import { BlendModule } from './insights/blend/blend.module';
+import { ConcertsModule } from './insights/concerts/concerts.module';
 import { ProjectionModule } from './modules/guest/projection/projection.module';
 
 @Module({
@@ -69,6 +70,9 @@ import { ProjectionModule } from './modules/guest/projection/projection.module';
     // Native "Blend" — venue crowd-blend, guest-to-guest, crew-blend surfacing
     // (no third-party Blend API exists; computed from our own taste graph).
     BlendModule,
+    // Concerts — guests' followed/affinity artists joined to Ticketmaster events
+    // near the venue (no music-platform concerts API exists).
+    ConcertsModule,
     // Per-venue consented projection of a guest's cross-tenant affinity (spine).
     ProjectionModule,
     // Public venue-link (class 1b) surface — tenant resolved from the link code.
