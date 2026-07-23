@@ -12,6 +12,9 @@ import { BookingConnectModule } from './booking-connect.module';
 import { RevenuePromptsModule } from './revenue-prompts.module';
 import { OverbookingModule } from './overbooking.module';
 import { InventoryDropModule } from './inventory-drop.module';
+import { OutlookModule } from './outlook.module';
+import { ActionsModule } from './actions.module';
+import { SplitGroupsModule } from './split-groups.module';
 
 /** Ops hub — the 8 primitives that run BOOK & PAY, LIVE and WRAP. */
 @Module({
@@ -29,6 +32,10 @@ import { InventoryDropModule } from './inventory-drop.module';
     RevenuePromptsModule,
     OverbookingModule,
     InventoryDropModule,
+    // Ported from the 2026-07-23 Supabase design spike:
+    OutlookModule,
+    ActionsModule,
+    SplitGroupsModule,
   ],
   exports: [
     BookingsModule,
@@ -38,6 +45,7 @@ import { InventoryDropModule } from './inventory-drop.module';
     TabModule,
     DoorModule,
     CloseoutModule,
+    SplitGroupsModule,
   ],
 })
 export class OpsModule {}

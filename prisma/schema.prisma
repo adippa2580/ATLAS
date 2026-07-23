@@ -349,17 +349,18 @@ model Booking {
 }
 
 model Payment {
-  id             String   @id @default(uuid())
+  id             String      @id @default(uuid())
   tenantId       String
   bookingId      String
-  stripePiId     String?  @unique
+  stripePiId     String?     @unique
   amount         Int // minor units (cents)
-  currency       String   @default("usd")
+  currency       String      @default("usd")
+  kind           PaymentKind @default(crew_share)
   splitGroupId   String?
   payerGuestId   String?
-  status         String   @default("pending")
+  status         String      @default("pending")
   idempotencyKey String?
-  createdAt      DateTime @default(now())
+  createdAt      DateTime    @default(now())
 
   booking Booking @relation(fields: [bookingId], references: [id])
 
@@ -577,4 +578,133 @@ model EvidenceOutbox {
 
   @@index([publishedAt, createdAt])
   @@index([tenantId])
+}
+
+// ---------------------------------------------------------------------------
+// Ops — Split-group funding state (captain guarantee). Ported from the
+// 2026-07-23 Supabase design spike. A SplitGroup is the FUNDING axis of a
+// booking's split-pay: the captain authorizes the FULL total up front (the
+// guarantee), crew shares are captured individually, and at the funding
+// deadline the captain's remainder is captured for whatever is unfunded.
+// Deliberately a SEPARATE axis from BookingStatus (floor state) — a booking can
+// be seated while still partially funded. Payments join by splitGroupId VALUE
+// (no FK: pre-existing Payment rows carry ad-hoc split-group UUIDs with no
+// parent row, so a constraint would break on existing data).
+// ---------------------------------------------------------------------------
+enum PaymentKind {
+  captain_authorization
+  crew_share
+  captain_remainder
+  refund
+}
+
+enum FundingState {
+  pending
+  authorized
+  partially_funded
+  funded
+  settled
+  expired
+}
+
+model SplitGroup {
+  id                String       @id @default(uuid())
+  tenantId          String
+  bookingId         String
+  captainGuestId    String
+  totalAmount       Int // minor units (cents)
+  fundedAmount      Int          @default(0) // captured crew_share + captain_remainder
+  state             FundingState @default(pending)
+  fundingDeadlineAt DateTime?
+  captainPiId       String? // the captain's full-total authorization PI
+  createdAt         DateTime     @default(now())
+
+  events SplitGroupEvent[]
+
+  @@index([tenantId, bookingId])
+  @@index([tenantId, state])
+}
+
+// Append-only funding-state ledger — mirrors BookingStatusEvent so funding
+// TIMING (when a group became funded, when the captain was drawn on) is
+// measured, not inferred.
+model SplitGroupEvent {
+  id           String        @id @default(uuid())
+  tenantId     String
+  splitGroupId String
+  fromState    FundingState?
+  toState      FundingState
+  reason       String?
+  at           DateTime      @default(now())
+
+  splitGroup SplitGroup @relation(fields: [splitGroupId], references: [id])
+
+  @@index([tenantId, splitGroupId])
+}
+
+// ---------------------------------------------------------------------------
+// Ops — Event Outlook (rules engine v1). Ported from the 2026-07-23 Supabase
+// design spike; MVP subsystem 8. One row per (tenant, venue, night): a 0–100
+// composite score over seven weighted factors (demand pace 20, revenue/margin
+// 20, inventory yield 15, audience quality 15, payment certainty 10, marketing
+// response 10, ops readiness 10). `factors` stores the per-factor 0–1 breakdown
+// plus raw inputs so every score is explainable; `weightsVersion` pins the
+// rule set so scores stay comparable across recomputes.
+// ---------------------------------------------------------------------------
+model EventOutlook {
+  id             String   @id @default(uuid())
+  tenantId       String
+  venueId        String
+  date           DateTime
+  score          Float // 0–100 composite
+  factors        Json // { factors: {..0–1..}, inputs: {..raw..} }
+  weightsVersion String   @default("v1-20/20/15/15/10/10/10")
+  computedAt     DateTime @default(now())
+
+  @@unique([tenantId, venueId, date])
+  @@index([tenantId, venueId])
+}
+
+// ---------------------------------------------------------------------------
+// Ops — Operator action-outcome ledger. Ported from the 2026-07-23 Supabase
+// design spike; MVP subsystems 9–10. Every recommendation surfaced to an
+// operator (from rules, a model, an agent, or the operator themselves) is a
+// row that moves proposed → approved/rejected → executed → measured, with the
+// measured `outcome` closing the loop. Revenue-prompts and the Event Outlook
+// are natural proposal sources.
+// ---------------------------------------------------------------------------
+enum OperatorActionSource {
+  rules
+  model
+  operator
+  agent
+}
+
+enum OperatorActionStatus {
+  proposed
+  approved
+  rejected
+  executed
+  measured
+}
+
+model OperatorAction {
+  id             String               @id @default(uuid())
+  tenantId       String
+  venueId        String?
+  actionType     String // e.g. midweek_menu | attach_prompt | comp_offer | staffing
+  target         Json? // what the action points at (bookingId, category, segment…)
+  reason         String?
+  expectedImpact Json? // e.g. { revenueCents: 40000, metric: "attach_rate" }
+  confidence     Float? // 0–1, proposer's confidence
+  source         OperatorActionSource @default(rules)
+  status         OperatorActionStatus @default(proposed)
+  outcome        Json? // measured result, closes the loop
+  proposedAt     DateTime             @default(now())
+  decidedAt      DateTime?
+  executedAt     DateTime?
+  measuredAt     DateTime?
+
+  @@index([tenantId, status])
+  @@index([tenantId, venueId])
 }
