@@ -263,4 +263,86 @@ export class EventsFeedAdapter {
       venues: [...venuesByRef.values()],
     };
   }
+
+  /**
+   * Upcoming events for a specific artist — the join behind "artists your guests
+   * follow are playing near this venue". Ticketmaster's own path: resolve the
+   * artist to an attraction, then list that attraction's events (optionally
+   * geo-scoped to a city). STUB mode returns a single deterministic dated show
+   * so the recommend loop is exercisable without a key.
+   *
+   * Returns [] on no match or a feed hiccup — a missing artist is not an error.
+   */
+  async eventsByArtist(
+    artist: string,
+    opts: { city?: string; size?: number } = {},
+  ): Promise<FeedEvent[]> {
+    const name = artist.trim();
+    if (!name) return [];
+    if (this.stub) {
+      return [
+        {
+          sourceId: `stub:${name}`,
+          name: `${name} (live)`,
+          date: this.nextDow(6),
+          genres: [],
+          city: opts.city ?? 'Miami',
+          venueName: 'Ticketmaster stub venue',
+        },
+      ];
+    }
+    try {
+      // 1. Resolve the artist → attractionId (best music match).
+      const aUrl =
+        'https://app.ticketmaster.com/discovery/v2/attractions.json' +
+        `?apikey=${encodeURIComponent(this.apiKey)}` +
+        `&keyword=${encodeURIComponent(name)}` +
+        '&classificationName=music&size=1&sort=relevance,desc';
+      const aRes = await fetch(aUrl);
+      if (!aRes.ok) return [];
+      const aBody = (await aRes.json()) as {
+        _embedded?: { attractions?: { id?: string }[] };
+      };
+      const attractionId = aBody._embedded?.attractions?.[0]?.id;
+      if (!attractionId) return [];
+
+      // 2. That attraction's upcoming events, optionally near a city.
+      const eUrl =
+        'https://app.ticketmaster.com/discovery/v2/events.json' +
+        `?apikey=${encodeURIComponent(this.apiKey)}` +
+        `&attractionId=${encodeURIComponent(attractionId)}` +
+        (opts.city ? `&city=${encodeURIComponent(opts.city)}` : '') +
+        `&size=${opts.size ?? 5}&sort=date,asc`;
+      const eRes = await fetch(eUrl);
+      if (!eRes.ok) return [];
+      const eBody = (await eRes.json()) as {
+        _embedded?: { events?: Record<string, unknown>[] };
+      };
+      const raw = eBody._embedded?.events ?? [];
+      const out: FeedEvent[] = [];
+      for (const e of raw as any[]) {
+        const date: string | undefined =
+          e?.dates?.start?.dateTime ??
+          (e?.dates?.start?.localDate
+            ? `${e.dates.start.localDate}T22:00:00Z`
+            : undefined);
+        if (!e?.id || !e?.name || !date) continue;
+        const venue = e?._embedded?.venues?.[0];
+        out.push({
+          sourceId: e.id,
+          name: e.name,
+          date,
+          genres: [],
+          city: venue?.city?.name ?? opts.city ?? '',
+          venueName: venue?.name,
+        });
+      }
+      return out;
+    } catch (err) {
+      this.logger.warn(
+        `[eventsfeed] eventsByArtist(${name}) failed: ${(err as Error).message}`,
+      );
+      return [];
+    }
+  }
 }

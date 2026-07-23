@@ -66,3 +66,80 @@ describe('EventsFeedAdapter (alist source)', () => {
     await expect(adapter.fetchCity('Miami')).rejects.toThrow('alist feed 500');
   });
 });
+
+/** eventsByArtist: the artist → attraction → events join (concerts). */
+describe('EventsFeedAdapter.eventsByArtist', () => {
+  const realFetch = global.fetch;
+  afterEach(() => {
+    global.fetch = realFetch;
+  });
+
+  it('stub mode (no key) returns one deterministic dated show', async () => {
+    const config: any = { get: () => undefined };
+    const adapter = new EventsFeedAdapter(config);
+    const out = await adapter.eventsByArtist('Keinemusik', { city: 'Miami' });
+    expect(out).toHaveLength(1);
+    expect(out[0].name).toContain('Keinemusik');
+    expect(out[0].city).toBe('Miami');
+    expect(new Date(out[0].date).getTime()).toBeGreaterThan(0);
+  });
+
+  it('live: resolves an attraction then lists its events', async () => {
+    const config: any = {
+      get: (k: string) =>
+        k === 'connectors.ticketmasterApiKey' ? 'tm-key' : undefined,
+    };
+    const calls: string[] = [];
+    global.fetch = jest.fn(async (url: any) => {
+      calls.push(String(url));
+      if (String(url).includes('/attractions.json')) {
+        return {
+          ok: true,
+          json: async () => ({ _embedded: { attractions: [{ id: 'K123' }] } }),
+        } as any;
+      }
+      return {
+        ok: true,
+        json: async () => ({
+          _embedded: {
+            events: [
+              {
+                id: 'ev1',
+                name: 'Keinemusik — Miami',
+                dates: { start: { dateTime: '2026-08-15T22:00:00Z' } },
+                _embedded: {
+                  venues: [{ name: 'Factory Town', city: { name: 'Miami' } }],
+                },
+              },
+            ],
+          },
+        }),
+      } as any;
+    }) as any;
+
+    const adapter = new EventsFeedAdapter(config);
+    const out = await adapter.eventsByArtist('Keinemusik', { city: 'Miami' });
+    expect(calls[0]).toContain('/attractions.json');
+    expect(calls[1]).toContain('attractionId=K123');
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({
+      sourceId: 'ev1',
+      name: 'Keinemusik — Miami',
+      venueName: 'Factory Town',
+      city: 'Miami',
+    });
+  });
+
+  it('live: returns [] when the artist has no attraction match', async () => {
+    const config: any = {
+      get: (k: string) =>
+        k === 'connectors.ticketmasterApiKey' ? 'tm-key' : undefined,
+    };
+    global.fetch = jest.fn(async () => ({
+      ok: true,
+      json: async () => ({ _embedded: {} }),
+    })) as any;
+    const adapter = new EventsFeedAdapter(config);
+    expect(await adapter.eventsByArtist('Nobody')).toEqual([]);
+  });
+});

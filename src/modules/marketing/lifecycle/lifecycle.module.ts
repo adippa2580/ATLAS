@@ -41,11 +41,20 @@ export class LifecycleService {
       },
     });
 
-    const size = dto.size ?? 0;
-    const delivery = await this.klaviyo.sendCampaign(size, {
-      campaignId: campaign.id,
-      audienceId: dto.audienceId ?? null,
-    });
+    // Resolve the audience's stored matched-guest set to real contact keys so
+    // the campaign actually delivers in live mode. Audiences built by the
+    // recommendation rail stash `matchedGuestIds` in their predicates.
+    const recipients = await this.resolveRecipients(ctx, dto.audienceId);
+    const size = dto.size ?? recipients.length;
+    const delivery = await this.klaviyo.sendCampaign(
+      size,
+      {
+        template: 'lifecycle_campaign',
+        campaignId: campaign.id,
+        audienceId: dto.audienceId ?? null,
+      },
+      recipients,
+    );
 
     const updated = await this.prisma.campaign.update({
       where: { id: campaign.id },
@@ -53,6 +62,28 @@ export class LifecycleService {
     });
 
     return { ...updated, delivery };
+  }
+
+  /** Contact keys for an audience's stored matched-guest set (empty if none). */
+  private async resolveRecipients(ctx: TenantContext, audienceId?: string) {
+    if (!audienceId) return [];
+    const audience = await this.prisma.audience.findFirst({
+      where: { id: audienceId, tenantId: ctx.tenantId },
+    });
+    const predicates = audience?.predicates as {
+      matchedGuestIds?: unknown;
+    } | null;
+    const guestIds = Array.isArray(predicates?.matchedGuestIds)
+      ? predicates.matchedGuestIds.filter(
+          (x): x is string => typeof x === 'string',
+        )
+      : [];
+    if (!guestIds.length) return [];
+    const guests = await this.prisma.guest.findMany({
+      where: { tenantId: ctx.tenantId, id: { in: guestIds } },
+      select: { id: true, email: true, primaryPhone: true, displayName: true },
+    });
+    return KlaviyoAdapter.toRecipients(guests, { audienceId });
   }
 
   async get(ctx: TenantContext, id: string) {

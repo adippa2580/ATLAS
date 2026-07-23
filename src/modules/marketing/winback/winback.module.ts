@@ -172,6 +172,17 @@ export class WinbackTriggerService {
       cohort.map((c) => c.guestId),
     );
 
+    // Contact keys for the cohort, resolved once — the Klaviyo rail delivers to
+    // the guest's own email/phone in live mode.
+    const contactRows = await this.prisma.guest.findMany({
+      where: {
+        tenantId: ctx.tenantId,
+        id: { in: cohort.map((c) => c.guestId) },
+      },
+      select: { id: true, email: true, primaryPhone: true, displayName: true },
+    });
+    const contactByGuest = new Map(contactRows.map((g) => [g.id, g]));
+
     const campaignDay = this.campaignDay();
     let sent = 0;
     for (const c of cohort) {
@@ -184,15 +195,20 @@ export class WinbackTriggerService {
       if (already) continue;
 
       const affinity = topAffinity.get(c.guestId) ?? null;
-      await this.klaviyo.sendCampaign(1, {
-        template: 'lapsed_vip_winback',
-        guestIds: [c.guestId],
-        lapseDays,
-        topAffinity: affinity,
-        message: affinity
-          ? `We miss you — new ${affinity.subjectType} picks matched to your taste, and a table on us.`
-          : `We miss you — your table's waiting whenever you're back.`,
-      });
+      const contact = contactByGuest.get(c.guestId);
+      await this.klaviyo.sendCampaign(
+        1,
+        {
+          template: 'lapsed_vip_winback',
+          guestIds: [c.guestId],
+          lapseDays,
+          topAffinity: affinity,
+          message: affinity
+            ? `We miss you — new ${affinity.subjectType} picks matched to your taste, and a table on us.`
+            : `We miss you — your table's waiting whenever you're back.`,
+        },
+        contact ? KlaviyoAdapter.toRecipients([contact]) : [],
+      );
 
       await this.prisma.idempotencyRecord.create({
         data: {

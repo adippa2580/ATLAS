@@ -404,11 +404,24 @@ export class RecommendationsService {
           },
         },
       });
-      const delivery = await this.klaviyo.sendCampaign(exposed.length, {
-        template: 'regulars_lock_in',
-        rival: event?.name ?? null,
-        audienceId: audience.id,
+      const guests = await this.prisma.guest.findMany({
+        where: { tenantId: ctx.tenantId, id: { in: exposed } },
+        select: {
+          id: true,
+          email: true,
+          primaryPhone: true,
+          displayName: true,
+        },
       });
+      const delivery = await this.klaviyo.sendCampaign(
+        exposed.length,
+        {
+          template: 'regulars_lock_in',
+          rival: event?.name ?? null,
+          audienceId: audience.id,
+        },
+        KlaviyoAdapter.toRecipients(guests, { audienceId: audience.id }),
+      );
       return {
         action: dto.action,
         audienceId: audience.id,
@@ -443,12 +456,28 @@ export class RecommendationsService {
         },
       },
     });
-    const delivery = await this.klaviyo.sendCampaign(matchedIds.length, {
-      template: 'event_promo',
-      event: event.name,
-      date: this.parseDate(event.metadata)?.toISOString() ?? null,
-      audienceId: audience.id,
+    const guests = await this.prisma.guest.findMany({
+      where: { tenantId: ctx.tenantId, id: { in: matchedIds } },
+      select: {
+        id: true,
+        email: true,
+        primaryPhone: true,
+        displayName: true,
+      },
     });
+    const delivery = await this.klaviyo.sendCampaign(
+      matchedIds.length,
+      {
+        template: 'event_promo',
+        event: event.name,
+        date: this.parseDate(event.metadata)?.toISOString() ?? null,
+        audienceId: audience.id,
+      },
+      KlaviyoAdapter.toRecipients(guests, {
+        audienceId: audience.id,
+        event: event.name,
+      }),
+    );
     return {
       action: dto.action,
       audienceId: audience.id,

@@ -40,6 +40,13 @@ export interface AppConfig {
     spotifyClientId: string;
     spotifyClientSecret: string;
     spotifyRedirectUrl: string;
+    soundcloudClientId: string;
+    soundcloudClientSecret: string;
+    soundcloudRedirectUrl: string;
+    appleMusicDeveloperToken: string;
+    appleMusicTeamId: string;
+    appleMusicKeyId: string;
+    appleMusicPrivateKey: string;
     connectInviteSecret: string;
     instagramClientId: string;
     instagramClientSecret: string;
@@ -63,6 +70,25 @@ export interface AppConfig {
     alistFeedUrl: string;
     alistFeedKey: string;
   };
+}
+
+/**
+ * Normalize an Apple Music .p8 private key from env into a real PKCS#8 PEM.
+ * Accepts three shapes so deploy plumbing stays sed-safe:
+ *  - base64 of the whole .p8 (recommended — no newlines or sed-hostile chars)
+ *  - a raw PEM with real newlines
+ *  - a PEM with escaped "\n" sequences (common when pasted into an env var)
+ */
+function normalizeP8(raw: string | undefined): string {
+  if (!raw) return '';
+  if (raw.includes('BEGIN')) return raw.replace(/\\n/g, '\n');
+  try {
+    const decoded = Buffer.from(raw, 'base64').toString('utf8');
+    if (decoded.includes('BEGIN')) return decoded;
+  } catch {
+    // fall through
+  }
+  return raw.replace(/\\n/g, '\n');
 }
 
 export default (): AppConfig => ({
@@ -93,6 +119,21 @@ export default (): AppConfig => ({
     spotifyClientId: process.env.SPOTIFY_CLIENT_ID ?? '',
     spotifyClientSecret: process.env.SPOTIFY_CLIENT_SECRET ?? '',
     spotifyRedirectUrl: process.env.SPOTIFY_REDIRECT_URL ?? '',
+    // Phase-02 taste additions. Stub until credentials are set, same as every
+    // other connector. SoundCloud is a standard OAuth2 auth-code flow; Apple
+    // Music authorizes client-side via MusicKit and hands back a Music User
+    // Token, so the server only needs the app-level developer token.
+    soundcloudClientId: process.env.SOUNDCLOUD_CLIENT_ID ?? '',
+    soundcloudClientSecret: process.env.SOUNDCLOUD_CLIENT_SECRET ?? '',
+    soundcloudRedirectUrl: process.env.SOUNDCLOUD_REDIRECT_URL ?? '',
+    // Apple Music: EITHER supply a pre-minted developer token, OR the signing
+    // trio (Team ID + Key ID + .p8 private key) and the adapter mints + rotates
+    // the ES256 developer token itself. The .p8 arrives via env with escaped
+    // newlines, so unescape them back to a real PEM.
+    appleMusicDeveloperToken: process.env.APPLE_MUSIC_DEVELOPER_TOKEN ?? '',
+    appleMusicTeamId: process.env.APPLE_MUSIC_TEAM_ID ?? '',
+    appleMusicKeyId: process.env.APPLE_MUSIC_KEY_ID ?? '',
+    appleMusicPrivateKey: normalizeP8(process.env.APPLE_MUSIC_PRIVATE_KEY),
     // Signs connector invite tokens. Falls back to the Spotify client secret
     // so hardening needs no extra ops step; set CONNECT_INVITE_SECRET to
     // rotate independently.

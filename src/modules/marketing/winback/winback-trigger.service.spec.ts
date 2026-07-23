@@ -28,6 +28,15 @@ describe('WinbackTriggerService', () => {
     const idempotency: any[] = [...(opts.idempotency ?? [])];
     const prisma: any = {
       booking: { findMany: async () => opts.bookings ?? baseBookings },
+      guest: {
+        findMany: async ({ where }: any) =>
+          (where.id?.in ?? []).map((id: string) => ({
+            id,
+            email: `${id}@example.com`,
+            primaryPhone: null,
+            displayName: null,
+          })),
+      },
       guestAffinity: {
         findMany: async () => opts.affinities ?? [],
       },
