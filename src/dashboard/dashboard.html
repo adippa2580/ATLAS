@@ -254,6 +254,10 @@
   /* organised do-next: summary, priority groups, rank + impact */
   .recsum{font-family:var(--mono); font-size:10.5px; color:var(--muted); margin:0 0 10px}
   .recsum b{color:var(--ink)}
+  .rechide{display:none}
+  .showmore{margin-top:10px; width:100%; padding:9px 12px; font-family:var(--mono); font-size:11px; letter-spacing:.03em;
+    color:var(--brand-ink); background:var(--panel); border:1px solid var(--line); border-radius:8px; cursor:pointer}
+  .showmore:hover{border-color:var(--violet)}
   .recgroup{display:flex; align-items:baseline; gap:8px; margin:14px 0 7px; padding-bottom:5px; border-bottom:1px solid var(--line)}
   .recgroup:first-of-type{margin-top:2px}
   .recgroup .gl{font-size:11px; font-weight:680; letter-spacing:.04em; text-transform:uppercase; color:var(--ink)}
@@ -1018,14 +1022,23 @@
     var sum=document.createElement("div"); sum.className="recsum";
     sum.innerHTML='<b>'+recs.length+'</b> to do · <b>'+totalReach+'</b> guests reachable';
     h.appendChild(sum);
-    var rank=1;
+    // Show the top CAP by priority; the rest collapse behind a "Show more".
+    var CAP=8, rank=1;
     REC_GROUPS.forEach(function(g,gi){
       var list=buckets[gi]; if(!list.length) return;
-      var head=document.createElement("div"); head.className="recgroup";
+      var startRank=rank; // a whole band beyond the cap starts hidden (header too)
+      var head=document.createElement("div"); head.className="recgroup"+(startRank>CAP?" rechide":"");
       head.innerHTML='<span class="gl">'+g.label+'</span><span class="gh">'+g.hint+'</span><span class="gc">'+list.length+'</span>';
       h.appendChild(head);
-      list.forEach(function(r){ h.appendChild(renderRec(r,rank++,g.cls)); });
+      list.forEach(function(r){ var el=renderRec(r,rank,g.cls); if(rank>CAP) el.classList.add("rechide"); h.appendChild(el); rank++; });
     });
+    var hiddenCount=Math.max(0, recs.length-CAP);
+    if(hiddenCount>0){
+      var more=document.createElement("button"); more.className="showmore"; more.type="button";
+      more.textContent="Show "+hiddenCount+" more";
+      more.addEventListener("click",function(){ h.querySelectorAll(".rechide").forEach(function(e){e.classList.remove("rechide");}); more.remove(); });
+      h.appendChild(more);
+    }
     if(d.ungrounded&&d.ungrounded.length){var u=document.createElement("div"); u.className="i-empty"; u.style.marginTop="10px"; u.textContent="ungrounded (needs a date in catalog): "+d.ungrounded.join(", "); h.appendChild(u);}
   }catch(e){h.innerHTML='<div class="i-empty">recommendations unavailable</div>'}}
 
