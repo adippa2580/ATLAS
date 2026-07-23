@@ -33,6 +33,15 @@ spec:
               value: 'false'
             - name: GCP_PROJECT_ID
               value: __PROJECT_ID__
+            # Internal admin console (ATLAS employees). Session secret signs the
+            # login cookie; per-user passwords gate sign-in. Empty → admin login
+            # disabled (fails closed). All three are repo secrets.
+            - name: ADMIN_SESSION_SECRET
+              value: '__ADMIN_SESSION_SECRET__'
+            - name: ADMIN_ADRIAN_PASSWORD
+              value: '__ADMIN_ADRIAN_PASSWORD__'
+            - name: ADMIN_JACK_PASSWORD
+              value: '__ADMIN_JACK_PASSWORD__'
             - name: SPOTIFY_CLIENT_ID
               value: 38b7964e801c4955a90895a2766e7ea3
             - name: SPOTIFY_REDIRECT_URL

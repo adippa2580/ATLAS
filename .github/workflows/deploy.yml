@@ -211,8 +211,20 @@ jobs:
           # Concerts artist-events sources (optional; stub until set).
           TICKETMASTER_API_KEY: ${{ secrets.TICKETMASTER_API_KEY }}
           BANDSINTOWN_APP_ID: ${{ secrets.BANDSINTOWN_APP_ID }}
+          # Internal admin console (ATLAS employees). Empty → admin login stays
+          # disabled. Passwords may contain sed-special chars, so escaped below.
+          ADMIN_SESSION_SECRET: ${{ secrets.ADMIN_SESSION_SECRET }}
+          ADMIN_ADRIAN_PASSWORD: ${{ secrets.ADMIN_ADRIAN_PASSWORD }}
+          ADMIN_JACK_PASSWORD: ${{ secrets.ADMIN_JACK_PASSWORD }}
         run: |
           SQL_CONN="$(gcloud sql instances describe atlas-pg --format='value(connectionName)')"
+          # Escape sed-special chars (# is our delimiter, & = whole match, \ =
+          # escape) so admin passwords/secrets substitute safely. Single-line
+          # values, so no newline handling needed here.
+          sed_esc() { printf '%s' "$1" | sed -e 's/[#&\\]/\\&/g'; }
+          ADMIN_SESSION_SECRET="$(sed_esc "${ADMIN_SESSION_SECRET}")"
+          ADMIN_ADRIAN_PASSWORD="$(sed_esc "${ADMIN_ADRIAN_PASSWORD}")"
+          ADMIN_JACK_PASSWORD="$(sed_esc "${ADMIN_JACK_PASSWORD}")"
           # Normalise the Apple Music .p8 to SINGLE-LINE base64 so it is sed-safe —
           # any embedded newline breaks the "s#...#...#g" render. A raw PEM (has
           # BEGIN) is base64-encoded; an already-base64 secret may be line-wrapped
