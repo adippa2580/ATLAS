@@ -147,10 +147,12 @@ in-app concerts are fed by Ticketmaster/Bandsintown; Blend is a Spotify-only
 consumer feature with no API surface. Both are therefore **native ATLAS builds**:
 - **Blend** → computed from our own taste graph (venue crowd-blend, guest-to-guest,
   crew-blend) reusing the crew consensus-boost math. No third-party dependency.
-- **Concerts** → extend the existing Ticketmaster (`eventsfeed`) integration with
-  the attractions→attractionId→events path, joined to guests' followed/affinity
-  artists ("artists your guests follow are playing near you"); Bandsintown a
-  future complement for long-tail acts.
+- **Concerts** → the `eventsfeed` adapter's `eventsByArtist` join
+  (attraction→events), joined to guests' followed/affinity artists ("artists your
+  guests follow are playing near you"). **Shipped with two sources, merged +
+  deduped:** Ticketmaster (`TICKETMASTER_API_KEY`, arena/major coverage) +
+  **Bandsintown** (`BANDSINTOWN_APP_ID`, artist-first — the club/indie/
+  international long tail). Both stub until keyed.
 
 **Apple Music** is the production taste source: server-minted ES256 developer
 token (Team ID + Key ID + .p8) + a MusicKit browser handshake for the per-user

@@ -208,6 +208,9 @@ jobs:
           # SoundCloud (optional; stays stub unless both are set).
           SOUNDCLOUD_CLIENT_ID: ${{ secrets.SOUNDCLOUD_CLIENT_ID }}
           SOUNDCLOUD_CLIENT_SECRET: ${{ secrets.SOUNDCLOUD_CLIENT_SECRET }}
+          # Concerts artist-events sources (optional; stub until set).
+          TICKETMASTER_API_KEY: ${{ secrets.TICKETMASTER_API_KEY }}
+          BANDSINTOWN_APP_ID: ${{ secrets.BANDSINTOWN_APP_ID }}
         run: |
           SQL_CONN="$(gcloud sql instances describe atlas-pg --format='value(connectionName)')"
           # Normalise the Apple Music .p8 to single-line base64 so it is sed-safe
@@ -226,5 +229,7 @@ jobs:
               -e "s#__APPLE_MUSIC_PRIVATE_KEY__#${APPLE_MUSIC_PRIVATE_KEY}#g" \
               -e "s#__SOUNDCLOUD_CLIENT_ID__#${SOUNDCLOUD_CLIENT_ID}#g" \
               -e "s#__SOUNDCLOUD_CLIENT_SECRET__#${SOUNDCLOUD_CLIENT_SECRET}#g" \
+              -e "s#__TICKETMASTER_API_KEY__#${TICKETMASTER_API_KEY}#g" \
+              -e "s#__BANDSINTOWN_APP_ID__#${BANDSINTOWN_APP_ID}#g" \
               deploy/gcp/cloudrun.yaml > /tmp/cloudrun.rendered.yaml
           gcloud run services replace /tmp/cloudrun.rendered.yaml --region "$REGION"

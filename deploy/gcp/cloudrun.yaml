@@ -65,6 +65,13 @@ spec:
               value: '__SOUNDCLOUD_CLIENT_ID__'
             - name: SOUNDCLOUD_CLIENT_SECRET
               value: '__SOUNDCLOUD_CLIENT_SECRET__'
+            # Concerts sources for the artist-events join. Both stub until set:
+            # Ticketmaster (arena/major coverage) + Bandsintown (club/indie/
+            # international long tail).
+            - name: TICKETMASTER_API_KEY
+              value: '__TICKETMASTER_API_KEY__'
+            - name: BANDSINTOWN_APP_ID
+              value: '__BANDSINTOWN_APP_ID__'
             - name: ALIST_FEED_URL
               value: https://ofjcnikfebfgopytsgbm.supabase.co
             - name: ALIST_FEED_KEY

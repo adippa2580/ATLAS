@@ -58,6 +58,10 @@ export class EventsFeedAdapter {
     return this.config.get<string>('connectors.ticketmasterApiKey') ?? '';
   }
 
+  private get bandsintownAppId(): string {
+    return this.config.get<string>('connectors.bandsintownAppId') ?? '';
+  }
+
   private get alistUrl(): string {
     return this.config.get<string>('connectors.alistFeedUrl') ?? '';
   }
@@ -266,10 +270,11 @@ export class EventsFeedAdapter {
 
   /**
    * Upcoming events for a specific artist — the join behind "artists your guests
-   * follow are playing near this venue". Ticketmaster's own path: resolve the
-   * artist to an attraction, then list that attraction's events (optionally
-   * geo-scoped to a city). STUB mode returns a single deterministic dated show
-   * so the recommend loop is exercisable without a key.
+   * follow are playing near this venue". Queries every configured source and
+   * merges them: Ticketmaster (attraction → events, arena/major coverage) +
+   * Bandsintown (artist-first, the club/indie/international long tail). Results
+   * are deduped by day + venue and returned soonest-first. STUB mode (no source
+   * configured) returns one deterministic dated show so the loop is exercisable.
    *
    * Returns [] on no match or a feed hiccup — a missing artist is not an error.
    */
@@ -279,7 +284,10 @@ export class EventsFeedAdapter {
   ): Promise<FeedEvent[]> {
     const name = artist.trim();
     if (!name) return [];
-    if (this.stub) {
+
+    const hasTM = !!this.apiKey;
+    const hasBIT = !!this.bandsintownAppId;
+    if (!hasTM && !hasBIT) {
       return [
         {
           sourceId: `stub:${name}`,
@@ -291,8 +299,33 @@ export class EventsFeedAdapter {
         },
       ];
     }
+
+    const [tm, bit] = await Promise.all([
+      hasTM ? this.artistEventsTicketmaster(name, opts) : Promise.resolve([]),
+      hasBIT ? this.artistEventsBandsintown(name, opts) : Promise.resolve([]),
+    ]);
+
+    // Merge + dedupe by (day, venue) — the same show can appear in both feeds.
+    // Ticketmaster first so its ticketed listing wins a tie.
+    const seen = new Set<string>();
+    const merged: FeedEvent[] = [];
+    for (const e of [...tm, ...bit].sort((a, b) =>
+      a.date.localeCompare(b.date),
+    )) {
+      const key = `${e.date.slice(0, 10)}|${(e.venueName ?? '').toLowerCase()}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      merged.push(e);
+    }
+    return merged.slice(0, opts.size ?? 5);
+  }
+
+  /** Ticketmaster attraction → events. */
+  private async artistEventsTicketmaster(
+    name: string,
+    opts: { city?: string; size?: number },
+  ): Promise<FeedEvent[]> {
     try {
-      // 1. Resolve the artist → attractionId (best music match).
       const aUrl =
         'https://app.ticketmaster.com/discovery/v2/attractions.json' +
         `?apikey=${encodeURIComponent(this.apiKey)}` +
@@ -306,7 +339,6 @@ export class EventsFeedAdapter {
       const attractionId = aBody._embedded?.attractions?.[0]?.id;
       if (!attractionId) return [];
 
-      // 2. That attraction's upcoming events, optionally near a city.
       const eUrl =
         'https://app.ticketmaster.com/discovery/v2/events.json' +
         `?apikey=${encodeURIComponent(this.apiKey)}` +
@@ -340,7 +372,60 @@ export class EventsFeedAdapter {
       return out;
     } catch (err) {
       this.logger.warn(
-        `[eventsfeed] eventsByArtist(${name}) failed: ${(err as Error).message}`,
+        `[eventsfeed] ticketmaster eventsByArtist(${name}) failed: ${(err as Error).message}`,
+      );
+      return [];
+    }
+  }
+
+  /**
+   * Bandsintown artist-events — GET /artists/{name}/events. Returns all upcoming
+   * shows for the artist; we geo-narrow to the venue city (lenient substring
+   * match to survive "New York" vs "New York City"). Unknown artist → non-array
+   * body → [].
+   */
+  private async artistEventsBandsintown(
+    name: string,
+    opts: { city?: string; size?: number },
+  ): Promise<FeedEvent[]> {
+    try {
+      const url =
+        `https://rest.bandsintown.com/artists/${encodeURIComponent(name)}/events` +
+        `?app_id=${encodeURIComponent(this.bandsintownAppId)}&date=upcoming`;
+      const res = await fetch(url, { headers: { accept: 'application/json' } });
+      if (!res.ok) return [];
+      const body = (await res.json()) as unknown;
+      if (!Array.isArray(body)) return [];
+      const wanted = opts.city?.trim().toLowerCase();
+      const out: FeedEvent[] = [];
+      for (const e of body as any[]) {
+        const raw: string | undefined = e?.datetime;
+        const venue = e?.venue;
+        if (!e?.id || !raw || !venue) continue;
+        const city: string = venue.city ?? '';
+        if (
+          wanted &&
+          city &&
+          !city.toLowerCase().includes(wanted) &&
+          !wanted.includes(city.toLowerCase())
+        ) {
+          continue;
+        }
+        // Bandsintown datetimes are local + tz-naive ("2026-08-15T20:00:00").
+        const date = /[Z+]/.test(raw) ? raw : `${raw}Z`;
+        out.push({
+          sourceId: `bit:${e.id}`,
+          name: e.title || `${name} at ${venue.name ?? city}`,
+          date,
+          genres: [],
+          city,
+          venueName: venue.name,
+        });
+      }
+      return out;
+    } catch (err) {
+      this.logger.warn(
+        `[eventsfeed] bandsintown eventsByArtist(${name}) failed: ${(err as Error).message}`,
       );
       return [];
     }
