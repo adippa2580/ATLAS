@@ -102,6 +102,18 @@ function normalizeP8(raw: string | undefined): string {
   return raw.replace(/\\n/g, '\n');
 }
 
+/**
+ * Resolve an admin secret from its env var, failing closed on a value that was
+ * never substituted by CI. A leftover deploy placeholder (`__ADMIN_…__`) is not
+ * a real secret — returning '' for it keeps `configured` false and rejects every
+ * login, instead of accepting the publicly-visible placeholder as a password.
+ */
+function adminSecret(raw: string | undefined): string {
+  const v = (raw ?? '').trim();
+  if (/^__[A-Z0-9_]+__$/.test(v)) return '';
+  return v;
+}
+
 export default (): AppConfig => ({
   env: process.env.NODE_ENV ?? 'development',
   port: parseInt(process.env.PORT ?? '3000', 10),
@@ -120,13 +132,16 @@ export default (): AppConfig => ({
     audience: process.env.OIDC_AUDIENCE ?? '',
   },
   admin: {
-    sessionSecret: process.env.ADMIN_SESSION_SECRET ?? '',
+    // A value still wrapped in the deploy placeholder (`__X__`) means the CI
+    // substitution didn't run for it — treat that as UNSET so a missed sed can
+    // never ship a known credential. Same rule applies to the session secret.
+    sessionSecret: adminSecret(process.env.ADMIN_SESSION_SECRET),
     // Registered ATLAS employees. Each password comes from its own repo secret;
-    // an unset password drops that user (login stays closed for them).
+    // an unset (or un-substituted) password drops that user — login stays closed.
     users: Object.fromEntries(
       [
-        ['adrian', process.env.ADMIN_ADRIAN_PASSWORD ?? ''],
-        ['jack', process.env.ADMIN_JACK_PASSWORD ?? ''],
+        ['adrian', adminSecret(process.env.ADMIN_ADRIAN_PASSWORD)],
+        ['jack', adminSecret(process.env.ADMIN_JACK_PASSWORD)],
       ].filter(([, pw]) => pw),
     ),
   },
