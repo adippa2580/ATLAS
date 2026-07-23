@@ -48,13 +48,15 @@ spec:
             # to push real metric events to the venue's Klaviyo flows.
             - name: KLAVIYO_API_KEY
               value: '__KLAVIYO_API_KEY__'
-            # Apple Music taste connector. Supply the signing trio (Team ID +
-            # Key ID + base64 of the .p8 MusicKit key) and the adapter mints the
-            # ES256 developer token itself; empty → STUB mode.
+            # Apple Music taste connector (A-List MusicKit key). Team ID + Key ID
+            # are non-secret identifiers (they ride in the client MusicKit token
+            # anyway), so they live here in plaintext like SPOTIFY_CLIENT_ID; only
+            # the .p8 private key is a secret. With the trio present the adapter
+            # mints + rotates the ES256 developer token itself.
             - name: APPLE_MUSIC_TEAM_ID
-              value: '__APPLE_MUSIC_TEAM_ID__'
+              value: '6RJZSD7QX5'
             - name: APPLE_MUSIC_KEY_ID
-              value: '__APPLE_MUSIC_KEY_ID__'
+              value: 'RSGRGUDC46'
             - name: APPLE_MUSIC_PRIVATE_KEY
               value: '__APPLE_MUSIC_PRIVATE_KEY__'
             # SoundCloud taste connector (stub until keyed; live needs a paid
