@@ -28,7 +28,7 @@ export class SpotifyAdapter {
       client_id: clientId ?? '',
       response_type: 'code',
       redirect_uri: redirect ?? '',
-      scope: 'user-top-read user-read-email',
+      scope: 'user-top-read user-follow-read user-read-email',
       state,
       show_dialog: 'false',
     });
@@ -128,6 +128,36 @@ export class SpotifyAdapter {
           weight: Math.min(5, count),
         });
       });
+
+    // Followed artists (user-follow-read): a deliberate "I follow this act"
+    // signal that complements listen-derived top artists. Richer per-user taste
+    // matters most on Spotify, where dev-mode caps the pilot at ≤5 users.
+    // Fail-soft — a follow-read hiccup never sinks the top-artist signal.
+    const known = new Set(signals.map((s) => s.subjectRef.toLowerCase()));
+    try {
+      const fr = await fetch(
+        'https://api.spotify.com/v1/me/following?type=artist&limit=50',
+        { headers: { Authorization: `Bearer ${_accessToken}` } },
+      );
+      if (fr.ok) {
+        const fb = (await fr.json()) as {
+          artists?: { items?: { id: string; name: string }[] };
+        };
+        for (const a of fb.artists?.items ?? []) {
+          if (!a?.name || known.has(a.name.toLowerCase())) continue;
+          known.add(a.name.toLowerCase());
+          signals.push({
+            subjectType: 'artist',
+            subjectRef: a.name,
+            externalId: a.id,
+            weight: 2,
+          });
+        }
+      }
+    } catch {
+      // ignore — top artists already captured the primary signal
+    }
+
     return signals;
   }
 }

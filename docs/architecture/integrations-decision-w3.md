@@ -128,3 +128,42 @@ Unset, the rail stays in STUB mode (logs intent, reports `stub: true`), so this
 is safe to ship ahead of the key. Delivery is **fail-soft**: a Klaviyo outage
 or a recipient with no contact key is counted as `skipped`, never surfaced as
 an error on the action that triggered it.
+
+---
+
+## 8. Music taste connectors — the 2026 API reality (verified)
+
+Three-platform research (2026) settled what is actually buildable. Summary so
+nobody re-litigates it:
+
+| Platform | Taste reads | Blend API | Concerts API | Production at guest scale? |
+|---|---|---|---|---|
+| **Apple Music** | ✅ heavy-rotation + library artists | ❌ none | ❌ none | ✅ **yes** — no user cap (rate-limited) |
+| **Spotify** | ✅ top artists/tracks, followed artists | ❌ none | ❌ none | ⚠️ **pilot only** (see cap) |
+| **SoundCloud** | ✅ followings + free-text genres | ❌ none | ❌ none | ⚠️ paywalled + PKCE + commercial-use limits |
+
+**Blend and concerts are NOT exposed by any of these APIs.** Spotify's/Apple's
+in-app concerts are fed by Ticketmaster/Bandsintown; Blend is a Spotify-only
+consumer feature with no API surface. Both are therefore **native ATLAS builds**:
+- **Blend** → computed from our own taste graph (venue crowd-blend, guest-to-guest,
+  crew-blend) reusing the crew consensus-boost math. No third-party dependency.
+- **Concerts** → extend the existing Ticketmaster (`eventsfeed`) integration with
+  the attractions→attractionId→events path, joined to guests' followed/affinity
+  artists ("artists your guests follow are playing near you"); Bandsintown a
+  future complement for long-tail acts.
+
+**Apple Music** is the production taste source: server-minted ES256 developer
+token (Team ID + Key ID + .p8) + a MusicKit browser handshake for the per-user
+Music User Token. No user cap.
+
+**Spotify hard cap (Feb 2026):** dev-mode apps are limited to **5 authenticated
+users**, the owner must be **Premium**, and Extended Access now requires a
+**registered business with ≥250k MAU** — effectively unreachable for a venue
+platform. Treat Spotify as a **≤5-guest pilot** connector, not production. Taste
+reads used: `/me/top/artists` + `/me/following?type=artist` (scopes
+`user-top-read user-follow-read`). Note: artist `genres` is sparse post-Feb-2026,
+so genre signal from Spotify is best-effort.
+
+**SoundCloud** stays STUB by choice: going live needs a paid Artist-Pro app,
+OAuth 2.1 **PKCE** (our adapter is auth-code without PKCE), JWT-sized token
+storage, and its terms restrict commercial use — low ROI versus Apple Music.
