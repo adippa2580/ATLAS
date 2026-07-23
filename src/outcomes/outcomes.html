@@ -407,6 +407,7 @@
        {t:"Competitor venues",dir:"up",imp:"neg",h:"New rooftop drawing regulars",s:"Churn pressure on the mid-tier segment"}],
      actions:[{h:"Trigger lapsed-VIP win-back",imp:"High",eff:"Now",s:"Address the sharpest negative driver with taste-matched offers.",lk:"Dormancy cohort"},
        {h:"Time offers to arena shows",imp:"High",eff:"2 weeks",s:"Ride the local-events tailwind for reactivation.",lk:"Event calendar model"},
+       {h:"Promote to guests' followed artists near you",imp:"High",eff:"Now",s:"Their artists are playing nearby — they're out that night anyway.",lk:"Concert demand"},
        {h:"Expand crew re-booking nudges",imp:"Med",eff:"1 sprint",s:"Lean on the group return-rate advantage.",lk:"Crew retention brief"}],
      hist:H([66,65,64,63,61,60,60,58])},
 
@@ -492,6 +493,7 @@
      external:[{t:"Reservation demand",dir:"up",imp:"pos",h:"Guests act on recs at booking",s:"Personalization compounding at point of intent"},
        {t:"Nightlife trends",dir:"flat",imp:"watch",h:"Taste cycles shifting fast",s:"Keep the graph fresh to hold uplift"}],
      actions:[{h:"Solve cold-start with crew blend",imp:"Med",eff:"2 sprints",s:"Use crew affinity to seed new-guest recs.",lk:"Cold-start brief"},
+       {h:"Program to tonight's crowd blend",imp:"High",eff:"1 week",s:"Book and route to the room's collective taste.",lk:"Crowd blend brief"},
        {h:"Bank the personalization pattern",imp:"Low",eff:"2 days",s:"Document the winning offer model for reuse.",lk:"Playbook"}],
      hist:H([82,84,85,87,88,88,88,89])}
   ];
@@ -811,7 +813,9 @@
     "Confirm rollout":{path:"/v1/insights/attribution-ltv",arrayKey:"byChannel",labelKey:"channel",valueKey:"ltvMultiple",fmt:"num",title:"LTV multiple by channel"},
     "Audience performance":{path:"/v1/insights/attribution-ltv",arrayKey:"byChannel",labelKey:"channel",valueKey:"lifetimeRevenueCents",fmt:"money",title:"Audience lifetime value by channel"},
     "Channel mix":{path:"/v1/insights/attribution-ltv",arrayKey:"byChannel",labelKey:"channel",valueKey:"acquiredGuests",fmt:"num",title:"Acquisition mix by channel"},
-    "No-show analysis":{path:"/v1/insights/no-show-risk?date="+IDATE2,arrayKey:"bookings",valueKey:"riskScore",fmt:"num",title:"No-show risk by booking"}
+    "No-show analysis":{path:"/v1/insights/no-show-risk?date="+IDATE2,arrayKey:"bookings",valueKey:"riskScore",fmt:"num",title:"No-show risk by booking"},
+    "Concert demand":{path:"/v1/insights/concerts",arrayKey:"concerts",labelKey:"artist",valueKey:"guestsInterested",fmt:"num",title:"Artists your guests follow — playing near you"},
+    "Crowd blend brief":{path:"/v1/insights/venue-blend",arrayKey:"topArtists",labelKey:"ref",valueKey:"score",fmt:"num",title:"Tonight's crowd blend — top artists"}
   };
 
   async function fetchInsight(path){
