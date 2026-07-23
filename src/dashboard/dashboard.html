@@ -251,6 +251,19 @@
   .rec .ra{display:flex; gap:7px; flex-wrap:wrap; margin-top:9px}
   .rec .receipt{font-family:var(--mono); font-size:10.5px; color:var(--good); margin-top:8px}
   .rec .receipt.err{color:var(--warn)}
+  /* organised do-next: summary, priority groups, rank + impact */
+  .recsum{font-family:var(--mono); font-size:10.5px; color:var(--muted); margin:0 0 10px}
+  .recsum b{color:var(--ink)}
+  .recgroup{display:flex; align-items:baseline; gap:8px; margin:14px 0 7px; padding-bottom:5px; border-bottom:1px solid var(--line)}
+  .recgroup:first-of-type{margin-top:2px}
+  .recgroup .gl{font-size:11px; font-weight:680; letter-spacing:.04em; text-transform:uppercase; color:var(--ink)}
+  .recgroup .gh{font-size:10.5px; color:var(--faint)}
+  .recgroup .gc{margin-left:auto; font-family:var(--mono); font-size:10px; color:var(--muted)}
+  .rec{display:grid; grid-template-columns:auto 1fr; column-gap:11px}
+  .rec .rank{align-self:start; min-width:22px; height:22px; display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); font-size:11px; font-weight:600; color:var(--brand-ink); background:var(--panel); border:1px solid var(--line); border-radius:6px; margin-top:1px}
+  .rec .rd.big{color:var(--ink); font-weight:600}
+  .rec.defend .rank{color:var(--warn); border-color:color-mix(in srgb,var(--warn) 45%,var(--line))}
   /* --- ATLAS OS layer: system bar, LEDs, command palette, boot --- */
   .sysbar{display:flex; align-items:center; gap:14px; flex-wrap:wrap; font-family:var(--mono); font-size:10.5px; letter-spacing:.06em;
     color:var(--muted); background:var(--panel); border:1px solid var(--line); border-radius:9px; padding:7px 12px; margin-bottom:10px; box-shadow:var(--shadow)}
@@ -944,40 +957,75 @@
         actions:[{action:"late_night_drop",label:"Release late-night slots"}]}
     ],ungrounded:[]};
   }
+  // Do-next is organised into priority bands: which play, highest reachable
+  // audience first. Each rec maps to a group; groups render in a fixed order
+  // (reach → defend → fill), sorted within by matched audience descending.
+  var REC_GROUPS=[
+    {key:"reach",  cls:"", label:"Reach demand",   hint:"dated events your consented guests match",
+      kinds:["event_demand","event_match","concert_demand","event_promo"]},
+    {key:"defend", cls:"defend", label:"Defend regulars", hint:"competitor pressure on your booked audience",
+      kinds:["competitor_opening","lapsed_vip_winback","regulars_lock_in"]},
+    {key:"fill",   cls:"", label:"Fill inventory", hint:"unreleased slots & late-night capacity",
+      kinds:["late_night_fill","inventory","crew_rebook_nudge"]}
+  ];
+  function recGroupIndex(kind){for(var i=0;i<REC_GROUPS.length;i++){if(REC_GROUPS[i].kinds.indexOf(kind)>=0)return i;} return 2;} // default: fill
+  function recChips(kind){return kind==="competitor_opening" ? '<span class="plchip" data-pc="identity">identity</span> <span class="plchip" data-pc="marketing">marketing</span>'
+    : (kind==="late_night_fill"||kind==="inventory") ? '<span class="plchip" data-pc="venues">venues</span> <span class="plchip" data-pc="revenue">revenue</span>'
+    : '<span class="plchip" data-pc="taste">taste</span> <span class="plchip" data-pc="marketing">marketing</span>';}
+
+  function renderRec(r,rank,cls){
+    var el=document.createElement("div"); el.className="rec"+(cls?(" "+cls):"");
+    var reach=r.matched?('<span class="rd big">'+r.matched+' reachable'+(r.repeatMatched?' · '+r.repeatMatched+' repeat':'')+'</span>'):'';
+    el.innerHTML='<span class="rank">'+rank+'</span><div class="rcontent">'+
+      '<div class="rh"><span class="rn">'+r.headline+'</span> '+recChips(r.kind)+reach+'</div>'+
+      '<div class="ri">'+r.insight+'</div><div class="ra"></div><div class="receipt" hidden></div></div>';
+    var ra=el.querySelector(".ra"), receipt=el.querySelector(".receipt");
+    (r.actions||[]).forEach(function(a){
+      var b=document.createElement("button"); b.className="mini"+(a.action==="promote_matched"||a.action==="promote_concert"?" gold":""); b.textContent=a.label;
+      b.onclick=async function(){
+        b.disabled=true; receipt.hidden=false; receipt.classList.remove("err"); receipt.textContent="acting…";
+        try{
+          if(mode!=="live"){ await sleep(500);
+            receipt.textContent = a.action==="promote_matched" ? "✓ audience created · campaign to "+r.matched+" guests queued (klaviyo · demo)" :
+              a.action==="promote_concert" ? "✓ audience created · campaign to "+r.matched+" "+(r.artist||"artist")+" followers queued (klaviyo · demo)" :
+              a.action==="defend_regulars" ? "✓ lock-in campaign to "+r.matched+" regulars queued (klaviyo · demo)" :
+              a.action==="late_night_drop" ? "✓ 4 late slots released · Late Drop 1–4 (demo)" : "✓ promo link minted · atlas.link/"+Math.random().toString(36).slice(2,10)+" (demo)";
+            return; }
+          var eventId = r.id && r.id.indexOf("event:")===0 ? r.id.slice(6) : r.id && r.id.indexOf("competitor:")===0 ? r.id.slice(11) : undefined;
+          var res=await apiCall("POST","/v1/recommendations/act",A,{action:a.action,eventId:eventId,artist:r.artist});
+          if(res&&res.ok){var j=res.json||{};
+            receipt.textContent = (a.action==="promote_matched"||a.action==="promote_concert") ? "✓ audience "+(j.audienceId||"")+" · delivered to "+(j.delivery&&j.delivery.delivered)+" guests" :
+              a.action==="late_night_drop" ? "✓ "+((j.created&&j.created.length)||0)+" slots released" : "✓ link minted · code "+(j.code||"");
+          } else { receipt.classList.add("err"); receipt.textContent="✕ "+((res&&res.json&&res.json.message)||"failed"); }
+        } finally { b.disabled=false; }
+      };
+      ra.appendChild(b);
+    });
+    return el;
+  }
+
   async function loadRecs(){var h=document.querySelector("#recs"); try{
     var d=await iget("/v1/recommendations",A); if(d===undefined)d=demoRecs();
     if(!d||!Array.isArray(d.recommendations)||!d.recommendations.length){h.innerHTML='<div class="i-empty">no grounded recommendations in window — add dated events to the catalog</div>'; return;}
+    var recs=d.recommendations.slice();
+    // Bucket into groups; sort within each by reachable audience desc.
+    var buckets=REC_GROUPS.map(function(){return [];});
+    recs.forEach(function(r){buckets[recGroupIndex(r.kind)].push(r);});
+    buckets.forEach(function(b){b.sort(function(x,y){return (y.matched||0)-(x.matched||0);});});
+    var totalReach=recs.reduce(function(s,r){return s+(r.matched||0);},0);
     h.innerHTML="";
-    d.recommendations.forEach(function(r){
-      var el=document.createElement("div"); el.className="rec";
-      var chips = r.kind==="event_demand" ? '<span class="plchip" data-pc="taste">taste</span> <span class="plchip" data-pc="marketing">marketing</span>' : r.kind==="competitor_opening" ? '<span class="plchip" data-pc="identity">identity</span> <span class="plchip" data-pc="marketing">marketing</span>' : '<span class="plchip" data-pc="venues">venues</span> <span class="plchip" data-pc="revenue">revenue</span>';
-      el.innerHTML='<div class="rh"><span class="rn">'+r.headline+'</span> '+chips+(r.matched?'<span class="rd">'+r.matched+' matched · '+r.repeatMatched+' repeat</span>':'')+'</div>'+
-        '<div class="ri">'+r.insight+'</div><div class="ra"></div><div class="receipt" hidden></div>';
-      var ra=el.querySelector(".ra"), receipt=el.querySelector(".receipt");
-      (r.actions||[]).forEach(function(a){
-        var b=document.createElement("button"); b.className="mini"+(a.action==="promote_matched"||a.action==="promote_concert"?" gold":""); b.textContent=a.label;
-        b.onclick=async function(){
-          b.disabled=true; receipt.hidden=false; receipt.classList.remove("err"); receipt.textContent="acting…";
-          try{
-            if(mode!=="live"){ await sleep(500);
-              receipt.textContent = a.action==="promote_matched" ? "✓ audience created · campaign to "+r.matched+" guests queued (klaviyo · demo)" :
-                a.action==="promote_concert" ? "✓ audience created · campaign to "+r.matched+" "+(r.artist||"artist")+" followers queued (klaviyo · demo)" :
-                a.action==="defend_regulars" ? "✓ lock-in campaign to "+r.matched+" regulars queued (klaviyo · demo)" :
-                a.action==="late_night_drop" ? "✓ 4 late slots released · Late Drop 1–4 (demo)" : "✓ promo link minted · atlas.link/"+Math.random().toString(36).slice(2,10)+" (demo)";
-              return; }
-            var eventId = r.id && r.id.indexOf("event:")===0 ? r.id.slice(6) : r.id && r.id.indexOf("competitor:")===0 ? r.id.slice(11) : undefined;
-            var res=await apiCall("POST","/v1/recommendations/act",A,{action:a.action,eventId:eventId,artist:r.artist});
-            if(res&&res.ok){var j=res.json||{};
-              receipt.textContent = (a.action==="promote_matched"||a.action==="promote_concert") ? "✓ audience "+(j.audienceId||"")+" · delivered to "+(j.delivery&&j.delivery.delivered)+" guests" :
-                a.action==="late_night_drop" ? "✓ "+((j.created&&j.created.length)||0)+" slots released" : "✓ link minted · code "+(j.code||"");
-            } else { receipt.classList.add("err"); receipt.textContent="✕ "+((res&&res.json&&res.json.message)||"failed"); }
-          } finally { b.disabled=false; }
-        };
-        ra.appendChild(b);
-      });
-      h.appendChild(el);
+    var sum=document.createElement("div"); sum.className="recsum";
+    sum.innerHTML='<b>'+recs.length+'</b> to do · <b>'+totalReach+'</b> guests reachable';
+    h.appendChild(sum);
+    var rank=1;
+    REC_GROUPS.forEach(function(g,gi){
+      var list=buckets[gi]; if(!list.length) return;
+      var head=document.createElement("div"); head.className="recgroup";
+      head.innerHTML='<span class="gl">'+g.label+'</span><span class="gh">'+g.hint+'</span><span class="gc">'+list.length+'</span>';
+      h.appendChild(head);
+      list.forEach(function(r){ h.appendChild(renderRec(r,rank++,g.cls)); });
     });
-    if(d.ungrounded&&d.ungrounded.length){var u=document.createElement("div"); u.className="i-empty"; u.textContent="ungrounded (needs a date in catalog): "+d.ungrounded.join(", "); h.appendChild(u);}
+    if(d.ungrounded&&d.ungrounded.length){var u=document.createElement("div"); u.className="i-empty"; u.style.marginTop="10px"; u.textContent="ungrounded (needs a date in catalog): "+d.ungrounded.join(", "); h.appendChild(u);}
   }catch(e){h.innerHTML='<div class="i-empty">recommendations unavailable</div>'}}
 
   function wireCatalogSync(){
