@@ -213,11 +213,15 @@ jobs:
           BANDSINTOWN_APP_ID: ${{ secrets.BANDSINTOWN_APP_ID }}
         run: |
           SQL_CONN="$(gcloud sql instances describe atlas-pg --format='value(connectionName)')"
-          # Normalise the Apple Music .p8 to single-line base64 so it is sed-safe
-          # (a raw PEM has newlines that would break the render). Accepts either
-          # a raw PEM or an already-base64 secret; the app decodes base64 at load.
+          # Normalise the Apple Music .p8 to SINGLE-LINE base64 so it is sed-safe —
+          # any embedded newline breaks the "s#...#...#g" render. A raw PEM (has
+          # BEGIN) is base64-encoded; an already-base64 secret may be line-wrapped
+          # (PEM/openssl wrap at 64 chars), so strip all whitespace either way.
+          # The app base64-decodes it at load.
           if printf '%s' "${APPLE_MUSIC_PRIVATE_KEY}" | grep -q "BEGIN"; then
             APPLE_MUSIC_PRIVATE_KEY="$(printf '%s' "${APPLE_MUSIC_PRIVATE_KEY}" | base64 -w0)"
+          else
+            APPLE_MUSIC_PRIVATE_KEY="$(printf '%s' "${APPLE_MUSIC_PRIVATE_KEY}" | tr -d '[:space:]')"
           fi
           sed -e "s/__REGION__/${REGION}/g" \
               -e "s/__PROJECT_ID__/${PROJECT_ID}/g" \
