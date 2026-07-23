@@ -114,6 +114,10 @@ describe('AdminService', () => {
           { subjectType: 'artist', subjectRef: 'Rampa', score: 2 },
           { subjectType: 'genre', subjectRef: 'afro house', score: 5 },
         ],
+        groupBy: async () => [
+          { subjectType: 'artist', _count: { _all: 18 } },
+          { subjectType: 'genre', _count: { _all: 7 } },
+        ],
       },
       tenant: {
         findMany: async () => [
@@ -144,6 +148,8 @@ describe('AdminService', () => {
       });
       expect(g.topGenres[0].subjectRef).toBe('afro house');
       expect(g.recentEvidence).toHaveLength(1);
+      // Genres aren't catalog entities — they surface from affinity subject types.
+      expect(g.subjects).toEqual({ artist: 18, genre: 7 });
       // Unscoped → aggregate label.
       expect(g.tenant).toBe('All tenants');
     });
@@ -181,6 +187,156 @@ describe('AdminService', () => {
       expect(out.recomputed).toBe(1);
       expect(out.ingested).toEqual({ created: 4 });
       expect(out.graph.topArtists[0].subjectRef).toBe('Keinemusik');
+    });
+  });
+
+  describe('collection (drill-down)', () => {
+    it('rejects an unknown collection name', async () => {
+      const s = make();
+      await expect(s.collection('nope')).rejects.toThrow(/unknown collection/);
+    });
+
+    it('pages guests, scopes by tenant, and projects _count relations', async () => {
+      const count = jest.fn(async () => 60);
+      const findMany = jest.fn(async () => [
+        {
+          id: 'g1',
+          displayName: 'Ada',
+          email: 'ada@x.io',
+          primaryPhone: null,
+          provisional: false,
+          createdAt: '2026-07-01T00:00:00Z',
+          _count: { affinities: 12, consents: 2, evidence: 30 },
+        },
+      ]);
+      const prisma: any = { guest: { count, findMany } };
+      const s = make(undefined, prisma);
+      const out = await s.collection('guests', { tenantId: 't1', page: 2 });
+
+      expect(out.total).toBe(60);
+      expect(out.page).toBe(2);
+      expect(out.pages).toBe(3); // 60 / 25 → 3 pages
+      // Page 2 → skip 25; tenant-scoped where.
+      expect(findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { tenantId: 't1' },
+          skip: 25,
+          take: 25,
+        }),
+      );
+      expect(out.rows[0]).toMatchObject({
+        id: 'g1',
+        displayName: 'Ada',
+        affinities: 12,
+        consents: 2,
+        evidence: 30,
+        primaryPhone: '—',
+      });
+    });
+
+    it('applies a case-insensitive OR search across guest fields', async () => {
+      const findMany = jest.fn(async (_a?: any) => []);
+      const prisma: any = {
+        guest: { count: jest.fn(async () => 0), findMany },
+      };
+      const s = make(undefined, prisma);
+      await s.collection('guests', { q: 'ada' });
+      const arg = findMany.mock.calls[0][0];
+      expect(arg.where.OR).toEqual([
+        { displayName: { contains: 'ada', mode: 'insensitive' } },
+        { email: { contains: 'ada', mode: 'insensitive' } },
+        { primaryPhone: { contains: 'ada', mode: 'insensitive' } },
+      ]);
+    });
+
+    it('narrows affinities by a valid subject type but ignores an invalid one', async () => {
+      const findMany = jest.fn(async (_a?: any) => []);
+      const prisma: any = {
+        guestAffinity: { count: jest.fn(async () => 0), findMany },
+      };
+      const s = make(undefined, prisma);
+
+      await s.collection('affinities', { type: 'genre' });
+      expect(findMany.mock.calls[0][0].where).toMatchObject({
+        subjectType: 'genre',
+      });
+
+      await s.collection('affinities', { type: 'bogus; DROP' });
+      expect(findMany.mock.calls[1][0].where.subjectType).toBeUndefined();
+    });
+
+    it('filters catalog entities to a valid kind only', async () => {
+      const findMany = jest.fn(async (_a?: any) => []);
+      const prisma: any = {
+        entity: { count: jest.fn(async () => 0), findMany },
+      };
+      const s = make(undefined, prisma);
+
+      await s.collection('entities', { kind: 'artist' });
+      expect(findMany.mock.calls[0][0].where).toMatchObject({ kind: 'artist' });
+
+      await s.collection('entities', { kind: 'genre' }); // not an EntityKind
+      expect(findMany.mock.calls[1][0].where.kind).toBeUndefined();
+    });
+  });
+
+  describe('guestDetail (360)', () => {
+    it('404s when the guest is absent in the tenant scope', async () => {
+      const prisma: any = { guest: { findFirst: async () => null } };
+      const s = make(undefined, prisma);
+      await expect(s.guestDetail('nope', 't1')).rejects.toThrow(/not found/);
+    });
+
+    it('assembles the full 360 for a guest', async () => {
+      const prisma: any = {
+        guest: {
+          findFirst: async () => ({
+            id: 'g1',
+            tenantId: 't1',
+            displayName: 'Ada',
+            email: 'ada@x.io',
+            primaryPhone: '+100',
+            provisional: false,
+            createdAt: '2026-07-01T00:00:00Z',
+          }),
+        },
+        identityLink: {
+          findMany: async () => [
+            { kind: 'spotify_id', verified: true, source: 'oauth' },
+          ],
+        },
+        consentGrant: {
+          findMany: async () => [
+            { scope: 'taste', basis: 'connector_oauth', connector: 'spotify' },
+          ],
+        },
+        guestAffinity: {
+          findMany: async () => [
+            { subjectType: 'artist', subjectRef: 'Keinemusik', score: 4.2 },
+          ],
+        },
+        affinityEvidence: { findMany: async () => [{ signal: 'follow' }] },
+        crewMember: {
+          findMany: async () => [
+            { role: 'owner', crew: { id: 'c1', name: 'Regulars' } },
+          ],
+        },
+        entitlement: {
+          findMany: async () => [{ kind: 'perk', state: 'active' }],
+        },
+      };
+      const s = make(undefined, prisma);
+      const d = await s.guestDetail('g1', 't1');
+      expect(d.guest.displayName).toBe('Ada');
+      expect(d.identity).toHaveLength(1);
+      expect(d.consents[0].connector).toBe('spotify');
+      expect(d.affinities[0]).toEqual({
+        subjectType: 'artist',
+        subjectRef: 'Keinemusik',
+        score: 4.2,
+      });
+      expect(d.crews[0]).toEqual({ id: 'c1', name: 'Regulars', role: 'owner' });
+      expect(d.entitlements[0].kind).toBe('perk');
     });
   });
 });
