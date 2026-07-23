@@ -90,6 +90,8 @@ export class AppModule implements NestModule, OnModuleInit {
         'v1/venue-link/(.*)',
         'v1/connectors/spotify/connect',
         'v1/connectors/spotify/callback',
+        'v1/connectors/applemusic/connect',
+        'v1/connectors/applemusic/browser-callback',
       )
       .forRoutes('*');
   }

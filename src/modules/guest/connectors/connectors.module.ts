@@ -61,6 +61,58 @@ class QuizDto {
   @IsString() guestId!: string;
   @IsArray() @IsString({ each: true }) genres!: string[];
 }
+class AppleBrowserCallbackDto {
+  // The Music User Token minted client-side by MusicKit JS.
+  @IsString() token!: string;
+  // The CSRF state nonce issued to the connect page.
+  @IsString() state!: string;
+}
+
+/**
+ * The MusicKit JS page for the Apple Music browser handshake. Apple has no
+ * server redirect OAuth: MusicKit runs in the browser with the app-level
+ * developer token, the guest consents, and MusicKit returns a Music User Token
+ * which we POST back to complete the connect. The developer token is app-level
+ * and browser-safe (only the .p8 private key is secret).
+ */
+function appleConnectPage(developerToken: string, state: string): string {
+  return `<!doctype html><meta charset="utf-8"><title>A-List × Apple Music</title>
+<meta name="apple-music-developer-token" content="${developerToken}">
+<meta name="apple-music-app-name" content="ATLAS">
+<meta name="apple-music-app-build" content="1.0.0">
+<body style="font-family:system-ui;background:#04050A;color:#F5F7FF;display:grid;place-items:center;min-height:95vh;margin:0">
+<div style="max-width:560px;padding:32px;background:#0B0E17;border:1px solid #1b2233;border-radius:14px;text-align:center">
+  <h2 style="margin-top:0">Connect Apple Music</h2>
+  <p id="msg" style="color:#B8C0D4">Link your Apple Music so your taste flows into the ATLAS graph — consented, never a blast.</p>
+  <button id="go" style="padding:12px 22px;border:0;border-radius:10px;background:#FA2D48;color:#fff;font-size:15px;cursor:pointer">Authorize Apple Music</button>
+</div>
+<script src="https://js-cdn.music.apple.com/musickit/v3/musickit.js" data-web-components async></script>
+<script>
+  var STATE=${JSON.stringify(state)};
+  document.addEventListener('musickitloaded', function(){
+    MusicKit.configure({
+      developerToken: document.querySelector('meta[name=apple-music-developer-token]').content,
+      app: { name: 'ATLAS', build: '1.0.0' }
+    });
+  });
+  document.getElementById('go').addEventListener('click', async function(){
+    var msg=document.getElementById('msg'), btn=document.getElementById('go');
+    btn.disabled=true; msg.textContent='Waiting for Apple sign-in…';
+    try{
+      var music=MusicKit.getInstance();
+      var userToken=await music.authorize();
+      msg.textContent='Syncing your taste…';
+      var r=await fetch('/v1/connectors/applemusic/browser-callback',{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ token:userToken, state:STATE })
+      });
+      var j=await r.json();
+      if(r.ok){ msg.innerHTML='<b>Connected ✓</b> '+(j.synced||0)+' taste signals written. <a style="color:#60A5FA" href="/dashboard">Open the console →</a>'; btn.style.display='none'; }
+      else { msg.textContent='Connect failed: '+(j.message||r.status); btn.disabled=false; }
+    }catch(e){ msg.textContent='Apple sign-in cancelled or failed.'; btn.disabled=false; }
+  });
+</script>`;
+}
 
 /**
  * Taste Connectors (#3) — OAuth + quiz fallback. Every connector normalises to
@@ -238,6 +290,15 @@ export class ConnectorsService {
     return { provider, synced: signals.length, consentId: consent.id };
   }
 
+  /**
+   * App-level Apple Music developer token, for the MusicKit browser handshake.
+   * Browser-safe (only the .p8 private key is secret). Throws if Apple Music is
+   * not configured.
+   */
+  appleDeveloperToken(): Promise<string> {
+    return this.applemusic.developerToken();
+  }
+
   /** 30-second taste quiz — the zero-connector fallback. */
   async quiz(ctx: TenantContext, dto: QuizDto) {
     for (const genre of dto.genres) {
@@ -354,6 +415,71 @@ export class ConnectorsController {
     } catch (e) {
       return page(`<h2>Connect failed</h2><p>${(e as Error).message}</p>`, 400);
     }
+  }
+
+  /** Mint a signed connect invite for the Apple Music browser handshake. */
+  @Post('applemusic/invite')
+  @Scopes('guest:connectors:write')
+  appleInvite(@Body() dto: AuthorizeDto) {
+    const token = this.svc.signInvite(dto.guestId);
+    return {
+      guestId: dto.guestId,
+      invite: token,
+      connectPath: `/v1/connectors/applemusic/connect?invite=${token}`,
+      expiresInSeconds: 900,
+    };
+  }
+
+  /**
+   * Browser entry for Apple Music. Public route (excluded from tenant
+   * middleware) — a signed invite binds the flow to a guest; we issue the state
+   * nonce and serve the MusicKit JS page carrying the app-level developer token.
+   */
+  @Get('applemusic/connect')
+  async appleConnect(
+    @Query('invite') invite: string,
+    @Res() res: ExpressResponse,
+  ) {
+    if (!invite) {
+      res
+        .status(400)
+        .send(
+          'invite token required — mint one via POST /v1/connectors/applemusic/invite',
+        );
+      return;
+    }
+    let guestId: string;
+    try {
+      guestId = this.svc.verifyInvite(invite);
+    } catch (e) {
+      res.status(401).send((e as Error).message);
+      return;
+    }
+    let developerToken: string;
+    try {
+      developerToken = await this.svc.appleDeveloperToken();
+    } catch {
+      res
+        .status(503)
+        .send('Apple Music is not configured on this deployment yet.');
+      return;
+    }
+    const { state } = this.svc.authorize('applemusic', { guestId });
+    res.type('html').send(appleConnectPage(developerToken, state));
+  }
+
+  /**
+   * Return leg from the MusicKit page: the browser posts the Music User Token
+   * here. Public route; the state nonce (not the caller) determines the guest,
+   * and the write runs under the flagship tenant.
+   */
+  @Post('applemusic/browser-callback')
+  async appleBrowserCallback(@Body() dto: AppleBrowserCallbackDto) {
+    const ctx = { tenantId: FLAGSHIP_TENANT_ID, scopes: [] } as TenantContext;
+    return this.svc.callback(ctx, 'applemusic', {
+      code: dto.token,
+      state: dto.state,
+    } as CallbackDto);
   }
 
   @Post('quiz')
