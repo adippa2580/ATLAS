@@ -30,12 +30,14 @@ Cloud Run and the full taste + booking loop was verified against the live URL.
 | GCP deploy pipeline | Terraform (SQL, Redis, Pub/Sub, BigQuery, GCS, Artifact Registry, Secret Manager, VPC connector, GitHub WIF), Prisma migrations, deploy.sh, keyless CD workflow — project `atlas-502319` | ✅ Done |
 | Build verification | nest build, eslint, jest, live boot + end-to-end loop, migration apply + prod boot | ✅ Done |
 | **Live GCP deployment** | Cloud Build image → Cloud SQL migrations (Cloud Run Job) → Cloud Run service; full loop verified against the live URL | ✅ Done |
+| **Spike port — Outlook / Actions / Split-groups** | `EventOutlook` rules engine v1 (weights `v1-20/20/15/15/10/10/10`), `OperatorAction` action-outcome ledger (proposed→approved→executed→measured), `SplitGroup` captain-guarantee funding axis + `Payment.kind`; ported from the 2026-07-23 Supabase design spike — migration `0009` | ✅ Done |
 
 ## Architecture notes
 - **Three planes:** transactional (Postgres OLTP), evidence (append-only affinity log → EvidenceBus → recompute worker; Pub/Sub in prod), intelligence (recommendations + BI).
 - **Evidence-as-exhaust:** the taste graph has exactly one write path — `POST /v1/evidence`. Connectors normalise to evidence; nothing writes the graph directly.
 - **Pooled multi-tenancy:** every query scoped by `tenantId` (RLS-ready); scopes enforced by a global guard using `hub:primitive:action` naming.
 - **Crew blend (W2):** fixed `blend(crewId) → crew_affinity` interface with hard invariants (mute-union, time-decay, bookings weigh most, explainable); MVP heuristic now, learned model later.
+- **Funding as its own axis (spike port):** split-pay funding state (`SplitGroup`: pending→authorized→partially_funded→funded→settled/expired) is deliberately separate from `BookingStatus` floor state — a booking can be seated while partially funded. The captain's full-total authorization is the guarantee; the Stripe webhook advances funding on each captured crew share; `settle` draws the captain's remainder.
 
 ## End-to-end verification (live, against the Cloud Run deployment)
 

@@ -24,6 +24,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { Scopes } from '../../common/auth/scopes.decorator';
 import { Tenant, TenantContext } from '../../common/tenancy/tenant-context';
 import { StripeAdapter } from '../../integrations/stripe.adapter';
+import { SplitGroupsModule, SplitGroupsService } from './split-groups.module';
 import type { Payment } from '@prisma/client';
 
 class ShareDto {
@@ -38,7 +39,6 @@ class SplitPayDto {
   @ValidateNested({ each: true })
   @Type(() => ShareDto)
   shares!: ShareDto[];
-
   // Optional total (integer cents) to divide evenly across `shares`. When set,
   // it takes precedence over any per-share amounts and the shares are
   // guaranteed to sum EXACTLY to this total (deterministic remainder).
@@ -48,13 +48,17 @@ class SplitPayDto {
 /**
  * Split-Pay & Payments (#12) — Stripe rails. Each crew member's share is a
  * separate PaymentIntent under a shared split group, locked before doors. The
- * signed Stripe webhook confirms the intents.
+ * signed Stripe webhook confirms the intents. For the captain-guarantee
+ * funding lifecycle on top of these rails (full-total captain authorization,
+ * partial funding, deadline settlement) see SplitGroupsService — a succeeded
+ * payment that belongs to a SplitGroup advances that group's funding state.
  */
 @Injectable()
 export class PaymentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly stripe: StripeAdapter,
+    private readonly splitGroups: SplitGroupsService,
   ) {}
 
   /**
@@ -123,7 +127,6 @@ export class PaymentsService {
     if (!this.stripe.verifyWebhook(rawBody, signature)) {
       return { received: false };
     }
-
     // Act on exactly the verified bytes.
     let event: any;
     try {
@@ -132,27 +135,30 @@ export class PaymentsService {
       return { received: false };
     }
     if (!event) return { received: true, matched: 0 };
-
     // Verify the event TYPE before mutating anything.
     if (event.type !== 'payment_intent.succeeded') {
       return { received: true, ignored: event.type ?? 'unknown' };
     }
-
     const piId: string | undefined = event?.data?.object?.id;
     if (!piId) return { received: true, matched: 0 };
-
     // Look up by the now-unique stripePiId, then update SCOPED to that single
     // record (its own tenantId) — never an unscoped updateMany.
     const payment = await this.prisma.payment.findUnique({
       where: { stripePiId: piId },
     });
     if (!payment) return { received: true, matched: 0 };
-
     await this.prisma.payment.update({
       where: { id: payment.id },
       data: { status: 'succeeded' },
     });
-    return { received: true, matched: 1, tenantId: payment.tenantId };
+    // If the payment belongs to a captain-guarantee split group, recompute the
+    // group's fundedAmount and advance its funding state (partially_funded →
+    // funded). No-op for legacy ad-hoc split groups with no SplitGroup row.
+    let funding: unknown = undefined;
+    if (payment.splitGroupId) {
+      funding = await this.splitGroups.refreshFunding(payment.splitGroupId);
+    }
+    return { received: true, matched: 1, tenantId: payment.tenantId, funding };
   }
 }
 
@@ -195,6 +201,7 @@ export class StripeWebhookController {
 }
 
 @Module({
+  imports: [SplitGroupsModule],
   controllers: [PaymentsController, StripeWebhookController],
   providers: [PaymentsService],
   exports: [PaymentsService],
