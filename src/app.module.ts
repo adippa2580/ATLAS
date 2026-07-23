@@ -31,6 +31,7 @@ import { GraphInsightsModule } from './insights/graph/graph-insights.module';
 import { RevenueInsightsModule } from './insights/revenue/revenue-insights.module';
 import { OpsInsightsModule } from './insights/ops/ops-insights.module';
 import { TalentModule } from './insights/talent/talent.module';
+import { BlendModule } from './insights/blend/blend.module';
 import { ProjectionModule } from './modules/guest/projection/projection.module';
 
 @Module({
@@ -65,6 +66,9 @@ import { ProjectionModule } from './modules/guest/projection/projection.module';
     RevenueInsightsModule,
     OpsInsightsModule,
     TalentModule,
+    // Native "Blend" — venue crowd-blend, guest-to-guest, crew-blend surfacing
+    // (no third-party Blend API exists; computed from our own taste graph).
+    BlendModule,
     // Per-venue consented projection of a guest's cross-tenant affinity (spine).
     ProjectionModule,
     // Public venue-link (class 1b) surface — tenant resolved from the link code.
