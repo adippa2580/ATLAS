@@ -67,4 +67,14 @@ describe('ActionsService lifecycle', () => {
     await svc.propose(ctx, { actionType: 'x' } as any);
     await expect(svc.execute(ctx, 'a1')).rejects.toThrow(BadRequestException);
   });
+
+  it('reject records decidedAt and is terminal', async () => {
+    const svc = make();
+    await svc.propose(ctx, { actionType: 'x' } as any);
+    const rejected: any = await svc.reject(ctx, 'a1');
+    expect(rejected.status).toBe('rejected');
+    expect(rejected.decidedAt).toBeInstanceOf(Date);
+    // Terminal — no further transition allowed.
+    await expect(svc.execute(ctx, 'a1')).rejects.toThrow(BadRequestException);
+  });
 });

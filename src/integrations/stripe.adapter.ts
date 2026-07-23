@@ -27,9 +27,14 @@ export class StripeAdapter {
     idempotencyKey: string,
   ): Promise<PaymentIntentResult> {
     if (this.stub) {
+      // The id MUST be derived from the FULL idempotency key, not a prefix:
+      // Payment.stripePiId is @unique, and keys within one split group share a
+      // prefix (`sg_<uuid>_…`, `split_<uuid>_…`), so a truncated id collides on
+      // the 2nd insert and throws P2002. The full key keeps the stub id both
+      // deterministic per key (Stripe idempotency) and unique across keys.
       return {
-        id: `pi_stub_${idempotencyKey.slice(0, 12)}`,
-        clientSecret: `pi_stub_secret_${idempotencyKey.slice(0, 8)}`,
+        id: `pi_stub_${idempotencyKey}`,
+        clientSecret: `pi_stub_secret_${idempotencyKey}`,
         status: 'requires_payment_method',
       };
     }

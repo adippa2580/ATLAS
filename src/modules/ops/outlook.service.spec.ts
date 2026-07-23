@@ -49,4 +49,60 @@ describe('OutlookService rules v1', () => {
     expect(upsert).toHaveBeenCalledTimes(1);
     expect(res.weightsVersion).toBe('v1-20/20/15/15/10/10/10');
   });
+
+  it('demand above the same-weekday baseline lifts demandPace above neutral', async () => {
+    // 2026-07-24 is a Friday. One prior Friday with 1 booking → baseline 1;
+    // tonight has 3 confirmed bookings → demandPace ratio 3 → clamps toward 1.
+    const friday = new Date('2026-07-17T00:00:00.000Z');
+    const prisma: any = {
+      booking: {
+        findMany: jest
+          .fn()
+          // 1st call: historical (one prior Friday night, 1 booking)
+          .mockImplementationOnce(async () => [
+            { date: friday, tab: { total: 10_000 } },
+          ])
+          // 2nd call: tonight's 3 actionable bookings — a strong night
+          // (attributed, min-spend inventory, all past `held`).
+          .mockImplementationOnce(async () => [
+            {
+              id: 'b1',
+              guestId: 'g1',
+              status: 'confirmed',
+              attributionId: 'a1',
+              inventoryId: 'i1',
+              inventory: { minSpend: 5_000 },
+            },
+            {
+              id: 'b2',
+              guestId: 'g2',
+              status: 'seated',
+              attributionId: 'a1',
+              inventoryId: 'i2',
+              inventory: { minSpend: 5_000 },
+            },
+            {
+              id: 'b3',
+              guestId: 'g3',
+              status: 'confirmed',
+              attributionId: 'a1',
+              inventoryId: 'i3',
+              inventory: { minSpend: 5_000 },
+            },
+          ]),
+      },
+      inventory: { count: async () => 3 },
+      payment: { findMany: async () => [{ status: 'succeeded', amount: 1 }] },
+      guestAffinity: { findMany: async () => [{ score: 4 }] },
+      eventOutlook: {
+        upsert: async ({ create }: any) => ({ id: 'o1', ...create }),
+      },
+    };
+    const svc = new OutlookService(prisma);
+    const res = await svc.compute(ctx, 'v1', '2026-07-24');
+    expect(res.factors.demandPace).toBeGreaterThan(0.5);
+    // opsReadiness: all 3 bookings are past `held` → 1.0
+    expect(res.factors.opsReadiness).toBe(1);
+    expect(res.score).toBeGreaterThan(50);
+  });
 });
