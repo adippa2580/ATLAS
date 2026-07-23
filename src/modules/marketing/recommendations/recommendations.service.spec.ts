@@ -14,6 +14,7 @@ describe('RecommendationsService', () => {
     affinities?: any[];
     repeatBookings?: any[];
     dropCount?: number;
+    concerts?: any;
   }) {
     const created: Record<string, any[]> = { audiences: [], links: [] };
     const prisma: any = {
@@ -65,8 +66,11 @@ describe('RecommendationsService', () => {
         skippedExisting: 0,
       })),
     };
-    const svc = new RecommendationsService(prisma, klaviyo, drops);
-    return { svc, created, klaviyo, drops };
+    const concerts: any = {
+      concerts: jest.fn(async () => opts.concerts ?? { concerts: [] }),
+    };
+    const svc = new RecommendationsService(prisma, klaviyo, drops, concerts);
+    return { svc, created, klaviyo, drops, concerts };
   }
 
   const ctx = { tenantId: 't1', scopes: [] } as any;
@@ -292,5 +296,86 @@ describe('RecommendationsService', () => {
     expect(comps).toHaveLength(1);
     expect(comps[0].headline).toContain('Local Rival');
     expect(comps[0].relevance).toBe('local');
+  });
+
+  it('grounds a concert-demand rec from the followed-artist join', async () => {
+    const { svc, concerts } = make({
+      concerts: {
+        concerts: [
+          {
+            artist: 'Keinemusik',
+            guestsInterested: 12,
+            event: 'Keinemusik — Miami',
+            date: '2026-08-15T22:00:00Z',
+            venue: 'Factory Town',
+            city: 'Miami',
+          },
+        ],
+      },
+    });
+    const out = await svc.list(ctx, { venueId: 'v1' });
+    expect(concerts.concerts).toHaveBeenCalled();
+    const rec = out.recommendations.find((r) => r.kind === 'concert_demand')!;
+    expect(rec.headline).toContain('Keinemusik');
+    expect(rec.headline).toContain('Factory Town');
+    expect(rec.matched).toBe(12);
+    expect(rec.insight).toContain('12 of your consented guests follow');
+    expect(rec.actions.map((a) => a.action)).toEqual([
+      'promote_concert',
+      'mint_link',
+    ]);
+  });
+
+  it("a feed hiccup on concerts doesn't sink the recommendation list", async () => {
+    const { svc } = make({ events: [festival] });
+    // Force the concerts dependency to throw.
+    (svc as any).concerts.concerts = jest.fn(async () => {
+      throw new Error('feed down');
+    });
+    const out = await svc.list(ctx, { venueId: 'v1' });
+    // The event rec still ships; no concert recs.
+    expect(out.recommendations.some((r) => r.kind === 'event_demand')).toBe(
+      true,
+    );
+    expect(out.recommendations.some((r) => r.kind === 'concert_demand')).toBe(
+      false,
+    );
+  });
+
+  it('promote_concert builds the artist audience and sends via Klaviyo', async () => {
+    const { svc, created, klaviyo } = make({
+      affinities: [{ guestId: 'g1' }, { guestId: 'g2' }],
+    });
+    const res: any = await svc.act(ctx, {
+      action: 'promote_concert',
+      artist: 'Keinemusik',
+      venueId: 'v1',
+    } as any);
+    expect(created.audiences[0].name).toBe('Concert · Keinemusik');
+    expect(created.audiences[0].predicates.artist).toBe('Keinemusik');
+    expect(created.audiences[0].predicates.matchedGuestIds).toEqual([
+      'g1',
+      'g2',
+    ]);
+    expect(klaviyo.sendCampaign).toHaveBeenCalledWith(
+      2,
+      expect.objectContaining({
+        template: 'concert_promo',
+        artist: 'Keinemusik',
+      }),
+      expect.arrayContaining([expect.objectContaining({ externalId: 'g1' })]),
+    );
+    expect(res.matched).toBe(2);
+  });
+
+  it('promote_concert refuses when the artist has no consented followers', async () => {
+    const { svc } = make({ affinities: [] });
+    await expect(
+      svc.act(ctx, {
+        action: 'promote_concert',
+        artist: 'Nobody',
+        venueId: 'v1',
+      } as any),
+    ).rejects.toThrow(BadRequestException);
   });
 });

@@ -22,23 +22,43 @@ import {
   InventoryDropModule,
   InventoryDropService,
 } from '../../ops/inventory-drop.module';
+import {
+  ConcertsModule,
+  ConcertsService,
+} from '../../../insights/concerts/concerts.module';
 
 const DEFAULT_WINDOW_DAYS = 21;
 const DEFAULT_MIN_SCORE = 1;
 const REACHABLE_CONSENT_SCOPES = ['marketing', 'identity'];
 
 class ActDto {
-  @IsIn(['promote_matched', 'late_night_drop', 'mint_link', 'defend_regulars'])
+  @IsIn([
+    'promote_matched',
+    'late_night_drop',
+    'mint_link',
+    'defend_regulars',
+    'promote_concert',
+  ])
   action!:
-    'promote_matched' | 'late_night_drop' | 'mint_link' | 'defend_regulars';
+    | 'promote_matched'
+    | 'late_night_drop'
+    | 'mint_link'
+    | 'defend_regulars'
+    | 'promote_concert';
   @IsOptional() @IsString() eventId?: string;
   @IsOptional() @IsString() venueId?: string;
   @IsOptional() @IsInt() @Min(0) minScore?: number;
+  // promote_concert: the artist whose consented followers we reach.
+  @IsOptional() @IsString() artist?: string;
 }
 
 export interface GroundedRecommendation {
   id: string;
-  kind: 'event_demand' | 'late_night_fill' | 'competitor_opening';
+  kind:
+    | 'event_demand'
+    | 'late_night_fill'
+    | 'competitor_opening'
+    | 'concert_demand';
   headline: string;
   date: string | null;
   /**
@@ -50,6 +70,8 @@ export interface GroundedRecommendation {
   insight: string;
   matched: number;
   repeatMatched: number;
+  /** Set on concert_demand recs — the artist the promote_concert action reaches. */
+  artist?: string;
   actions: { action: string; label: string }[];
 }
 
@@ -76,7 +98,33 @@ export class RecommendationsService {
     private readonly prisma: PrismaService,
     private readonly klaviyo: KlaviyoAdapter,
     private readonly drops: InventoryDropService,
+    private readonly concerts: ConcertsService,
   ) {}
+
+  /** Consented, non-provisional guests who follow a specific artist. */
+  private async artistFollowers(
+    ctx: TenantContext,
+    artist: string,
+    minScore: number,
+  ) {
+    const affinities = await this.prisma.guestAffinity.findMany({
+      where: {
+        tenantId: ctx.tenantId,
+        muted: false,
+        score: { gte: minScore },
+        subjectType: SubjectType.artist,
+        subjectRef: artist,
+        guest: {
+          provisional: false,
+          consents: {
+            some: { revokedAt: null, scope: { in: REACHABLE_CONSENT_SCOPES } },
+          },
+        },
+      },
+      select: { guestId: true },
+    });
+    return [...new Set(affinities.map((a) => a.guestId))];
+  }
 
   private parseDate(
     metadata: unknown,
@@ -336,6 +384,40 @@ export class RecommendationsService {
       }
     }
 
+    // Concert demand: artists this venue's consented guests follow who are
+    // playing near the venue (taste graph × Ticketmaster). Each becomes a
+    // promotable card — the guests are going out that night anyway. Fail-soft:
+    // a feed hiccup must never sink the whole recommendation list.
+    if (venueId) {
+      try {
+        const near = await this.concerts.concerts(ctx, venueId);
+        for (const c of (near.concerts ?? []).slice(0, 5)) {
+          if (!c.guestsInterested) continue;
+          const dayLabel = (c.date ?? '').slice(0, 10);
+          recommendations.push({
+            id: `concert:${c.artist}:${dayLabel}`,
+            kind: 'concert_demand',
+            headline: `${c.artist} · ${dayLabel}${c.venue ? ` · ${c.venue}` : ''}`,
+            date: c.date ?? null,
+            relevance: 'local',
+            insight: `${c.guestsInterested} of your consented guests follow ${c.artist} — they're out near you that night anyway`,
+            matched: c.guestsInterested,
+            repeatMatched: 0,
+            artist: c.artist,
+            actions: [
+              {
+                action: 'promote_concert',
+                label: `Promote to ${c.guestsInterested} followers`,
+              },
+              { action: 'mint_link', label: 'Mint attributed promo link' },
+            ],
+          });
+        }
+      } catch {
+        // concerts feed unavailable — the rest of the list still ships
+      }
+    }
+
     // Local first (impact + hometown demand), then by audience size. Destination
     // events stay listed — they are promotion opportunities, not noise.
     const rank = (r: GroundedRecommendation) =>
@@ -430,6 +512,52 @@ export class RecommendationsService {
       };
     }
 
+    if (dto.action === 'promote_concert') {
+      const artist = dto.artist?.trim();
+      if (!artist) {
+        throw new BadRequestException('promote_concert requires artist');
+      }
+      const followers = await this.artistFollowers(
+        ctx,
+        artist,
+        dto.minScore ?? DEFAULT_MIN_SCORE,
+      );
+      if (!followers.length) {
+        throw new BadRequestException('No consented followers for this artist');
+      }
+      const audience = await this.prisma.audience.create({
+        data: {
+          tenantId: ctx.tenantId,
+          name: `Concert · ${artist}`,
+          predicates: { artist, matchedGuestIds: followers },
+        },
+      });
+      const guests = await this.prisma.guest.findMany({
+        where: { tenantId: ctx.tenantId, id: { in: followers } },
+        select: {
+          id: true,
+          email: true,
+          primaryPhone: true,
+          displayName: true,
+        },
+      });
+      const delivery = await this.klaviyo.sendCampaign(
+        followers.length,
+        { template: 'concert_promo', artist, audienceId: audience.id },
+        KlaviyoAdapter.toRecipients(guests, {
+          audienceId: audience.id,
+          artist,
+        }),
+      );
+      return {
+        action: dto.action,
+        audienceId: audience.id,
+        artist,
+        matched: followers.length,
+        delivery,
+      };
+    }
+
     // promote_matched
     if (!event) {
       throw new BadRequestException('promote_matched requires eventId');
@@ -516,7 +644,7 @@ export class RecommendationsController {
 }
 
 @Module({
-  imports: [InventoryDropModule],
+  imports: [InventoryDropModule, ConcertsModule],
   providers: [RecommendationsService],
   controllers: [RecommendationsController],
   exports: [RecommendationsService],
